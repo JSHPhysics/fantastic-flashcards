@@ -7,8 +7,8 @@ pick up without context. Keep entries terse; commit messages hold the detail.
 
 ## Status
 
-**Last completed:** Session 11 — Custom Study mode (filtered queue, FSRS-skip by default, Repeat-last)
-**Next up:** Session 12 — Stats + history + progress graphs
+**Last completed:** Session 12 — Stats + history + progress graphs (Today / Week / All-time tabs, SVG charts, per-deck maturity donut)
+**Next up:** Session 13 — Backup export / import
 **Stopping discipline (new):** After each session, do a rigorous code review
 before moving on. Fix bugs found during the review in a follow-up commit. Don't
 build on bad code.
@@ -56,7 +56,7 @@ npm run build
 | 9       | Drawing card type                              | Done (pressure-sensitive width is base only for now) | (this push) |
 | 10      | FSRS scheduler + standard review               | Done          | (this push) |
 | 11      | Custom Study mode                              | Done          | (this push) |
-| 12      | Stats + history + graphs                       | Pending       | -         |
+| 12      | Stats + history + graphs                       | Done (share-to-PNG deferred to Session 14 polish) | (this push) |
 | 13      | Backup export / import                         | Pending       | -         |
 | 14      | PWA polish + install flow + offline            | Pending       | -         |
 | 15      | Accessibility + iPad QA + final polish         | Pending       | -         |

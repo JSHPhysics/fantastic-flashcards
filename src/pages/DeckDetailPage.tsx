@@ -3,12 +3,14 @@ import { useDeck, useCardsInDeck, type Card } from "../db";
 import { Button } from "../components/Button";
 import { DeckActionsMenu } from "../components/DeckActionsMenu";
 import { StreakChip } from "../components/StreakChip";
-import { useState } from "react";
+import { MaturityDonut } from "../components/stats/MaturityDonut";
+import { useMemo, useState } from "react";
 import { CreateDeckDialog } from "../components/CreateDeckDialog";
 import {
   formatRelativeTime,
   useDeckPracticeStats,
 } from "../study/practiceStats";
+import { deckMaturityFromCards } from "../study/statsAggregator";
 
 export function DeckDetailPage() {
   const { id } = useParams();
@@ -107,6 +109,8 @@ export function DeckDetailPage() {
         </Button>
       </div>
 
+      <MaturitySection cards={cards} />
+
       <h2 className="mb-2 text-sm font-semibold uppercase tracking-wider text-ink-500 dark:text-ink-300">
         Cards
       </h2>
@@ -118,6 +122,34 @@ export function DeckDetailPage() {
         initialParentId={deck.id}
       />
     </section>
+  );
+}
+
+function MaturitySection({ cards }: { cards: Card[] | undefined }) {
+  const maturity = useMemo(
+    () => deckMaturityFromCards(cards ?? []),
+    [cards],
+  );
+  const total =
+    maturity.newCount + maturity.learningCount + maturity.matureCount;
+  if (total === 0) return null;
+  return (
+    <div className="card-surface mb-6 flex flex-wrap items-center gap-4 p-5">
+      <div className="text-navy dark:text-gold">
+        <MaturityDonut stats={maturity} size={120} />
+      </div>
+      <div className="flex-1 min-w-[12rem] text-sm text-ink-700 dark:text-ink-300">
+        <p className="text-ink-900 dark:text-dark-ink">
+          {maturity.matureCount === 0
+            ? "No mature cards yet."
+            : `${maturity.matureCount} mature card${maturity.matureCount === 1 ? "" : "s"}.`}
+        </p>
+        <p className="mt-1 text-xs">
+          Mature means a card you've seen often enough that it's now scheduled
+          more than 21 days out.
+        </p>
+      </div>
+    </div>
   );
 }
 
