@@ -7,8 +7,8 @@ pick up without context. Keep entries terse; commit messages hold the detail.
 
 ## Status
 
-**Last completed:** Session 9 — drawing card type (pen / eraser, optional background image, model answer captured as WebP, three reveal modes)
-**Next up:** Session 10 — FSRS scheduler + standard review session
+**Last completed:** Session 10 — FSRS scheduler + standard review session (all 6 card types, ReviewEvent + Session writes, streak with rest-day allowance)
+**Next up:** Session 11 — Custom Study mode
 **Stopping discipline (new):** After each session, do a rigorous code review
 before moving on. Fix bugs found during the review in a follow-up commit. Don't
 build on bad code.
@@ -54,7 +54,7 @@ npm run build
 | 7       | TTS pronunciation                              | Done          | `0c4610a` |
 | 8       | Image occlusion                                | Done (polygon + groups + labels deferred) | (this push) |
 | 9       | Drawing card type                              | Done (pressure-sensitive width is base only for now) | (this push) |
-| 10      | FSRS scheduler + standard review               | Pending       | -         |
+| 10      | FSRS scheduler + standard review               | Done          | (this push) |
 | 11      | Custom Study mode                              | Pending       | -         |
 | 12      | Stats + history + graphs                       | Pending       | -         |
 | 13      | Backup export / import                         | Pending       | -         |
