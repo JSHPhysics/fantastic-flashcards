@@ -7,6 +7,10 @@ interface ImageSourceDialogProps {
   onClose: () => void;
   onUploadClick: () => void;
   onPasteClick: () => Promise<void>;
+  // Optional. Present when the caller has wired up a camera-capture flow.
+  // Hidden when undefined so platforms / configurations without camera
+  // support don't see a dead button.
+  onCameraClick?: () => void;
   busyMessage?: string | null;
 }
 
@@ -23,6 +27,7 @@ export function ImageSourceDialog({
   onClose,
   onUploadClick,
   onPasteClick,
+  onCameraClick,
   busyMessage,
 }: ImageSourceDialogProps) {
   const [error, setError] = useState<string | null>(null);
@@ -70,6 +75,17 @@ export function ImageSourceDialog({
             onClose();
           }}
         />
+        {onCameraClick && (
+          <SourceTile
+            icon={<CameraIcon />}
+            title="Take a photo"
+            subtitle="Use this device's camera. Handwriting and paper get an automatic touch-up."
+            onClick={() => {
+              onCameraClick();
+              onClose();
+            }}
+          />
+        )}
         <SourceTile
           icon={<ClipboardIcon />}
           title="Paste from clipboard"
@@ -164,6 +180,26 @@ function ClipboardIcon() {
         width="6"
         height="3"
         rx="1"
+        stroke="currentColor"
+        strokeWidth="1.6"
+      />
+    </svg>
+  );
+}
+
+function CameraIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden>
+      <path
+        d="M4 8h3l1.5-2h7L17 8h3v11H4z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+      <circle
+        cx="12"
+        cy="13"
+        r="3.5"
         stroke="currentColor"
         strokeWidth="1.6"
       />

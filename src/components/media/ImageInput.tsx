@@ -3,6 +3,8 @@ import { compressImage } from "../../media/image";
 import { storeMedia } from "../../db";
 import { useObjectUrl } from "../../media/useObjectUrl";
 import { ImageSourceDialog } from "./ImageSourceDialog";
+import { CameraCaptureDialog } from "./CameraCaptureDialog";
+import { isCameraSupported } from "../../media/camera";
 
 interface ImageInputProps {
   imageHash?: string;
@@ -23,6 +25,7 @@ export function ImageInput({ imageHash, onChange, label }: ImageInputProps) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [cameraOpen, setCameraOpen] = useState(false);
 
   const previewUrl = useObjectUrl(imageHash);
 
@@ -142,7 +145,15 @@ export function ImageInput({ imageHash, onChange, label }: ImageInputProps) {
         onClose={() => setDialogOpen(false)}
         onUploadClick={() => fileInputRef.current?.click()}
         onPasteClick={handlePasteFromClipboard}
+        onCameraClick={
+          isCameraSupported() ? () => setCameraOpen(true) : undefined
+        }
         busyMessage={busy ? "Importing..." : null}
+      />
+      <CameraCaptureDialog
+        open={cameraOpen}
+        onClose={() => setCameraOpen(false)}
+        onCaptured={(blob) => void handleFile(blob)}
       />
     </div>
   );

@@ -20,6 +20,8 @@ import { Button } from "../../Button";
 import { TagsInput } from "../../TagsInput";
 import { FormField, inputClass } from "../../FormField";
 import { ImageSourceDialog } from "../../media/ImageSourceDialog";
+import { CameraCaptureDialog } from "../../media/CameraCaptureDialog";
+import { isCameraSupported } from "../../../media/camera";
 import { RichFieldEditor } from "../../media/RichFieldEditor";
 
 // Drawing-card authoring screen. The user types a prompt and draws a model
@@ -74,6 +76,7 @@ function DrawingEditor({ initialDeckId, cardId }: DrawingEditorProps) {
   const [activeStroke, setActiveStroke] = useState<Stroke | null>(null);
 
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [cameraOpen, setCameraOpen] = useState(false);
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -492,7 +495,15 @@ function DrawingEditor({ initialDeckId, cardId }: DrawingEditorProps) {
         onClose={() => setPickerOpen(false)}
         onUploadClick={() => fileInputRef.current?.click()}
         onPasteClick={handlePasteFromClipboard}
+        onCameraClick={
+          isCameraSupported() ? () => setCameraOpen(true) : undefined
+        }
         busyMessage={importing ? "Importing..." : null}
+      />
+      <CameraCaptureDialog
+        open={cameraOpen}
+        onClose={() => setCameraOpen(false)}
+        onCaptured={(blob) => void handleFile(blob)}
       />
       <input
         ref={fileInputRef}
