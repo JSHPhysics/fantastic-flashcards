@@ -4,7 +4,33 @@ import { bumpVersion } from "./profile";
 import { newId } from "./ids";
 import { initFsrsState } from "../srs/state";
 import { walkAncestorsInclusive } from "./decks";
+import { retainMedia, releaseMedia } from "./media";
+import {
+  diffHashes,
+  hashesInContent,
+} from "../cards/media-lifecycle";
 import type { Card, CardContent, CardType } from "./types";
+
+// Recompute deck.mediaBytes by summing bytes of unique media hashes referenced
+// by any non-suspended card in the deck. O(cards + hashes); runs after each
+// mutation that touches a deck. Cheap enough at deck-size scale.
+async function recomputeDeckMediaBytes(deckId: string): Promise<void> {
+  const cards = await db.cards.where("deckId").equals(deckId).toArray();
+  const hashes = new Set<string>();
+  for (const c of cards) {
+    for (const h of hashesInContent(c.content)) hashes.add(h);
+  }
+  if (hashes.size === 0) {
+    await db.decks.update(deckId, { mediaBytes: 0 });
+    return;
+  }
+  let total = 0;
+  for (const h of hashes) {
+    const m = await db.media.get(h);
+    if (m) total += m.bytes;
+  }
+  await db.decks.update(deckId, { mediaBytes: total });
+}
 
 export interface CreateCardInput {
   deckId: string;
@@ -43,6 +69,12 @@ export async function createCard(input: CreateCardInput): Promise<Card> {
       });
     });
   });
+  // Retain referenced media outside the cards/decks transaction so we don't
+  // mix tables. Each retain is atomic on its own.
+  for (const h of hashesInContent(card.content)) {
+    await retainMedia(h);
+  }
+  await recomputeDeckMediaBytes(card.deckId);
   await bumpVersion("card created");
   return card;
 }
@@ -102,6 +134,23 @@ export async function updateCard(
 ): Promise<void> {
   const next = { ...patch, updatedAt: Date.now() };
   if (next.tags) next.tags = dedupeTags(next.tags);
+
+  // If content changed, reconcile media refs.
+  if (patch.content !== undefined) {
+    const before = await db.cards.get(id);
+    if (before) {
+      const { added, removed } = diffHashes(
+        hashesInContent(before.content),
+        hashesInContent(patch.content),
+      );
+      for (const h of added) await retainMedia(h);
+      for (const h of removed) await releaseMedia(h);
+      await db.cards.update(id, next);
+      await recomputeDeckMediaBytes(before.deckId);
+      await bumpVersion("card updated");
+      return;
+    }
+  }
   await db.cards.update(id, next);
   await bumpVersion("card updated");
 }
@@ -111,16 +160,17 @@ export async function moveCard(
   cardId: string,
   toDeckId: string,
 ): Promise<void> {
+  let fromDeckId: string | undefined;
   await db.transaction("rw", db.cards, db.decks, async () => {
     const card = await db.cards.get(cardId);
     if (!card || card.deckId === toDeckId) return;
-    const fromDeckId = card.deckId;
+    fromDeckId = card.deckId;
 
     await db.cards.update(cardId, { deckId: toDeckId, updatedAt: Date.now() });
 
-    const fromDeck = await db.decks.get(fromDeckId);
+    const fromDeck = await db.decks.get(card.deckId);
     if (fromDeck) {
-      await db.decks.update(fromDeckId, {
+      await db.decks.update(card.deckId, {
         cardCount: fromDeck.cardCount - 1,
       });
     }
@@ -130,7 +180,7 @@ export async function moveCard(
         cardCount: toDeck.cardCount + 1,
       });
     }
-    await walkAncestorsInclusive(fromDeckId, async (d) => {
+    await walkAncestorsInclusive(card.deckId, async (d) => {
       await db.decks.update(d.id, {
         descendantCardCount: d.descendantCardCount - 1,
       });
@@ -141,6 +191,8 @@ export async function moveCard(
       });
     });
   });
+  if (fromDeckId) await recomputeDeckMediaBytes(fromDeckId);
+  await recomputeDeckMediaBytes(toDeckId);
   await bumpVersion("card moved");
 }
 
@@ -185,11 +237,19 @@ export async function bulkCopyCardsToDeck(
       });
     });
   });
+  // Each copy adds a reference to the same media hashes.
+  for (const c of copies) {
+    for (const h of hashesInContent(c.content)) await retainMedia(h);
+  }
+  await recomputeDeckMediaBytes(targetDeckId);
   await bumpVersion("cards duplicated");
   return copies.length;
 }
 
 export async function deleteCard(id: string): Promise<void> {
+  const touchedDecks = new Set<string>();
+  const releasedHashes: string[] = [];
+
   await db.transaction("rw", db.cards, db.decks, async () => {
     const card = await db.cards.get(id);
     if (!card) return;
@@ -202,11 +262,12 @@ export async function deleteCard(id: string): Promise<void> {
       .toArray();
     const allIds = [id, ...generated.map((c) => c.id)];
 
-    // Group counts by deck so we can update each touched deck once.
     const allCards = [card, ...generated];
     const perDeck = new Map<string, number>();
     for (const c of allCards) {
       perDeck.set(c.deckId, (perDeck.get(c.deckId) ?? 0) + 1);
+      for (const h of hashesInContent(c.content)) releasedHashes.push(h);
+      touchedDecks.add(c.deckId);
     }
 
     await db.cards.bulkDelete(allIds);
@@ -223,6 +284,9 @@ export async function deleteCard(id: string): Promise<void> {
       });
     }
   });
+
+  for (const h of releasedHashes) await releaseMedia(h);
+  for (const deckId of touchedDecks) await recomputeDeckMediaBytes(deckId);
   await bumpVersion("card deleted");
 }
 

@@ -3,6 +3,8 @@ import { db } from "./schema";
 import { bumpVersion } from "./profile";
 import { newId } from "./ids";
 import { bulkCopyCardsToDeck } from "./cards";
+import { releaseMedia } from "./media";
+import { hashesInContent } from "../cards/media-lifecycle";
 import type { Deck } from "./types";
 
 // Curated palette for the deck-create colour picker (Playbook 8). Tokens.ts
@@ -154,11 +156,19 @@ export async function duplicateDeck(
 }
 
 export async function deleteDeck(id: string): Promise<void> {
+  const released: string[] = [];
   await db.transaction("rw", db.decks, db.cards, async () => {
     const all = await collectDescendantIds(id);
+    const doomed = await db.cards.where("deckId").anyOf(all).toArray();
+    for (const c of doomed) {
+      for (const h of hashesInContent(c.content)) released.push(h);
+    }
     await db.cards.where("deckId").anyOf(all).delete();
     await db.decks.bulkDelete(all);
   });
+  // Release outside the cards/decks tx; the media GC sweep on next load
+  // will clear orphaned blobs whose refCount drops to 0.
+  for (const h of released) await releaseMedia(h);
   await bumpVersion("deck deleted");
 }
 

@@ -1,9 +1,10 @@
-import type { McqContent, McqOption } from "../../db";
-import { FormField, inputClass, textareaClass } from "../FormField";
+import type { McqContent, McqOption, RichField } from "../../db";
+import { FormField, inputClass } from "../FormField";
 import { newId } from "../../db/ids";
+import { RichFieldEditor } from "../media/RichFieldEditor";
 
 export interface McqDraft {
-  questionText: string;
+  question: RichField;
   options: McqOption[];
   shuffleOptions: boolean;
 }
@@ -49,12 +50,11 @@ export function McqForm({ draft, onChange }: Props) {
   return (
     <div className="space-y-4">
       <FormField label="Question" htmlFor="mcq-question">
-        <textarea
+        <RichFieldEditor
           id="mcq-question"
-          value={draft.questionText}
-          onChange={(e) => onChange({ ...draft, questionText: e.target.value })}
+          value={draft.question}
+          onChange={(question) => onChange({ ...draft, question })}
           rows={2}
-          className={textareaClass}
           autoFocus
         />
       </FormField>
@@ -196,7 +196,7 @@ function Chevron({ up }: { up?: boolean }) {
 
 export function defaultMcqDraft(): McqDraft {
   return {
-    questionText: "",
+    question: { text: "" },
     options: [
       { id: newId(), text: "", correct: false },
       { id: newId(), text: "", correct: false },
@@ -207,14 +207,14 @@ export function defaultMcqDraft(): McqDraft {
 
 export function mcqDraftFromContent(c: McqContent): McqDraft {
   return {
-    questionText: c.question.text,
+    question: { ...c.question },
     options: c.options.map((o) => ({ ...o })),
     shuffleOptions: c.shuffleOptions,
   };
 }
 
 export function mcqDraftValid(d: McqDraft): boolean {
-  if (d.questionText.trim().length === 0) return false;
+  if (d.question.text.trim().length === 0) return false;
   if (d.options.length < MIN_OPTIONS) return false;
   if (d.options.some((o) => o.text.trim().length === 0)) return false;
   if (!d.options.some((o) => o.correct)) return false;
@@ -229,7 +229,7 @@ export function McqPreview({ draft }: { draft: McqDraft }) {
           Question
         </p>
         <p className="mt-1 whitespace-pre-wrap text-base text-ink-900 dark:text-dark-ink">
-          {draft.questionText || (
+          {draft.question.text || (
             <span className="text-ink-500">(empty)</span>
           )}
         </p>

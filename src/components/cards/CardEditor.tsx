@@ -141,12 +141,13 @@ export function CardEditor({
         return cloze.text.trim() !== "";
       case "mcq":
         return (
-          mcq.questionText.trim() !== "" ||
+          mcq.question.text.trim() !== "" ||
           mcq.options.some((o) => o.text.trim() !== "" || o.correct)
         );
       case "typed":
         return (
-          typed.promptText.trim() !== "" || typed.acceptedAnswersRaw.trim() !== ""
+          typed.prompt.text.trim() !== "" ||
+          typed.acceptedAnswersRaw.trim() !== ""
         );
       default:
         return false;
@@ -225,7 +226,7 @@ export function CardEditor({
             await updateMcqCard(cardId, {
               deckId,
               tags,
-              question: { text: mcq.questionText },
+              question: mcq.question,
               options: mcq.options,
               shuffleOptions: mcq.shuffleOptions,
             });
@@ -234,7 +235,7 @@ export function CardEditor({
             await updateTypedCard(cardId, {
               deckId,
               tags,
-              prompt: { text: typed.promptText },
+              prompt: typed.prompt,
               acceptedAnswers: parseAcceptedAnswers(typed.acceptedAnswersRaw),
               caseSensitive: typed.caseSensitive,
               ignorePunctuation: typed.ignorePunctuation,
@@ -259,7 +260,7 @@ export function CardEditor({
             await createMcqCard({
               deckId,
               tags,
-              question: { text: mcq.questionText },
+              question: mcq.question,
               options: mcq.options,
               shuffleOptions: mcq.shuffleOptions,
             });
@@ -268,7 +269,7 @@ export function CardEditor({
             await createTypedCard({
               deckId,
               tags,
-              prompt: { text: typed.promptText },
+              prompt: typed.prompt,
               acceptedAnswers: parseAcceptedAnswers(typed.acceptedAnswersRaw),
               caseSensitive: typed.caseSensitive,
               ignorePunctuation: typed.ignorePunctuation,

@@ -1,8 +1,9 @@
-import type { TypedContent } from "../../db";
-import { FormField, inputClass, textareaClass } from "../FormField";
+import type { RichField, TypedContent } from "../../db";
+import { FormField, inputClass } from "../FormField";
+import { RichFieldEditor } from "../media/RichFieldEditor";
 
 export interface TypedDraft {
-  promptText: string;
+  prompt: RichField;
   acceptedAnswersRaw: string; // comma separated
   caseSensitive: boolean;
   ignorePunctuation: boolean;
@@ -17,12 +18,10 @@ export function TypedForm({ draft, onChange }: Props) {
   return (
     <div className="space-y-4">
       <FormField label="Prompt" htmlFor="typed-prompt">
-        <textarea
+        <RichFieldEditor
           id="typed-prompt"
-          value={draft.promptText}
-          onChange={(e) => onChange({ ...draft, promptText: e.target.value })}
-          rows={3}
-          className={textareaClass}
+          value={draft.prompt}
+          onChange={(prompt) => onChange({ ...draft, prompt })}
           autoFocus
         />
       </FormField>
@@ -75,7 +74,7 @@ export function TypedForm({ draft, onChange }: Props) {
 
 export function defaultTypedDraft(): TypedDraft {
   return {
-    promptText: "",
+    prompt: { text: "" },
     acceptedAnswersRaw: "",
     caseSensitive: false,
     ignorePunctuation: true,
@@ -84,7 +83,7 @@ export function defaultTypedDraft(): TypedDraft {
 
 export function typedDraftFromContent(c: TypedContent): TypedDraft {
   return {
-    promptText: c.prompt.text,
+    prompt: { ...c.prompt },
     acceptedAnswersRaw: c.acceptedAnswers.join(", "),
     caseSensitive: c.caseSensitive,
     ignorePunctuation: c.ignorePunctuation,
@@ -100,7 +99,7 @@ export function parseAcceptedAnswers(raw: string): string[] {
 
 export function typedDraftValid(d: TypedDraft): boolean {
   return (
-    d.promptText.trim().length > 0 &&
+    d.prompt.text.trim().length > 0 &&
     parseAcceptedAnswers(d.acceptedAnswersRaw).length > 0
   );
 }
@@ -113,7 +112,7 @@ export function TypedPreview({ draft }: { draft: TypedDraft }) {
         Prompt
       </p>
       <p className="mt-1 whitespace-pre-wrap text-base text-ink-900 dark:text-dark-ink">
-        {draft.promptText || <span className="text-ink-500">(empty)</span>}
+        {draft.prompt.text || <span className="text-ink-500">(empty)</span>}
       </p>
       <p className="mt-3 text-xs uppercase tracking-wider text-ink-500 dark:text-ink-300">
         Accepted answers
