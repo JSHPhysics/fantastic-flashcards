@@ -2,6 +2,7 @@ import type { McqContent, McqOption, RichField } from "../../db";
 import { FormField, inputClass } from "../FormField";
 import { newId } from "../../db/ids";
 import { RichFieldEditor } from "../media/RichFieldEditor";
+import { RichFieldRender } from "../media/RichFieldPreview";
 
 export interface McqDraft {
   question: RichField;
@@ -228,11 +229,7 @@ export function McqPreview({ draft }: { draft: McqDraft }) {
         <p className="text-xs uppercase tracking-wider text-ink-500 dark:text-ink-300">
           Question
         </p>
-        <p className="mt-1 whitespace-pre-wrap text-base text-ink-900 dark:text-dark-ink">
-          {draft.question.text || (
-            <span className="text-ink-500">(empty)</span>
-          )}
-        </p>
+        <RichFieldRender field={draft.question} />
         <ul className="mt-3 space-y-1">
           {draft.options.map((o, idx) => (
             <li

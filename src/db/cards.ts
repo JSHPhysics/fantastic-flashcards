@@ -12,8 +12,9 @@ import {
 import type { Card, CardContent, CardType } from "./types";
 
 // Recompute deck.mediaBytes by summing bytes of unique media hashes referenced
-// by any non-suspended card in the deck. O(cards + hashes); runs after each
-// mutation that touches a deck. Cheap enough at deck-size scale.
+// by every card in the deck (suspended cards still take up storage, so they
+// count). O(cards + hashes); runs after each mutation that touches a deck.
+// Cheap enough at deck-size scale.
 async function recomputeDeckMediaBytes(deckId: string): Promise<void> {
   const cards = await db.cards.where("deckId").equals(deckId).toArray();
   const hashes = new Set<string>();

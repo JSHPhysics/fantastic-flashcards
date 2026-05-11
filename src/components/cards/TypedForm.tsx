@@ -1,6 +1,7 @@
 import type { RichField, TypedContent } from "../../db";
 import { FormField, inputClass } from "../FormField";
 import { RichFieldEditor } from "../media/RichFieldEditor";
+import { RichFieldRender } from "../media/RichFieldPreview";
 
 export interface TypedDraft {
   prompt: RichField;
@@ -111,9 +112,7 @@ export function TypedPreview({ draft }: { draft: TypedDraft }) {
       <p className="text-xs uppercase tracking-wider text-ink-500 dark:text-ink-300">
         Prompt
       </p>
-      <p className="mt-1 whitespace-pre-wrap text-base text-ink-900 dark:text-dark-ink">
-        {draft.prompt.text || <span className="text-ink-500">(empty)</span>}
-      </p>
+      <RichFieldRender field={draft.prompt} />
       <p className="mt-3 text-xs uppercase tracking-wider text-ink-500 dark:text-ink-300">
         Accepted answers
       </p>

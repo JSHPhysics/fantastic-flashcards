@@ -1,6 +1,13 @@
 // Audio recording. MediaRecorder mono at the lowest bitrate the browser will
 // accept. Hard cap of 15s per Playbook section 5; UI shows a countdown and
-// auto-stops when the cap is hit.
+// auto-stops when the cap is hit. A safety timeout inside startRecording is
+// belt-and-braces.
+//
+// Critical detail: the "stop" event listener is registered at construction
+// time (before recorder.start()). If we registered it lazily inside stop()
+// instead, the safety timer could fire first, dispatch the "stop" event with
+// no listener attached, and the eventual UI-driven stop() would then await an
+// event that never fires again. Registering once up front avoids that race.
 
 import { sha256Hex } from "./hash";
 
@@ -56,61 +63,58 @@ export async function startRecording(): Promise<ActiveRecording> {
     if (e.data.size > 0) chunks.push(e.data);
   });
 
-  const stopAndCleanup = (): Promise<RecordedAudio> => {
-    return new Promise((resolve, reject) => {
-      recorder.addEventListener(
-        "stop",
-        async () => {
-          for (const t of stream.getTracks()) t.stop();
-          if (chunks.length === 0) {
-            reject(new Error("No audio captured"));
-            return;
-          }
-          const blob = new Blob(chunks, {
-            type: chunks[0].type || mimeType || "audio/webm",
-          });
-          const hash = await sha256Hex(blob);
-          resolve({
-            blob,
-            hash,
-            bytes: blob.size,
-            mimeType: blob.type || mimeType || "audio/webm",
-            durationMs: performance.now() - startedAt,
-          });
-        },
-        { once: true },
-      );
-      try {
-        if (recorder.state !== "inactive") recorder.stop();
-      } catch (err) {
-        reject(err);
-      }
-    });
-  };
+  // Resolves when the recorder fires "stop", whoever triggered it (user,
+  // safety timer, or cancel). Registered once at construction.
+  let resolveStopped: (() => void) | null = null;
+  const stoppedPromise = new Promise<void>((res) => {
+    resolveStopped = res;
+  });
+  recorder.addEventListener(
+    "stop",
+    () => {
+      for (const t of stream.getTracks()) t.stop();
+      resolveStopped?.();
+    },
+    { once: true },
+  );
 
   const startedAt = performance.now();
   recorder.start();
 
-  // Safety net: auto-stop at MAX_RECORD_SECONDS. UI also enforces this but
-  // belt-and-braces stops a runaway recorder.
   const safetyTimer = window.setTimeout(() => {
     if (recorder.state !== "inactive") recorder.stop();
   }, MAX_RECORD_SECONDS * 1000);
 
+  let cancelled = false;
+
   return {
     startedAt,
-    stop: () => {
+    stop: async (): Promise<RecordedAudio> => {
       window.clearTimeout(safetyTimer);
-      return stopAndCleanup();
+      if (recorder.state !== "inactive") recorder.stop();
+      await stoppedPromise;
+      if (cancelled) throw new Error("Recording cancelled");
+      if (chunks.length === 0) throw new Error("No audio captured");
+      const blob = new Blob(chunks, {
+        type: chunks[0].type || mimeType || "audio/webm",
+      });
+      const hash = await sha256Hex(blob);
+      return {
+        blob,
+        hash,
+        bytes: blob.size,
+        mimeType: blob.type || mimeType || "audio/webm",
+        durationMs: performance.now() - startedAt,
+      };
     },
     cancel: () => {
+      cancelled = true;
       window.clearTimeout(safetyTimer);
       try {
         if (recorder.state !== "inactive") recorder.stop();
       } catch {
-        // already stopped
+        // Already stopped; the stop listener still resolves stoppedPromise.
       }
-      for (const t of stream.getTracks()) t.stop();
     },
   };
 }

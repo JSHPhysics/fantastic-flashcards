@@ -1,9 +1,7 @@
 import type { BasicContent, RichField } from "../../db";
-import { FormField, inputClass } from "../FormField";
+import { FormField } from "../FormField";
 import { RichFieldEditor } from "../media/RichFieldEditor";
-import { useEffect, useState } from "react";
-import { getMedia } from "../../db";
-import { objectUrlFromBlob } from "../../media/image";
+import { RichFieldRender } from "../media/RichFieldPreview";
 
 export interface BasicDraft {
   front: RichField;
@@ -91,52 +89,7 @@ function PreviewFace({ label, field }: { label: string; field: RichField }) {
       <p className="text-xs uppercase tracking-wider text-ink-500 dark:text-ink-300">
         {label}
       </p>
-      <p className="mt-1 whitespace-pre-wrap text-base text-ink-900 dark:text-dark-ink">
-        {field.text || <span className="text-ink-500">(empty)</span>}
-      </p>
-      {field.imageHash && <PreviewImage hash={field.imageHash} />}
-      {field.audioHash && <PreviewAudio hash={field.audioHash} />}
+      <RichFieldRender field={field} />
     </div>
   );
 }
-
-function PreviewImage({ hash }: { hash: string }) {
-  const url = useObjectUrl(hash);
-  if (!url) return null;
-  return (
-    <img
-      src={url}
-      alt=""
-      className="mt-3 max-h-40 rounded-lg border border-ink-100 object-contain dark:border-dark-surface"
-    />
-  );
-}
-
-function PreviewAudio({ hash }: { hash: string }) {
-  const url = useObjectUrl(hash);
-  if (!url) return null;
-  return <audio controls src={url} className="mt-3 h-8 w-full" />;
-}
-
-function useObjectUrl(hash: string | undefined): string | null {
-  const [url, setUrl] = useState<string | null>(null);
-  useEffect(() => {
-    let cancelled = false;
-    let created: string | null = null;
-    setUrl(null);
-    if (!hash) return;
-    (async () => {
-      const m = await getMedia(hash);
-      if (!m || cancelled) return;
-      created = objectUrlFromBlob(m.blob);
-      setUrl(created);
-    })();
-    return () => {
-      cancelled = true;
-      if (created) URL.revokeObjectURL(created);
-    };
-  }, [hash]);
-  return url;
-}
-
-export { inputClass };

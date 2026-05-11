@@ -8,7 +8,14 @@ export async function getMedia(hash: string): Promise<MediaBlob | undefined> {
   return db.media.get(hash);
 }
 
-// Insert if missing, otherwise increment refCount.
+// Persist a media blob if not already present. Idempotent on existing rows
+// (does NOT touch refCount). RefCounts are owned exclusively by the card
+// repository: createCard / updateCard / deleteCard / bulkCopyCardsToDeck call
+// retainMedia / releaseMedia. Conflating store + retain here would double-count
+// every save and prevent the GC sweep from ever reclaiming storage.
+//
+// New rows land with refCount = 0, which means an editor draft that's
+// abandoned without a save will be swept on the next app load.
 export async function storeMedia(input: {
   hash: string;
   blob: Blob;
@@ -17,16 +24,13 @@ export async function storeMedia(input: {
 }): Promise<void> {
   await db.transaction("rw", db.media, async () => {
     const existing = await db.media.get(input.hash);
-    if (existing) {
-      await db.media.update(input.hash, { refCount: existing.refCount + 1 });
-      return;
-    }
+    if (existing) return;
     const row: MediaBlob = {
       hash: input.hash,
       blob: input.blob,
       mimeType: input.mimeType,
       bytes: input.bytes,
-      refCount: 1,
+      refCount: 0,
       createdAt: Date.now(),
     };
     await db.media.add(row);
