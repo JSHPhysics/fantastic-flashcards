@@ -7,10 +7,11 @@ pick up without context. Keep entries terse; commit messages hold the detail.
 
 ## Status
 
-**Last completed:** Session 3 — deck management with sub-decks
-**Next up:** Session 4 — card editor for text-based card types (Basic, Cloze, MCQ, Typed)
-**Stopped at:** Session 3 committed and pushed; Session 4 not yet started. Todo
-list for Session 4 was sketched then discarded when work paused.
+**Last completed:** Session 7 — TTS pronunciation
+**Next up:** Session 8 — image occlusion (Konva.js, touch / pen handles)
+**Stopping discipline (new):** After each session, do a rigorous code review
+before moving on. Fix bugs found during the review in a follow-up commit. Don't
+build on bad code.
 
 ## Resume on a new machine
 
@@ -18,7 +19,7 @@ list for Session 4 was sketched then discarded when work paused.
 git clone https://github.com/JSHPhysics/fantastic-flashcards.git
 cd fantastic-flashcards
 npm install
-npm run dev       # http://localhost:5173/fantastic-flashcards/
+npm run dev       # http://localhost:5173/fantastic-flashcards/ (or 5174 etc.)
 ```
 
 `npm run dev` serves the app with seeded data (2 decks x 5 cards, dev-only). To
@@ -40,11 +41,11 @@ npm run build
 | 1       | Scaffold + design system + routing + PWA       | Done          | `b250a8d` |
 | 2       | Dexie data layer + repositories + version cnt  | Done          | `2b49d5c` |
 | 3       | Deck management with sub-decks                 | Done          | `da8eb48` |
-| 4       | Card editor: Basic, Cloze, MCQ, Typed          | **Next**      | -         |
-| 5       | Frozen fields + bulk authoring                 | Pending       | -         |
-| 6       | Media pipeline (images + audio)                | Pending       | -         |
-| 7       | TTS pronunciation                              | Pending       | -         |
-| 8       | Image occlusion                                | Pending       | -         |
+| 4       | Card editor: Basic, Cloze, MCQ, Typed          | Done          | `f1fa428` |
+| 5       | Frozen fields + bulk authoring                 | Done          | `e39836b` |
+| 6       | Media pipeline (images + audio)                | Done          | `6f96042`, `55c6368` (review fixes) |
+| 7       | TTS pronunciation                              | Done          | `0c4610a` |
+| 8       | Image occlusion                                | **Next**      | -         |
 | 9       | Drawing card type                              | Pending       | -         |
 | 10      | FSRS scheduler + standard review               | Pending       | -         |
 | 11      | Custom Study mode                              | Pending       | -         |
@@ -54,31 +55,54 @@ npm run build
 | 15      | Accessibility + iPad QA + final polish         | Pending       | -         |
 | 16      | Deploy to GitHub Pages + README                | Pending       | -         |
 
+## Bugs caught in review and what they tell us
+
+These are kept here as a reminder of what kinds of failures the code base
+tends to ship. Future reviews should look for the same patterns.
+
+- **Session 6 — storeMedia refCount leak.** `storeMedia` was inserting new
+  rows with `refCount = 1` AND incrementing on existing rows, while
+  `createCard` also called `retainMedia`. Every save permanently double-
+  counted, and the GC sweep could never reclaim. Lesson: when two layers
+  both touch refcount, exactly one owns it. Cards own refcount now.
+- **Session 6 — audio safety-timer race.** The MediaRecorder "stop" event
+  listener was registered lazily inside `stopAndCleanup()`. If the 15s
+  safety timer fired first, the event dispatched with no listener, and the
+  eventual user stop() awaited an event that would never fire again ->
+  promise hangs forever. Lesson: register lifecycle event listeners at
+  construction, not at "stop" time. Use a shared resolved promise.
+- **Session 6 — preview gap.** McqPreview / TypedPreview only rendered
+  text, not images / audio that were authored on the question / prompt
+  RichField. Lesson: when widening a draft shape, check every consumer.
+  Now there's a shared `RichFieldRender` helper, so future RichField
+  consumers get the same render for free.
+
 ## Verification still needed (manual / on-device)
 
-Session 3's deliverable check is interactive and hasn't been clicked through on
-a real device yet. Before relying on the deck flows for further work, on first
-resume:
+Items deferred to real-device QA:
 
-- Create a 3-level deck tree from the home FAB; reload; confirm the tree
-  persists.
-- Open deck overflow menu: try Rename, Duplicate (verify the copied subtree has
-  new ids, copied cards, and resets FSRS), Move (verify the picker excludes the
-  deck and its descendants), Delete (verify recursive cascade).
-- Build a deeper nest: confirm the depth-warning modal fires at level 5.
-
-If any of those reveal a bug, fix in Session 3 before Session 4.
+- Session 3 deliverable: 3-level deck tree creation, move semantics, depth
+  warning at level 5, reload persistence.
+- Session 6 deliverable: image add (compresses to WebP, persists), audio
+  record (15s cap, mic permissions, countdown), refCount sanity after
+  card delete + reload.
+- Session 7 deliverable: TTS quality on iPad with Enhanced French voice
+  downloaded. Speaker icon plays the word; auto-speak hooks fire (Session
+  10 will exercise these in the review session).
 
 ## Open notes for the next session
 
-- `package.json` still flags 3 moderate npm audit warnings on transitive deps
-  (deferred — they're build-time deps, not runtime). Re-check at Session 14.
-- Bundle currently 341 KB raw / 111 KB gzipped, well under the 600 KB gzipped
-  target for the app shell. Konva (Sessions 8-9) is the next big add and must
-  be lazy-loaded per the playbook.
-- Dev seed lives in `src/db/seed.ts` and skips when decks already exist. Wipe
-  via `window.__wipeDev()` if you want a clean slate.
-- `src/srs/state.ts` wraps `ts-fsrs` with `initFsrsState()`. Session 10 builds
-  the rest of the scheduler around this.
+- `package.json` still flags 3 moderate npm audit warnings on transitive
+  deps; review at Session 14.
+- Bundle currently 393 KB raw / 124 KB gzipped. Konva (Sessions 8-9) is
+  the next big add and **must be lazy-loaded** per the playbook so the
+  Konva chunk only loads when an occlusion or drawing route is visited.
+- `src/srs/state.ts` wraps ts-fsrs with `initFsrsState()`. Session 10
+  builds the full scheduler around this.
 - All Dexie usage is confined to `src/db/`. Components must import from
-  `@/db` (or `../db`), not from `dexie` directly.
+  `../db` (or `@/db`), not from `dexie` directly.
+- Cards own all media refcounts via createCard / updateCard / deleteCard /
+  bulkCopyCardsToDeck / (deck) deleteDeck. `storeMedia` is idempotent and
+  never touches refCount.
+- The 14 react-refresh "only-export-components" warnings are dev-time only
+  (fast-refresh boundary heuristics); they don't affect production.
