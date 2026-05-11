@@ -14,6 +14,7 @@ import {
   createTypedCard,
 } from "../cards/service";
 import { newId } from "./ids";
+import type { FsrsState, ReviewEvent } from "./types";
 
 export interface SeedDebugResult {
   decksCreated: number;
@@ -178,7 +179,106 @@ export async function seedDebugData(): Promise<SeedDebugResult> {
   });
   cards++;
 
+  // Synthesise review history so the stats displays (last-studied,
+  // per-deck streak, global streak) have something interesting to show.
+  // - French: today plus the four previous days -> 5-day streak.
+  // - Spanish: today plus yesterday -> 2-day streak.
+  // - German: a single review three days ago -> 0 streak, but the
+  //   "Last studied 3 days ago" line is exercised.
+  // - All-card-types deck: untouched -> "Never studied".
+  await seedReviewHistory({
+    french: french.id,
+    spanish: spanish.id,
+    german: german.id,
+  });
+
   return { decksCreated: decks, cardsCreated: cards, alreadySeeded: false };
+}
+
+// ---- Review history seeding ----
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+interface ReviewSeedDeckIds {
+  french: string;
+  spanish: string;
+  german: string;
+}
+
+async function seedReviewHistory(decks: ReviewSeedDeckIds): Promise<void> {
+  const frenchCard = await db.cards.where("deckId").equals(decks.french).first();
+  const spanishCard = await db.cards.where("deckId").equals(decks.spanish).first();
+  const germanCard = await db.cards.where("deckId").equals(decks.german).first();
+
+  // Late-afternoon today, used as the per-day anchor. Subtracting whole
+  // days from it lands each review in the corresponding day's afternoon.
+  const todayAfternoon = new Date();
+  todayAfternoon.setHours(17, 0, 0, 0);
+  const anchor = todayAfternoon.getTime();
+
+  const sessionId = newId();
+  const reviews: ReviewEvent[] = [];
+
+  if (frenchCard) {
+    for (let d = 0; d < 5; d += 1) {
+      reviews.push(
+        buildReview(frenchCard.id, frenchCard.fsrs, decks.french, anchor - d * DAY_MS, sessionId),
+      );
+    }
+  }
+  if (spanishCard) {
+    for (let d = 0; d < 2; d += 1) {
+      reviews.push(
+        buildReview(spanishCard.id, spanishCard.fsrs, decks.spanish, anchor - d * DAY_MS, sessionId),
+      );
+    }
+  }
+  if (germanCard) {
+    reviews.push(
+      buildReview(germanCard.id, germanCard.fsrs, decks.german, anchor - 3 * DAY_MS, sessionId),
+    );
+  }
+
+  if (reviews.length === 0) return;
+  await db.reviews.bulkAdd(reviews);
+
+  // Match the global streak to the French deck's run so the HomePage chip
+  // tells a consistent story: five consecutive days including today.
+  await db.profile.update("self", {
+    streakDays: 5,
+    longestStreak: 5,
+    lastReviewDate: isoLocalDate(new Date()),
+  });
+}
+
+function buildReview(
+  cardId: string,
+  fsrs: FsrsState,
+  deckId: string,
+  timestamp: number,
+  sessionId: string,
+): ReviewEvent {
+  return {
+    id: newId(),
+    cardId,
+    deckId,
+    timestamp,
+    rating: 3,
+    timeTakenMs: 4000,
+    // The card's current FSRS state is used for both sides of the audit so
+    // the seed doesn't have to walk applyRating; the stats displays only
+    // read deckId + timestamp.
+    previousState: fsrs,
+    nextState: fsrs,
+    sessionId,
+  };
+}
+
+function isoLocalDate(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 }
 
 // Wipe absolutely everything: profile, decks, cards, media, reviews, sessions.

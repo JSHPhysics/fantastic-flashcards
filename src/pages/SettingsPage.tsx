@@ -270,9 +270,11 @@ function DebugPanel() {
               </p>
               <p className="mt-0.5 text-xs text-ink-500 dark:text-ink-300">
                 Adds four practice decks (French, Spanish, and German vocab,
-                plus one with a sample of every card type). Each is prefixed
-                with "[debug]" so you can spot them. Won't duplicate
-                anything that's already there.
+                plus one with a sample of every card type), each prefixed
+                with "[debug]". Also seeds a few days of fake review
+                history so the streak chips and "last studied" lines have
+                something to show. Won't duplicate anything that's already
+                there.
               </p>
               <div className="mt-2">
                 <Button
