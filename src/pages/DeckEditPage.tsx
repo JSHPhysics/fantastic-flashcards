@@ -18,7 +18,12 @@ export function DeckEditPage() {
   const [pronunciationLanguage, setPronunciationLanguage] = useState<
     string | undefined
   >(undefined);
-  const [langPickerOpen, setLangPickerOpen] = useState(false);
+  const [secondaryLanguage, setSecondaryLanguage] = useState<
+    string | undefined
+  >(undefined);
+  const [langPickerSlot, setLangPickerSlot] = useState<
+    "primary" | "secondary" | null
+  >(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -28,6 +33,7 @@ export function DeckEditPage() {
     setSubject(deck.subject ?? "");
     setColour(deck.colour);
     setPronunciationLanguage(deck.pronunciationLanguage);
+    setSecondaryLanguage(deck.secondaryLanguage);
   }, [deck]);
 
   if (!deck || !id) {
@@ -51,6 +57,7 @@ export function DeckEditPage() {
         subject: subject.trim() || undefined,
         colour,
         pronunciationLanguage,
+        secondaryLanguage,
       });
       navigate(`/decks/${id}`);
     } finally {
@@ -113,29 +120,33 @@ export function DeckEditPage() {
             ))}
           </div>
         </FormField>
-        <FormField
-          label="Pronunciation language"
-          hint="Speaker icons appear on fields with a language. The deck default is used unless a field overrides it."
-        >
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setLangPickerOpen(true)}
-              className="tap-target inline-flex items-center gap-2 rounded-xl border border-ink-300 bg-surface px-4 text-sm font-medium text-ink-700 hover:bg-ink-100 dark:border-dark-surface dark:bg-dark-bg dark:text-ink-300"
-            >
+        <FormField label="Language pair (optional)">
+          <div className="space-y-3">
+            <p className="text-xs text-ink-500 dark:text-ink-300">
               {pronunciationLanguage
-                ? `${labelForLanguage(pronunciationLanguage)} - ${pronunciationLanguage}`
-                : "Choose language"}
-            </button>
-            {pronunciationLanguage && (
-              <button
-                type="button"
-                onClick={() => setPronunciationLanguage(undefined)}
-                className="text-xs text-ink-500 hover:underline dark:text-ink-300"
-              >
-                Clear
-              </button>
-            )}
+                ? secondaryLanguage
+                  ? `Bilingual deck. Basic-card fronts default to ${labelForLanguage(pronunciationLanguage)}; backs default to ${labelForLanguage(secondaryLanguage)}.`
+                  : `Speaker icons use ${labelForLanguage(pronunciationLanguage)}. Add a translation language to set up the bilingual flow.`
+                : "For language-learning decks. Set the primary (target) language and optionally the translation language."}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <LangPill
+                label="Primary"
+                value={pronunciationLanguage}
+                onPick={() => setLangPickerSlot("primary")}
+                onClear={() => {
+                  setPronunciationLanguage(undefined);
+                  setSecondaryLanguage(undefined);
+                }}
+              />
+              <LangPill
+                label="Translation"
+                value={secondaryLanguage}
+                disabled={!pronunciationLanguage}
+                onPick={() => setLangPickerSlot("secondary")}
+                onClear={() => setSecondaryLanguage(undefined)}
+              />
+            </div>
           </div>
         </FormField>
       </div>
@@ -150,12 +161,68 @@ export function DeckEditPage() {
       </div>
 
       <LanguagePicker
-        open={langPickerOpen}
-        onClose={() => setLangPickerOpen(false)}
+        open={langPickerSlot === "primary"}
+        onClose={() => setLangPickerSlot(null)}
         value={pronunciationLanguage}
         onChange={setPronunciationLanguage}
-        title="Deck pronunciation language"
+        title="Primary language (front of cards)"
+      />
+      <LanguagePicker
+        open={langPickerSlot === "secondary"}
+        onClose={() => setLangPickerSlot(null)}
+        value={secondaryLanguage}
+        onChange={setSecondaryLanguage}
+        title="Translation language (back of cards)"
       />
     </section>
+  );
+}
+
+function LangPill({
+  label,
+  value,
+  disabled,
+  onPick,
+  onClear,
+}: {
+  label: string;
+  value: string | undefined;
+  disabled?: boolean;
+  onPick: () => void;
+  onClear: () => void;
+}) {
+  return (
+    <div className="inline-flex items-center gap-1">
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={onPick}
+        className={`tap-target inline-flex items-center gap-2 rounded-full border px-3 text-xs font-medium transition-colors ${
+          value
+            ? "border-navy/30 bg-navy/10 text-navy dark:border-gold/30 dark:bg-gold/15 dark:text-gold"
+            : "border-ink-300 bg-surface text-ink-700 hover:bg-ink-100 dark:border-dark-surface dark:bg-dark-bg dark:text-ink-300"
+        } disabled:opacity-40 disabled:hover:bg-surface`}
+      >
+        <span className="text-ink-500 dark:text-ink-300">{label}:</span>
+        <span>{value ? labelForLanguage(value) : "Not set"}</span>
+      </button>
+      {value && (
+        <button
+          type="button"
+          aria-label={`Clear ${label.toLowerCase()} language`}
+          onClick={onClear}
+          className="inline-flex h-7 w-7 items-center justify-center rounded-full text-ink-500 hover:bg-ink-100 hover:text-again dark:hover:bg-dark-surface"
+        >
+          <svg viewBox="0 0 24 24" fill="none" className="h-3.5 w-3.5" aria-hidden>
+            <path
+              d="M6 6l12 12M18 6 6 18"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
+          </svg>
+        </button>
+      )}
+    </div>
   );
 }

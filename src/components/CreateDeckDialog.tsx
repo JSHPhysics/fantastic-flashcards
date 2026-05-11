@@ -8,6 +8,8 @@ import {
 } from "../db";
 import { Dialog } from "./Dialog";
 import { Button } from "./Button";
+import { LanguagePicker } from "./LanguagePicker";
+import { labelForLanguage } from "../tts/languages";
 
 interface CreateDeckDialogProps {
   open: boolean;
@@ -29,6 +31,15 @@ export function CreateDeckDialog({
   const [colour, setColour] = useState<string>(DECK_COLOURS[0]);
   const [parentId, setParentId] = useState<string | undefined>(initialParentId);
   const [pendingDepthCheck, setPendingDepthCheck] = useState(false);
+  const [pronunciationLanguage, setPronunciationLanguage] = useState<
+    string | undefined
+  >(undefined);
+  const [secondaryLanguage, setSecondaryLanguage] = useState<
+    string | undefined
+  >(undefined);
+  const [langPickerSlot, setLangPickerSlot] = useState<
+    "primary" | "secondary" | null
+  >(null);
 
   useEffect(() => {
     if (!open) {
@@ -38,6 +49,9 @@ export function CreateDeckDialog({
       setColour(DECK_COLOURS[0]);
       setParentId(initialParentId);
       setPendingDepthCheck(false);
+      setPronunciationLanguage(undefined);
+      setSecondaryLanguage(undefined);
+      setLangPickerSlot(null);
     }
   }, [open, initialParentId]);
 
@@ -57,6 +71,8 @@ export function CreateDeckDialog({
       subject: subject.trim() || undefined,
       colour,
       parentId,
+      pronunciationLanguage,
+      secondaryLanguage,
     });
     onCreated?.(created);
     onClose();
@@ -139,7 +155,36 @@ export function CreateDeckDialog({
               ))}
             </select>
           </Field>
+
+          <LanguagePairSection
+            primary={pronunciationLanguage}
+            secondary={secondaryLanguage}
+            onClearPrimary={() => {
+              setPronunciationLanguage(undefined);
+              // Clearing the primary clears the secondary too; the pair is
+              // only meaningful when at least the primary is set.
+              setSecondaryLanguage(undefined);
+            }}
+            onClearSecondary={() => setSecondaryLanguage(undefined)}
+            onPickPrimary={() => setLangPickerSlot("primary")}
+            onPickSecondary={() => setLangPickerSlot("secondary")}
+          />
         </div>
+
+        <LanguagePicker
+          open={langPickerSlot === "primary"}
+          onClose={() => setLangPickerSlot(null)}
+          value={pronunciationLanguage}
+          onChange={setPronunciationLanguage}
+          title="Pronunciation language (front of cards)"
+        />
+        <LanguagePicker
+          open={langPickerSlot === "secondary"}
+          onClose={() => setLangPickerSlot(null)}
+          value={secondaryLanguage}
+          onChange={setSecondaryLanguage}
+          title="Translation language (back of cards)"
+        />
       </Dialog>
 
       <Dialog
@@ -165,6 +210,101 @@ export function CreateDeckDialog({
         </p>
       </Dialog>
     </>
+  );
+}
+
+function LanguagePairSection({
+  primary,
+  secondary,
+  onPickPrimary,
+  onPickSecondary,
+  onClearPrimary,
+  onClearSecondary,
+}: {
+  primary: string | undefined;
+  secondary: string | undefined;
+  onPickPrimary: () => void;
+  onPickSecondary: () => void;
+  onClearPrimary: () => void;
+  onClearSecondary: () => void;
+}) {
+  const hint = primary
+    ? secondary
+      ? `Bilingual deck. New Basic cards default the front to ${labelForLanguage(primary)} and the back to ${labelForLanguage(secondary)}.`
+      : `Speaker icons on this deck's cards will use ${labelForLanguage(primary)}. Add a translation language to set up a bilingual flow.`
+    : "Optional. For language-learning decks, set one or both. The front of cards uses the primary language; the back uses the translation language.";
+
+  return (
+    <div className="rounded-xl border border-ink-100 bg-cream/40 p-3 dark:border-dark-surface dark:bg-dark-bg/40">
+      <p className="text-sm font-medium text-ink-900 dark:text-dark-ink">
+        Language pair
+      </p>
+      <p className="mt-0.5 text-xs text-ink-500 dark:text-ink-300">{hint}</p>
+      <div className="mt-2 flex flex-wrap gap-2">
+        <LangPill
+          label="Primary"
+          value={primary}
+          onPick={onPickPrimary}
+          onClear={onClearPrimary}
+        />
+        <LangPill
+          label="Translation"
+          value={secondary}
+          disabled={!primary}
+          onPick={onPickSecondary}
+          onClear={onClearSecondary}
+        />
+      </div>
+    </div>
+  );
+}
+
+function LangPill({
+  label,
+  value,
+  disabled,
+  onPick,
+  onClear,
+}: {
+  label: string;
+  value: string | undefined;
+  disabled?: boolean;
+  onPick: () => void;
+  onClear: () => void;
+}) {
+  return (
+    <div className="inline-flex items-center gap-1">
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={onPick}
+        className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+          value
+            ? "border-navy/30 bg-navy/10 text-navy dark:border-gold/30 dark:bg-gold/15 dark:text-gold"
+            : "border-ink-300 bg-surface text-ink-700 hover:bg-ink-100 dark:border-dark-surface dark:bg-dark-bg dark:text-ink-300"
+        } disabled:opacity-40 disabled:hover:bg-surface`}
+      >
+        <span className="text-ink-500 dark:text-ink-300">{label}:</span>
+        <span>{value ? labelForLanguage(value) : "Not set"}</span>
+      </button>
+      {value && (
+        <button
+          type="button"
+          aria-label={`Clear ${label.toLowerCase()} language`}
+          onClick={onClear}
+          className="inline-flex h-7 w-7 items-center justify-center rounded-full text-ink-500 hover:bg-ink-100 hover:text-again dark:hover:bg-dark-surface"
+        >
+          <svg viewBox="0 0 24 24" fill="none" className="h-3.5 w-3.5" aria-hidden>
+            <path
+              d="M6 6l12 12M18 6 6 18"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
+          </svg>
+        </button>
+      )}
+    </div>
   );
 }
 

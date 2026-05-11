@@ -43,6 +43,7 @@ export async function seedDebugData(): Promise<SeedDebugResult> {
     subject: "French",
     colour: "#3D7AB8",
     pronunciationLanguage: "fr-FR",
+    secondaryLanguage: "en-US",
   });
   decks++;
   for (const [front, back] of [
@@ -74,6 +75,7 @@ export async function seedDebugData(): Promise<SeedDebugResult> {
     subject: "Spanish",
     colour: "#C9A14A",
     pronunciationLanguage: "es-ES",
+    secondaryLanguage: "en-US",
   });
   decks++;
   for (const [front, back] of [
@@ -101,6 +103,7 @@ export async function seedDebugData(): Promise<SeedDebugResult> {
     subject: "German",
     colour: "#3E8E63",
     pronunciationLanguage: "de-DE",
+    secondaryLanguage: "en-US",
   });
   decks++;
   for (const [front, back] of [

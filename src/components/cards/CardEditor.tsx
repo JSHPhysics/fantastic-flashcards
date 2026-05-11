@@ -94,6 +94,16 @@ export function CardEditor({
   const [tags, setTags] = useState<string[]>([]);
   const activeDeck = useDeck(deckId);
   const deckLang = activeDeck?.pronunciationLanguage;
+  const deckSecondary = activeDeck?.secondaryLanguage;
+
+  // Materialise the effective language onto a RichField at save time so the
+  // persisted card is self-contained. Without this, an auto-reverse sibling
+  // that swaps front and back would inherit the wrong deck-default for each
+  // side (front's text in back's language slot).
+  const resolveField = (
+    field: { text: string; imageHash?: string; audioHash?: string; language?: string },
+    fallbackLang: string | undefined,
+  ) => ({ ...field, language: field.language ?? fallbackLang });
 
   const [basic, setBasic] = useState<BasicDraft>(defaultBasicDraft());
   const [cloze, setCloze] = useState<ClozeDraft>(defaultClozeDraft());
@@ -214,14 +224,17 @@ export function CardEditor({
     if (!deckId || !isDraftValid() || saving) return;
     setSaving(true);
     try {
+      const frontResolved = resolveField(basic.front, deckLang);
+      const backResolved = resolveField(basic.back, deckSecondary ?? deckLang);
+
       if (editing && cardId) {
         switch (type) {
           case "basic":
             await updateBasicCard(cardId, {
               deckId,
               tags,
-              front: basic.front,
-              back: basic.back,
+              front: frontResolved,
+              back: backResolved,
               autoReverse: basic.autoReverse,
             });
             break;
@@ -232,7 +245,7 @@ export function CardEditor({
             await updateMcqCard(cardId, {
               deckId,
               tags,
-              question: mcq.question,
+              question: resolveField(mcq.question, deckLang),
               options: mcq.options,
               shuffleOptions: mcq.shuffleOptions,
             });
@@ -241,7 +254,7 @@ export function CardEditor({
             await updateTypedCard(cardId, {
               deckId,
               tags,
-              prompt: typed.prompt,
+              prompt: resolveField(typed.prompt, deckLang),
               acceptedAnswers: parseAcceptedAnswers(typed.acceptedAnswersRaw),
               caseSensitive: typed.caseSensitive,
               ignorePunctuation: typed.ignorePunctuation,
@@ -254,8 +267,8 @@ export function CardEditor({
             await createBasicCard({
               deckId,
               tags,
-              front: basic.front,
-              back: basic.back,
+              front: frontResolved,
+              back: backResolved,
               autoReverse: basic.autoReverse,
             });
             break;
@@ -266,7 +279,7 @@ export function CardEditor({
             await createMcqCard({
               deckId,
               tags,
-              question: mcq.question,
+              question: resolveField(mcq.question, deckLang),
               options: mcq.options,
               shuffleOptions: mcq.shuffleOptions,
             });
@@ -275,7 +288,7 @@ export function CardEditor({
             await createTypedCard({
               deckId,
               tags,
-              prompt: typed.prompt,
+              prompt: resolveField(typed.prompt, deckLang),
               acceptedAnswers: parseAcceptedAnswers(typed.acceptedAnswersRaw),
               caseSensitive: typed.caseSensitive,
               ignorePunctuation: typed.ignorePunctuation,
@@ -408,6 +421,7 @@ export function CardEditor({
                 editing && editingCard?.generatedFromCardId !== undefined
               }
               deckPronunciationLanguage={deckLang}
+              deckSecondaryLanguage={deckSecondary}
             />
           )}
           {type === "cloze" && (

@@ -16,7 +16,11 @@ interface Props {
   // strand siblings (e.g. when editing the reverse, which has its own card row).
   // Owned by CardEditor.
   lockAutoReverseOff?: boolean;
+  // Defaults for each side's RichFieldEditor language chip. front uses the
+  // primary, back uses the secondary (translation) language if set, otherwise
+  // also the primary. Per-field overrides still win.
   deckPronunciationLanguage?: string;
+  deckSecondaryLanguage?: string;
 }
 
 export function BasicForm({
@@ -24,7 +28,18 @@ export function BasicForm({
   onChange,
   lockAutoReverseOff,
   deckPronunciationLanguage,
+  deckSecondaryLanguage,
 }: Props) {
+  const swapSides = () => {
+    onChange({ ...draft, front: draft.back, back: draft.front });
+  };
+  const backDefault = deckSecondaryLanguage ?? deckPronunciationLanguage;
+  // Surface the swap button only when the deck is bilingual; for monolingual
+  // decks swap is rarely useful and would clutter the form.
+  const showSwap =
+    deckSecondaryLanguage !== undefined &&
+    deckPronunciationLanguage !== undefined;
+
   return (
     <div className="space-y-4">
       <FormField label="Front" htmlFor="basic-front">
@@ -36,12 +51,38 @@ export function BasicForm({
           autoFocus
         />
       </FormField>
+      {showSwap && (
+        <div className="-my-1 flex justify-center">
+          <button
+            type="button"
+            onClick={swapSides}
+            className="tap-target inline-flex items-center gap-2 rounded-full px-3 text-xs font-medium text-ink-500 hover:bg-ink-100 dark:hover:bg-dark-surface"
+            title="Swap front and back (keeps per-field languages)"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              className="h-4 w-4"
+              aria-hidden
+            >
+              <path
+                d="M7 7h11l-3-3M17 17H6l3 3"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+            Swap sides
+          </button>
+        </div>
+      )}
       <FormField label="Back" htmlFor="basic-back">
         <RichFieldEditor
           id="basic-back"
           value={draft.back}
           onChange={(back) => onChange({ ...draft, back })}
-          deckPronunciationLanguage={deckPronunciationLanguage}
+          deckPronunciationLanguage={backDefault}
         />
       </FormField>
       <label className="flex items-start gap-3">

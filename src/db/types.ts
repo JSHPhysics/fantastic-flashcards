@@ -53,7 +53,16 @@ export interface Deck {
   description?: string;
   subject?: string;
   colour: string;
+  // BCP 47 of the primary (target / front) language. Speaker icons on the
+  // front of Basic cards and on every RichField across other card types use
+  // this when no per-field override is set.
   pronunciationLanguage?: string;
+  // BCP 47 of the secondary (native / translation / back) language. When
+  // both pronunciationLanguage and secondaryLanguage are set the deck is
+  // "bilingual" and the back of a Basic card defaults to this. When only
+  // pronunciationLanguage is set the back falls back to that (single-
+  // language deck, same as before this field existed).
+  secondaryLanguage?: string;
   createdAt: number;
   updatedAt: number;
   cardCount: number;
