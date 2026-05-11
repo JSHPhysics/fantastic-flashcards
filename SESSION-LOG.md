@@ -7,8 +7,8 @@ pick up without context. Keep entries terse; commit messages hold the detail.
 
 ## Status
 
-**Last completed:** Session 7 — TTS pronunciation
-**Next up:** Session 8 — image occlusion (Konva.js, touch / pen handles)
+**Last completed:** Session 8 — image occlusion (rectangle + ellipse masks, undo/redo, hide-one / hide-all modes, lazy-loaded Konva chunk)
+**Next up:** Session 9 — drawing card type (Konva canvas, pressure-sensitive pen, reveal modes)
 **Stopping discipline (new):** After each session, do a rigorous code review
 before moving on. Fix bugs found during the review in a follow-up commit. Don't
 build on bad code.
@@ -52,7 +52,7 @@ npm run build
 | 5       | Frozen fields + bulk authoring                 | Done          | `e39836b` |
 | 6       | Media pipeline (images + audio)                | Done          | `6f96042`, `55c6368` (review fixes) |
 | 7       | TTS pronunciation                              | Done          | `0c4610a` |
-| 8       | Image occlusion                                | **Next**      | -         |
+| 8       | Image occlusion                                | Done (polygon + groups + labels deferred) | (this push) |
 | 9       | Drawing card type                              | Pending       | -         |
 | 10      | FSRS scheduler + standard review               | Pending       | -         |
 | 11      | Custom Study mode                              | Pending       | -         |
@@ -96,6 +96,11 @@ Items deferred to real-device QA:
 - Session 7 deliverable: TTS quality on iPad with Enhanced French voice
   downloaded. Speaker icon plays the word; auto-speak hooks fire (Session
   10 will exercise these in the review session).
+- Session 8 deliverable: import an image, draw a few rectangle / ellipse
+  masks, save. Verify on iPad touch (drag-to-draw, drag-to-move,
+  Transformer resize handles), Apple Pencil drawing, "Done drawing"
+  letting the page scroll past the canvas. Polygon, group, and label
+  tools were deferred from v1.
 
 ## Standing rules
 

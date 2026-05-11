@@ -66,9 +66,11 @@ const TYPE_LABELS: Record<CardType, string> = {
   drawing: "Drawing",
 };
 
-// Session 4 ships the four text-based card types. The other two will hook in
-// via the same tab strip in Sessions 8 (occlusion) and 9 (drawing).
-const SESSION_4_TYPES: CardType[] = ["basic", "cloze", "mcq", "typed"];
+// Text-content card types live inline inside this editor. Image-based types
+// (occlusion now, drawing later) need a canvas-heavy layout and live on
+// their own page; the tab strip surfaces them as a quick way to start one.
+const TEXT_CARD_TYPES: CardType[] = ["basic", "cloze", "mcq", "typed"];
+const IMAGE_CARD_TYPES: CardType[] = ["occlusion"];
 
 interface CardEditorProps {
   cardId?: string;
@@ -191,6 +193,15 @@ export function CardEditor({
     if (editing) {
       // Editing an existing card cannot change type cleanly (content shapes
       // diverge). Block the switch with an inline note instead of warning.
+      return;
+    }
+    // Image-based types (occlusion, drawing) live on their own page.
+    // Switching to one navigates instead of inlining.
+    if (IMAGE_CARD_TYPES.includes(next)) {
+      const query = new URLSearchParams();
+      if (deckId) query.set("deckId", deckId);
+      query.set("type", next);
+      navigate(`/cards/new?${query.toString()}`);
       return;
     }
     if (draftDirtyForType(type) && next !== type) {
@@ -483,9 +494,10 @@ function TypeTabs({
   editing: boolean;
   onChange: (t: CardType) => void;
 }) {
+  const visibleTypes = [...TEXT_CARD_TYPES, ...IMAGE_CARD_TYPES];
   return (
     <div role="tablist" className="-mx-1 flex gap-1 overflow-x-auto pb-1">
-      {SESSION_4_TYPES.map((t) => {
+      {visibleTypes.map((t) => {
         const active = t === type;
         const disabled = editing && t !== type;
         return (
@@ -510,7 +522,7 @@ function TypeTabs({
         aria-hidden
         className="self-center pl-2 text-xs text-ink-500 dark:text-ink-300"
       >
-        Image occlusion and drawing cards are coming soon.
+        Drawing cards coming soon.
       </span>
     </div>
   );
