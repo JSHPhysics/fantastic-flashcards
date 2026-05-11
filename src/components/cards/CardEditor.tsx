@@ -44,6 +44,7 @@ import { TagsInput } from "../TagsInput";
 import { FormField, inputClass } from "../FormField";
 import { Button } from "../Button";
 import { ConfirmDialog } from "../ConfirmDialog";
+import { LockToggle } from "./LockToggle";
 import {
   createBasicCard,
   createClozeCardSet,
@@ -96,6 +97,19 @@ export function CardEditor({
   const [pendingType, setPendingType] = useState<CardType | null>(null);
   const [clozeFocusedNumber, setClozeFocusedNumber] = useState<number | undefined>(undefined);
   const [saving, setSaving] = useState(false);
+
+  // Lock state for bulk authoring. Locked fields keep their values across
+  // consecutive "Save and add another" commits; unlocked fields reset. State
+  // lives in this component instance so navigating away wipes it (Playbook
+  // section 8 "transient store, clears on navigation away from the editor").
+  const [locks, setLocks] = useState<{
+    deck: boolean;
+    type: boolean;
+    tags: boolean;
+  }>({ deck: false, type: false, tags: false });
+  // Auto-lock tags once when they first become non-empty, unless the user has
+  // already touched the tag lock manually.
+  const [tagsLockTouched, setTagsLockTouched] = useState(false);
 
   // Load existing card into the right sub-draft. Runs only when editing.
   useEffect(() => {
@@ -264,7 +278,8 @@ export function CardEditor({
       }
 
       if (options.andAddAnother) {
-        // Reset the active draft; Session 5 will respect frozen fields here.
+        // Always reset the content draft for the active type. Common fields
+        // (deck, type, tags) reset only if their lock is OFF.
         switch (type) {
           case "basic":
             setBasic(defaultBasicDraft());
@@ -279,7 +294,13 @@ export function CardEditor({
             setTyped(defaultTypedDraft());
             break;
         }
-        // Stay on the editor.
+        if (!locks.deck) setDeckId(initialDeckId);
+        if (!locks.type) setType(initialType ?? "basic");
+        if (!locks.tags) {
+          setTags([]);
+          // After a "fresh" tags reset we let the auto-lock kick in again.
+          setTagsLockTouched(false);
+        }
         return;
       }
 
@@ -320,18 +341,51 @@ export function CardEditor({
         </div>
       </header>
 
-      <TypeTabs
-        type={type}
-        editing={editing}
-        onChange={handleTypeTab}
-      />
+      {!editing && (
+        <FrozenPill
+          locks={locks}
+          onUnlockAll={() =>
+            setLocks({ deck: false, type: false, tags: false })
+          }
+        />
+      )}
+
+      <div className="flex flex-wrap items-center gap-2">
+        <TypeTabs
+          type={type}
+          editing={editing}
+          onChange={handleTypeTab}
+        />
+        {!editing && (
+          <LockToggle
+            locked={locks.type}
+            onChange={(v) => setLocks((s) => ({ ...s, type: v }))}
+            fieldLabel="Card type"
+          />
+        )}
+      </div>
 
       <CommonFields
         decks={decks ?? []}
         deckId={deckId}
         onDeckIdChange={setDeckId}
         tags={tags}
-        onTagsChange={setTags}
+        onTagsChange={(next) => {
+          setTags(next);
+          if (
+            !tagsLockTouched &&
+            next.length > 0 &&
+            !locks.tags
+          ) {
+            setLocks((s) => ({ ...s, tags: true }));
+          }
+        }}
+        editing={editing}
+        locks={locks}
+        onLockChange={(field, v) => {
+          if (field === "tags") setTagsLockTouched(true);
+          setLocks((s) => ({ ...s, [field]: v }));
+        }}
       />
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -434,16 +488,36 @@ function CommonFields({
   onDeckIdChange,
   tags,
   onTagsChange,
+  editing,
+  locks,
+  onLockChange,
 }: {
   decks: Deck[];
   deckId: string | undefined;
   onDeckIdChange: (id: string) => void;
   tags: string[];
   onTagsChange: (next: string[]) => void;
+  editing: boolean;
+  locks: { deck: boolean; type: boolean; tags: boolean };
+  onLockChange: (field: "deck" | "type" | "tags", next: boolean) => void;
 }) {
   return (
     <div className="grid gap-4 sm:grid-cols-2">
-      <FormField label="Deck" htmlFor="card-deck">
+      <FormField
+        label={
+          <span className="flex items-center gap-2">
+            Deck
+            {!editing && (
+              <LockToggle
+                locked={locks.deck}
+                onChange={(v) => onLockChange("deck", v)}
+                fieldLabel="Deck"
+              />
+            )}
+          </span>
+        }
+        htmlFor="card-deck"
+      >
         <select
           id="card-deck"
           value={deckId ?? ""}
@@ -460,9 +534,51 @@ function CommonFields({
           ))}
         </select>
       </FormField>
-      <FormField label="Tags" hint="Lowercase, kebab-case suggested.">
+      <FormField
+        label={
+          <span className="flex items-center gap-2">
+            Tags
+            {!editing && (
+              <LockToggle
+                locked={locks.tags}
+                onChange={(v) => onLockChange("tags", v)}
+                fieldLabel="Tags"
+              />
+            )}
+          </span>
+        }
+        hint="Lowercase, kebab-case suggested."
+      >
         <TagsInput value={tags} onChange={onTagsChange} />
       </FormField>
+    </div>
+  );
+}
+
+function FrozenPill({
+  locks,
+  onUnlockAll,
+}: {
+  locks: { deck: boolean; type: boolean; tags: boolean };
+  onUnlockAll: () => void;
+}) {
+  const lockedNames: string[] = [];
+  if (locks.deck) lockedNames.push("deck");
+  if (locks.type) lockedNames.push("type");
+  if (locks.tags) lockedNames.push("tags");
+  if (lockedNames.length === 0) return null;
+  return (
+    <div className="inline-flex items-center gap-3 rounded-full bg-gold/15 px-3 py-1.5 text-xs">
+      <span className="font-medium text-navy dark:text-gold">
+        Frozen: {lockedNames.join(", ")}
+      </span>
+      <button
+        type="button"
+        onClick={onUnlockAll}
+        className="rounded-full px-2 py-0.5 text-navy hover:bg-gold/25 dark:text-gold"
+      >
+        Unlock all
+      </button>
     </div>
   );
 }

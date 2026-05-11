@@ -9,7 +9,7 @@ export function FormField({
   htmlFor,
   children,
 }: {
-  label: string;
+  label: ReactNode;
   hint?: string;
   htmlFor?: string;
   children: ReactNode;
