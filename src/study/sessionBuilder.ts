@@ -1,13 +1,18 @@
-// Builds the queue of cards for a study session. Reviews come first (sorted
-// by due date ascending - the oldest overdue first), then up to N new cards
-// per the deck's daily limits.
+// Builds the queue of cards for a study session. Reviews come first then up
+// to N new cards per the deck's daily limits. Within each bucket the order
+// is shuffled so auto-reverse siblings (and any other adjacent-in-creation
+// pairs) don't land next to each other - studying two halves of the same
+// pair back-to-back is tedious and gives the student a free hint.
+//
+// FSRS doesn't require strict due-date priority within "everything due
+// now"; shuffling is a common pattern in mature SRS apps.
 
 import {
   collectDescendantIds,
   listCardsInDecks,
   type Card,
 } from "../db";
-import { dueMs, isNewCard } from "../srs/scheduler";
+import { isNewCard, cardIsDue } from "../srs/scheduler";
 
 export interface SessionBuilderInput {
   rootDeckId: string;
@@ -38,19 +43,23 @@ export async function buildStandardSession(
 
   const all = await listCardsInDecks(deckIds);
   const active = all.filter((c) => !c.suspended);
+  const nowDate = new Date(now);
 
   const reviews: Card[] = [];
   const news: Card[] = [];
   for (const c of active) {
     if (isNewCard(c.fsrs)) {
       news.push(c);
-    } else if (dueMs(c.fsrs) <= now) {
+    } else if (cardIsDue(c.fsrs, nowDate)) {
       reviews.push(c);
     }
   }
 
-  reviews.sort((a, b) => dueMs(a.fsrs) - dueMs(b.fsrs));
-  news.sort((a, b) => a.createdAt - b.createdAt);
+  // Shuffle within each bucket. Reviews still come before news in the final
+  // queue, but adjacent-in-creation pairs (auto-reverse siblings,
+  // bulk-imported neighbours, cloze fan-outs) get mixed up.
+  shuffleInPlace(reviews);
+  shuffleInPlace(news);
 
   const limitedReviews = reviews.slice(0, input.reviewLimit);
   const limitedNew = news.slice(0, input.newCardLimit);
@@ -63,4 +72,11 @@ export async function buildStandardSession(
     reviewsRemaining: Math.max(0, reviews.length - limitedReviews.length),
     newRemaining: Math.max(0, news.length - limitedNew.length),
   };
+}
+
+function shuffleInPlace<T>(arr: T[]): void {
+  for (let i = arr.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
 }
