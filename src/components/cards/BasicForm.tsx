@@ -16,9 +16,15 @@ interface Props {
   // strand siblings (e.g. when editing the reverse, which has its own card row).
   // Owned by CardEditor.
   lockAutoReverseOff?: boolean;
+  deckPronunciationLanguage?: string;
 }
 
-export function BasicForm({ draft, onChange, lockAutoReverseOff }: Props) {
+export function BasicForm({
+  draft,
+  onChange,
+  lockAutoReverseOff,
+  deckPronunciationLanguage,
+}: Props) {
   return (
     <div className="space-y-4">
       <FormField label="Front" htmlFor="basic-front">
@@ -26,6 +32,7 @@ export function BasicForm({ draft, onChange, lockAutoReverseOff }: Props) {
           id="basic-front"
           value={draft.front}
           onChange={(front) => onChange({ ...draft, front })}
+          deckPronunciationLanguage={deckPronunciationLanguage}
           autoFocus
         />
       </FormField>
@@ -34,6 +41,7 @@ export function BasicForm({ draft, onChange, lockAutoReverseOff }: Props) {
           id="basic-back"
           value={draft.back}
           onChange={(back) => onChange({ ...draft, back })}
+          deckPronunciationLanguage={deckPronunciationLanguage}
         />
       </FormField>
       <label className="flex items-start gap-3">

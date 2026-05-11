@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   useDecks,
+  useDeck,
   useCard,
   type Card,
   type CardType,
@@ -85,9 +86,14 @@ export function CardEditor({
   const editingCard = useCard(cardId);
   const editing = Boolean(cardId);
 
+  // pronunciationLanguage on the deck flows into every RichFieldEditor so the
+  // language chip and speaker icon can render a sensible default per field.
+
   const [type, setType] = useState<CardType>(initialType ?? "basic");
   const [deckId, setDeckId] = useState<string | undefined>(initialDeckId);
   const [tags, setTags] = useState<string[]>([]);
+  const activeDeck = useDeck(deckId);
+  const deckLang = activeDeck?.pronunciationLanguage;
 
   const [basic, setBasic] = useState<BasicDraft>(defaultBasicDraft());
   const [cloze, setCloze] = useState<ClozeDraft>(defaultClozeDraft());
@@ -401,13 +407,26 @@ export function CardEditor({
               lockAutoReverseOff={
                 editing && editingCard?.generatedFromCardId !== undefined
               }
+              deckPronunciationLanguage={deckLang}
             />
           )}
           {type === "cloze" && (
             <ClozeForm draft={cloze} onChange={setCloze} />
           )}
-          {type === "mcq" && <McqForm draft={mcq} onChange={setMcq} />}
-          {type === "typed" && <TypedForm draft={typed} onChange={setTyped} />}
+          {type === "mcq" && (
+            <McqForm
+              draft={mcq}
+              onChange={setMcq}
+              deckPronunciationLanguage={deckLang}
+            />
+          )}
+          {type === "typed" && (
+            <TypedForm
+              draft={typed}
+              onChange={setTyped}
+              deckPronunciationLanguage={deckLang}
+            />
+          )}
         </section>
         <section>
           <h2 className="mb-2 text-sm font-semibold uppercase tracking-wider text-ink-500 dark:text-ink-300">

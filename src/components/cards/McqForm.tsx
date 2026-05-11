@@ -16,9 +16,10 @@ const MAX_OPTIONS = 8;
 interface Props {
   draft: McqDraft;
   onChange: (next: McqDraft) => void;
+  deckPronunciationLanguage?: string;
 }
 
-export function McqForm({ draft, onChange }: Props) {
+export function McqForm({ draft, onChange, deckPronunciationLanguage }: Props) {
   const setOption = (id: string, patch: Partial<McqOption>) => {
     onChange({
       ...draft,
@@ -56,6 +57,7 @@ export function McqForm({ draft, onChange }: Props) {
           value={draft.question}
           onChange={(question) => onChange({ ...draft, question })}
           rows={2}
+          deckPronunciationLanguage={deckPronunciationLanguage}
           autoFocus
         />
       </FormField>

@@ -13,9 +13,14 @@ export interface TypedDraft {
 interface Props {
   draft: TypedDraft;
   onChange: (next: TypedDraft) => void;
+  deckPronunciationLanguage?: string;
 }
 
-export function TypedForm({ draft, onChange }: Props) {
+export function TypedForm({
+  draft,
+  onChange,
+  deckPronunciationLanguage,
+}: Props) {
   return (
     <div className="space-y-4">
       <FormField label="Prompt" htmlFor="typed-prompt">
@@ -23,6 +28,7 @@ export function TypedForm({ draft, onChange }: Props) {
           id="typed-prompt"
           value={draft.prompt}
           onChange={(prompt) => onChange({ ...draft, prompt })}
+          deckPronunciationLanguage={deckPronunciationLanguage}
           autoFocus
         />
       </FormField>
