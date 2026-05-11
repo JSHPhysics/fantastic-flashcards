@@ -9,6 +9,7 @@ import {
   type ProfileSettings,
 } from "../db";
 import { useVoices, hasSpeechSynthesis } from "../tts/useVoices";
+import { getLastOnlineSpeechError } from "../tts/online";
 import { Button } from "../components/Button";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 
@@ -290,6 +291,8 @@ function DebugPanel() {
               )}
             </div>
 
+            <OnlineTtsDiagnostic />
+
             <div className="rounded-xl border border-again/30 bg-again/5 p-3">
               <p className="text-sm font-medium text-again">Danger zone</p>
               <p className="mt-0.5 text-xs text-ink-500 dark:text-ink-300">
@@ -316,6 +319,43 @@ function DebugPanel() {
         confirmLabel="Wipe everything"
         destructive
       />
+    </div>
+  );
+}
+
+function OnlineTtsDiagnostic() {
+  // Poll the module-level lastError every 2s while debug is open. Cheap, and
+  // saves us wiring a custom event bus.
+  const [snapshot, setSnapshot] = useState(getLastOnlineSpeechError());
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      setSnapshot(getLastOnlineSpeechError());
+    }, 2000);
+    return () => window.clearInterval(id);
+  }, []);
+
+  return (
+    <div className="rounded-xl border border-ink-100 bg-cream/40 p-3 dark:border-dark-surface dark:bg-dark-bg/40">
+      <p className="text-sm font-medium text-ink-900 dark:text-dark-ink">
+        Last online TTS attempt
+      </p>
+      {!snapshot ? (
+        <p className="mt-0.5 text-xs text-ink-500 dark:text-ink-300">
+          No errors recorded yet. If "Use online voices" is on and the speaker
+          icon falls back to the local voice, the failure shows up here.
+        </p>
+      ) : (
+        <>
+          <p className="mt-0.5 break-all text-xs text-ink-700 dark:text-ink-300">
+            URL: {snapshot.url}
+          </p>
+          <p className="mt-1 text-xs text-again">
+            {snapshot.error instanceof Error
+              ? `${snapshot.error.name}: ${snapshot.error.message}`
+              : String(snapshot.error)}
+          </p>
+        </>
+      )}
     </div>
   );
 }

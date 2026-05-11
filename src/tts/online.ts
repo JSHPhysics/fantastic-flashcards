@@ -3,6 +3,16 @@
 // audio is loaded with a plain HTMLAudioElement, which bypasses CORS for
 // cross-origin media (the browser plays it directly, no JS-side fetch).
 //
+// Two implementation notes the first version got wrong:
+// 1. The audio element MUST be attached to the document. Some browsers
+//    (notably Chrome on certain platforms) refuse to play a detached
+//    HTMLAudioElement under autoplay policy even with a user gesture
+//    chain. Attaching it to <body> sidesteps that.
+// 2. We listen for the "error" event in addition to awaiting play(). The
+//    play() Promise can resolve on "playback started" without surfacing a
+//    later loading failure, so the "error" event is the source of truth for
+//    "this audio is dead".
+//
 // Gated behind ProfileSettings.useOnlineVoices so it's strictly opt-in -
 // every invocation sends the field text to translate.google.com.
 
@@ -13,12 +23,18 @@ const ENDPOINT = "https://translate.google.com/translate_tts";
 const MAX_TEXT_LENGTH = 200;
 
 let currentAudio: HTMLAudioElement | null = null;
+let lastError: { url: string; error: unknown } | null = null;
 
 export function cancelOnlineSpeech(): void {
   if (currentAudio) {
     currentAudio.pause();
     currentAudio.removeAttribute("src");
-    currentAudio.load();
+    try {
+      currentAudio.load();
+    } catch {
+      // Some browsers throw if the element is mid-detach; safe to ignore.
+    }
+    if (currentAudio.parentNode) currentAudio.parentNode.removeChild(currentAudio);
     currentAudio = null;
   }
 }
@@ -26,11 +42,17 @@ export function cancelOnlineSpeech(): void {
 export type OnlineSpeakFailure =
   | "too-long"
   | "offline"
-  | "play-error";
+  | "play-error"
+  | "load-error";
 
 export interface OnlineSpeakResult {
   ok: boolean;
   reason?: OnlineSpeakFailure;
+}
+
+// Expose the last failure for diagnosis. The Settings debug panel surfaces it.
+export function getLastOnlineSpeechError(): { url: string; error: unknown } | null {
+  return lastError;
 }
 
 function buildUrl(text: string, lang: string): string {
@@ -62,15 +84,40 @@ export async function speakOnline(
     return { ok: false, reason: "offline" };
   }
 
-  const audio = new Audio(buildUrl(trimmed, lang));
+  const url = buildUrl(trimmed, lang);
+  const audio = document.createElement("audio");
+  audio.src = url;
   audio.preload = "auto";
+  // crossOrigin is left as the default (null). Setting it to "anonymous"
+  // would require CORS headers the endpoint does not provide; the default
+  // tainted-but-playable mode is what we want for plain playback.
+  // Hidden but attached so the browser treats it as a "live" media element.
+  audio.style.position = "fixed";
+  audio.style.left = "-9999px";
+  audio.style.width = "1px";
+  audio.style.height = "1px";
+  document.body.appendChild(audio);
   currentAudio = audio;
+
+  // Watch the "error" event for load-stage failures the play() Promise can
+  // miss. ended cleans up the element after playback finishes.
+  const cleanup = () => {
+    if (audio.parentNode) audio.parentNode.removeChild(audio);
+    if (currentAudio === audio) currentAudio = null;
+  };
+  audio.addEventListener("ended", cleanup, { once: true });
+  audio.addEventListener("error", cleanup, { once: true });
 
   try {
     await audio.play();
     return { ok: true };
-  } catch {
-    if (currentAudio === audio) currentAudio = null;
+  } catch (err) {
+    lastError = { url, error: err };
+    console.warn(
+      "[tts] online speak failed; falling back to local voice",
+      { url, error: err },
+    );
+    cleanup();
     return { ok: false, reason: "play-error" };
   }
 }
