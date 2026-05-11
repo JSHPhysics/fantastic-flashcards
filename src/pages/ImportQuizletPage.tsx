@@ -5,6 +5,8 @@ import { createBasicCard } from "../cards/service";
 import { Button } from "../components/Button";
 import { FormField, inputClass, textareaClass } from "../components/FormField";
 import { TagsInput } from "../components/TagsInput";
+import { LanguagePicker } from "../components/LanguagePicker";
+import { labelForLanguage } from "../tts/languages";
 import {
   parseQuizletExport,
   type ParseResult,
@@ -40,6 +42,17 @@ export function ImportQuizletPage() {
 
   const [tags, setTags] = useState<string[]>([]);
   const [autoReverse, setAutoReverse] = useState(true);
+
+  // Per-side languages. Optional; left undefined means the imported cards
+  // don't carry a language tag (so the speaker icon stays hidden until the
+  // user sets one manually). Auto-filled from the target deck's language
+  // pair when an existing deck is chosen.
+  const [frontLanguage, setFrontLanguage] = useState<string | undefined>();
+  const [backLanguage, setBackLanguage] = useState<string | undefined>();
+  const [langPickerSlot, setLangPickerSlot] = useState<
+    "front" | "back" | null
+  >(null);
+
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -53,6 +66,18 @@ export function ImportQuizletPage() {
       setTargetDeckId(decks[0].id);
     }
   }, [decks, targetDeckId]);
+
+  // When the user picks an existing deck (or switches between them), pull
+  // its language pair into the form so the imported cards inherit the right
+  // pronunciation by default. The user can still override before importing.
+  useEffect(() => {
+    if (targetMode !== "existing") return;
+    if (!targetDeckId || !decks) return;
+    const deck = decks.find((d) => d.id === targetDeckId);
+    if (!deck) return;
+    setFrontLanguage(deck.pronunciationLanguage);
+    setBackLanguage(deck.secondaryLanguage);
+  }, [targetDeckId, targetMode, decks]);
 
   const options = useMemo(
     () => ({
@@ -84,6 +109,10 @@ export function ImportQuizletPage() {
         const newDeck = await createDeck({
           name: newDeckName.trim(),
           colour: newDeckColour,
+          // Inherit whatever language pair the user set for the import so
+          // future cards in this deck default to the same pair.
+          pronunciationLanguage: frontLanguage,
+          secondaryLanguage: backLanguage,
         });
         deckId = newDeck.id;
       }
@@ -93,8 +122,14 @@ export function ImportQuizletPage() {
         await createBasicCard({
           deckId,
           tags,
-          front: { text: card.front },
-          back: { text: card.back },
+          front: {
+            text: card.front,
+            language: frontLanguage,
+          },
+          back: {
+            text: card.back,
+            language: backLanguage,
+          },
           autoReverse,
         });
       }
@@ -193,6 +228,26 @@ export function ImportQuizletPage() {
           />
         </FormField>
       </div>
+
+      <FormField
+        label="Language for each side (optional)"
+        hint="Sets which voice the speaker icon uses on each side. If you pick both, the imported cards become a language pair."
+      >
+        <div className="flex flex-wrap gap-2">
+          <LangPill
+            label="Front"
+            value={frontLanguage}
+            onPick={() => setLangPickerSlot("front")}
+            onClear={() => setFrontLanguage(undefined)}
+          />
+          <LangPill
+            label="Back"
+            value={backLanguage}
+            onPick={() => setLangPickerSlot("back")}
+            onClear={() => setBackLanguage(undefined)}
+          />
+        </div>
+      </FormField>
 
       <FormField
         label={`Preview (${result.cards.length} card${result.cards.length === 1 ? "" : "s"} ready to import${result.skipped > 0 ? `, ${result.skipped} line${result.skipped === 1 ? "" : "s"} skipped` : ""})`}
@@ -326,7 +381,68 @@ export function ImportQuizletPage() {
           </p>
         )}
       </div>
+
+      <LanguagePicker
+        open={langPickerSlot === "front"}
+        onClose={() => setLangPickerSlot(null)}
+        value={frontLanguage}
+        onChange={setFrontLanguage}
+        title="Front-of-card language"
+      />
+      <LanguagePicker
+        open={langPickerSlot === "back"}
+        onClose={() => setLangPickerSlot(null)}
+        value={backLanguage}
+        onChange={setBackLanguage}
+        title="Back-of-card language"
+      />
     </section>
+  );
+}
+
+function LangPill({
+  label,
+  value,
+  onPick,
+  onClear,
+}: {
+  label: string;
+  value: string | undefined;
+  onPick: () => void;
+  onClear: () => void;
+}) {
+  return (
+    <div className="inline-flex items-center gap-1">
+      <button
+        type="button"
+        onClick={onPick}
+        className={`tap-target inline-flex items-center gap-2 rounded-full border px-3 text-xs font-medium transition-colors ${
+          value
+            ? "border-navy/30 bg-navy/10 text-navy dark:border-gold/30 dark:bg-gold/15 dark:text-gold"
+            : "border-ink-300 bg-surface text-ink-700 hover:bg-ink-100 dark:border-dark-surface dark:bg-dark-bg dark:text-ink-300"
+        }`}
+      >
+        <span className="text-ink-500 dark:text-ink-300">{label}:</span>
+        <span>{value ? labelForLanguage(value) : "Not set"}</span>
+      </button>
+      {value && (
+        <button
+          type="button"
+          aria-label={`Clear ${label.toLowerCase()} language`}
+          onClick={onClear}
+          className="inline-flex h-7 w-7 items-center justify-center rounded-full text-ink-500 hover:bg-ink-100 hover:text-again dark:hover:bg-dark-surface"
+        >
+          <svg viewBox="0 0 24 24" fill="none" className="h-3.5 w-3.5" aria-hidden>
+            <path
+              d="M6 6l12 12M18 6 6 18"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
+          </svg>
+        </button>
+      )}
+    </div>
   );
 }
 
