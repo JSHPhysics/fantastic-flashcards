@@ -51,15 +51,24 @@ export function labelForLanguage(code: string): string {
   return LANGUAGE_OPTIONS.find((l) => l.code === code)?.label ?? code;
 }
 
-// Compare two BCP 47 tags case-insensitively. "fr-FR" matches "fr-fr".
-export function bcp47Equal(a: string, b: string): boolean {
-  return a.toLowerCase() === b.toLowerCase();
+// Normalise a BCP 47 tag: lowercase, treat underscore and hyphen as the same
+// separator. Some browsers and OSes report voice.lang as "fr_FR" instead of
+// the standard "fr-FR"; without this normalisation the picker silently
+// misses every matching voice and the browser falls back to its default
+// (usually English), which mangles accents.
+export function normaliseLangTag(code: string): string {
+  return code.toLowerCase().replace(/_/g, "-");
 }
 
-// Primary subtag, e.g. "fr-FR" -> "fr". Used by speak() to find a fallback
-// voice when no exact match exists.
+// Compare two BCP 47 tags. "fr-FR", "fr_FR", and "fr-fr" all compare equal.
+export function bcp47Equal(a: string, b: string): boolean {
+  return normaliseLangTag(a) === normaliseLangTag(b);
+}
+
+// Primary subtag, e.g. "fr-FR" -> "fr". Used by the voice picker to find a
+// regional fallback when no exact match exists.
 export function primarySubtag(code: string): string {
-  return code.split("-")[0].toLowerCase();
+  return normaliseLangTag(code).split("-")[0];
 }
 
 // Characters that don't sit on a typical English keyboard but come up often
