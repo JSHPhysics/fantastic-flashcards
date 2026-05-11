@@ -6,6 +6,7 @@ import { DeckEditPage } from "./pages/DeckEditPage";
 import { CardEditPage } from "./pages/CardEditPage";
 import { CardNewPage } from "./pages/CardNewPage";
 import { StudyPage } from "./pages/StudyPage";
+import { CustomStudyPage } from "./pages/CustomStudyPage";
 import { StatsPage } from "./pages/StatsPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
@@ -31,6 +32,7 @@ export const router = createBrowserRouter(
         { path: "cards/:cardId/edit", element: <CardEditPage /> },
         { path: "cards/new", element: <CardNewPage /> },
         { path: "study", element: <StudyPage /> },
+        { path: "study/custom", element: <CustomStudyPage /> },
         { path: "stats", element: <StatsPage /> },
         { path: "settings", element: <SettingsPage /> },
         { path: "*", element: <NotFoundPage /> },

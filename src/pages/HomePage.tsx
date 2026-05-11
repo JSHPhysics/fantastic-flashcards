@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useProfile } from "../db";
 import { DeckTree } from "../components/DeckTree";
 import { CreateDeckDialog } from "../components/CreateDeckDialog";
@@ -36,6 +36,14 @@ export function HomePage() {
             </div>
           )}
         </header>
+        <div className="mb-3 flex justify-end">
+          <Link
+            to="/study/custom"
+            className="text-sm text-navy underline dark:text-gold"
+          >
+            Custom study →
+          </Link>
+        </div>
         <DeckTree />
       </section>
 

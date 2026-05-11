@@ -8,6 +8,7 @@ interface SessionSummaryProps {
   reviewsRemaining: number;
   newRemaining: number;
   deckId: string;
+  mode?: "standard" | "custom-study";
 }
 
 const RATING_LABELS: Record<Rating, string> = {
@@ -30,6 +31,7 @@ export function SessionSummary({
   reviewsRemaining,
   newRemaining,
   deckId,
+  mode = "standard",
 }: SessionSummaryProps) {
   const profile = useProfile();
   const cards = ratings.length;
@@ -45,7 +47,12 @@ export function SessionSummary({
   return (
     <section className="space-y-6">
       <header className="text-center">
-        <h1 className="text-3xl font-semibold tracking-tight text-navy dark:text-gold">
+        {mode === "custom-study" && (
+          <span className="inline-flex items-center rounded-full bg-gold/20 px-3 py-0.5 text-xs font-semibold uppercase tracking-wider text-navy dark:text-gold">
+            Custom study
+          </span>
+        )}
+        <h1 className="mt-1 text-3xl font-semibold tracking-tight text-navy dark:text-gold">
           Session complete
         </h1>
         <p className="mt-1 text-sm text-ink-700 dark:text-ink-300">
@@ -114,18 +121,37 @@ export function SessionSummary({
       )}
 
       <div className="flex flex-wrap justify-center gap-3">
-        <Link
-          to={`/decks/${deckId}`}
-          className="tap-target inline-flex items-center justify-center rounded-xl bg-navy px-5 text-sm font-semibold text-cream shadow-sm hover:bg-navy/90"
-        >
-          Back to deck
-        </Link>
-        <Link
-          to="/"
-          className="tap-target inline-flex items-center justify-center rounded-xl border border-ink-300 bg-surface px-5 text-sm font-semibold text-navy hover:bg-ink-100 dark:border-dark-surface dark:bg-dark-surface dark:text-gold"
-        >
-          Home
-        </Link>
+        {mode === "custom-study" ? (
+          <>
+            <Link
+              to="/study/custom"
+              className="tap-target inline-flex items-center justify-center rounded-xl bg-navy px-5 text-sm font-semibold text-cream shadow-sm hover:bg-navy/90"
+            >
+              Build another custom session
+            </Link>
+            <Link
+              to="/"
+              className="tap-target inline-flex items-center justify-center rounded-xl border border-ink-300 bg-surface px-5 text-sm font-semibold text-navy hover:bg-ink-100 dark:border-dark-surface dark:bg-dark-surface dark:text-gold"
+            >
+              Home
+            </Link>
+          </>
+        ) : (
+          <>
+            <Link
+              to={deckId ? `/decks/${deckId}` : "/"}
+              className="tap-target inline-flex items-center justify-center rounded-xl bg-navy px-5 text-sm font-semibold text-cream shadow-sm hover:bg-navy/90"
+            >
+              {deckId ? "Back to deck" : "Home"}
+            </Link>
+            <Link
+              to="/"
+              className="tap-target inline-flex items-center justify-center rounded-xl border border-ink-300 bg-surface px-5 text-sm font-semibold text-navy hover:bg-ink-100 dark:border-dark-surface dark:bg-dark-surface dark:text-gold"
+            >
+              Home
+            </Link>
+          </>
+        )}
       </div>
     </section>
   );

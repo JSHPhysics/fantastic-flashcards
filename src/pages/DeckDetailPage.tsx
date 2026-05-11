@@ -93,6 +93,13 @@ export function DeckDetailPage() {
           Add card
         </Button>
         <Button
+          variant="secondary"
+          onClick={() => navigate(`/study/custom?deck=${deck.id}`)}
+          disabled={deck.descendantCardCount === 0}
+        >
+          Custom study
+        </Button>
+        <Button
           variant="ghost"
           onClick={() => setCreateSubOpen(true)}
         >

@@ -6,6 +6,9 @@ interface SessionTopBarProps {
   total: number;
   startedAt: number;
   showTimer: boolean;
+  // Optional short tag rendered next to the deck name. Used by Custom Study
+  // sessions so the student can tell what kind of session they're in.
+  modeBadge?: string;
   onExit: () => void;
 }
 
@@ -15,6 +18,7 @@ export function SessionTopBar({
   total,
   startedAt,
   showTimer,
+  modeBadge,
   onExit,
 }: SessionTopBarProps) {
   const elapsed = useElapsed(startedAt);
@@ -40,8 +44,13 @@ export function SessionTopBar({
           </svg>
         </button>
         <div className="flex-1 truncate text-center">
-          <p className="truncate text-sm font-medium text-ink-900 dark:text-dark-ink">
-            {deckName}
+          <p className="flex items-center justify-center gap-2 truncate text-sm font-medium text-ink-900 dark:text-dark-ink">
+            {modeBadge && (
+              <span className="inline-flex items-center rounded-full bg-gold/20 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-navy dark:text-gold">
+                {modeBadge}
+              </span>
+            )}
+            <span className="truncate">{deckName}</span>
           </p>
           <p className="text-xs text-ink-500 dark:text-ink-300">
             {progress} of {total}
