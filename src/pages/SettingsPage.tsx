@@ -12,6 +12,7 @@ import { useVoices, hasSpeechSynthesis } from "../tts/useVoices";
 import { getLastOnlineSpeechError } from "../tts/online";
 import { Button } from "../components/Button";
 import { ConfirmDialog } from "../components/ConfirmDialog";
+import { BackupSection } from "../components/BackupSection";
 
 export function SettingsPage() {
   return (
@@ -20,10 +21,12 @@ export function SettingsPage() {
       subtitle="Audio, pronunciation, storage. Backup options are coming soon."
     >
       <div className="space-y-4">
+        <BackupSection />
         <AudioToggles />
         <TtsExplainer />
         <VoiceInspector />
         <StorageInfo />
+        <AboutCard />
         <DebugPanel />
         <div className="card-surface p-6 text-sm text-ink-700 dark:text-ink-300">
           <p className="font-medium text-ink-900 dark:text-dark-ink">Privacy</p>
@@ -178,6 +181,7 @@ function VoiceInspector() {
 function StorageInfo() {
   const [mediaBytes, setMediaBytes] = useState<number | null>(null);
   const [quota, setQuota] = useState<StorageEstimate | null>(null);
+  const [persistent, setPersistent] = useState<boolean | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -194,11 +198,29 @@ function StorageInfo() {
           // Some browsers reject estimate(); ignore.
         }
       }
+      if (navigator.storage?.persisted) {
+        try {
+          const p = await navigator.storage.persisted();
+          if (!cancelled) setPersistent(p);
+        } catch {
+          // Browsers without persisted() will leave the indicator as "Unknown".
+        }
+      }
     })();
     return () => {
       cancelled = true;
     };
   }, []);
+
+  const askForPersist = async () => {
+    if (!navigator.storage?.persist) return;
+    try {
+      const granted = await navigator.storage.persist();
+      setPersistent(granted);
+    } catch {
+      // No-op; the indicator just stays where it was.
+    }
+  };
 
   return (
     <div className="card-surface p-6 text-sm">
@@ -214,7 +236,46 @@ function StorageInfo() {
         {quota?.quota !== undefined && (
           <Row label="Available quota" value={formatBytes(quota.quota)} />
         )}
+        <Row
+          label="Persistent"
+          value={
+            persistent === null
+              ? "Unknown"
+              : persistent
+                ? "Yes - browser won't auto-clear"
+                : "No - browser may clear when low on space"
+          }
+        />
       </dl>
+      {persistent === false && Boolean(navigator.storage?.persist) && (
+        <p className="mt-2 text-xs text-ink-500 dark:text-ink-300">
+          Add the app to your home screen and use it for a while - most
+          browsers grant persistent storage automatically. Tapping{" "}
+          <button
+            type="button"
+            onClick={askForPersist}
+            className="text-navy underline dark:text-gold"
+          >
+            request now
+          </button>{" "}
+          asks the browser directly.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function AboutCard() {
+  return (
+    <div className="card-surface p-6 text-sm text-ink-700 dark:text-ink-300">
+      <p className="font-medium text-ink-900 dark:text-dark-ink">About</p>
+      <dl className="mt-2 grid gap-1">
+        <Row label="App version" value={__APP_VERSION__} />
+        <Row label="Build date" value={__BUILD_DATE__} />
+      </dl>
+      <p className="mt-2 text-xs">
+        Built by Joshua Stafford-Haworth (JSHPhysics). Source on GitHub.
+      </p>
     </div>
   );
 }

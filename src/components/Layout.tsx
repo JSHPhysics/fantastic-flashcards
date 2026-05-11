@@ -1,5 +1,8 @@
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import type { ReactNode } from "react";
+import { BackupNudge } from "./BackupNudge";
+import { UpdateBanner } from "./UpdateBanner";
+import { InstallTipBanner } from "./InstallTipBanner";
 
 const tabs: { to: string; label: string; icon: ReactNode }[] = [
   { to: "/", label: "Home", icon: <HomeIcon /> },
@@ -22,6 +25,11 @@ export function Layout({ children }: { children?: ReactNode }) {
         {children ?? <Outlet />}
       </main>
       {!hideTabs && <BottomTabs />}
+      {/* Globally mounted so the toast can appear on any page, but the nudge
+          component is no-op until the 20-hour condition kicks in. */}
+      {!pathname.startsWith("/study") && <BackupNudge />}
+      {!pathname.startsWith("/study") && <InstallTipBanner />}
+      <UpdateBanner />
     </div>
   );
 }
