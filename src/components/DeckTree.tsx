@@ -10,9 +10,16 @@ import { buildDeckTree, type DeckNode } from "../decks/tree";
 import { DeckSizeChip } from "./DeckSizeChip";
 import { DueTodayBadge } from "./DueTodayBadge";
 import { DeckActionsMenu } from "./DeckActionsMenu";
+import { StreakChip } from "./StreakChip";
+import {
+  formatRelativeTime,
+  useDeckPracticeStatsMap,
+  type DeckPracticeStats,
+} from "../study/practiceStats";
 
 export function DeckTree() {
   const decks = useDecks();
+  const statsMap = useDeckPracticeStatsMap();
   const tree = useMemo(() => (decks ? buildDeckTree(decks) : []), [decks]);
 
   if (!decks) {
@@ -34,13 +41,19 @@ export function DeckTree() {
   return (
     <ul role="tree" className="card-surface divide-y divide-ink-100 dark:divide-dark-bg">
       {tree.map((node) => (
-        <DeckTreeBranch key={node.deck.id} node={node} />
+        <DeckTreeBranch key={node.deck.id} node={node} statsMap={statsMap} />
       ))}
     </ul>
   );
 }
 
-function DeckTreeBranch({ node }: { node: DeckNode }) {
+function DeckTreeBranch({
+  node,
+  statsMap,
+}: {
+  node: DeckNode;
+  statsMap: Map<string, DeckPracticeStats>;
+}) {
   const [expanded, setExpanded] = useState(true);
   const hasChildren = node.children.length > 0;
   return (
@@ -51,11 +64,12 @@ function DeckTreeBranch({ node }: { node: DeckNode }) {
         expandable={hasChildren}
         expanded={expanded}
         onToggle={() => setExpanded((v) => !v)}
+        stats={statsMap.get(node.deck.id)}
       />
       {hasChildren && expanded && (
         <ul role="group" className="divide-y divide-ink-100 dark:divide-dark-bg">
           {node.children.map((c) => (
-            <DeckTreeBranch key={c.deck.id} node={c} />
+            <DeckTreeBranch key={c.deck.id} node={c} statsMap={statsMap} />
           ))}
         </ul>
       )}
@@ -69,12 +83,14 @@ function DeckRow({
   expandable,
   expanded,
   onToggle,
+  stats,
 }: {
   deck: Deck;
   depth: number;
   expandable: boolean;
   expanded: boolean;
   onToggle: () => void;
+  stats: DeckPracticeStats | undefined;
 }) {
   const [dueCount, setDueCount] = useState(0);
 
@@ -145,9 +161,15 @@ function DeckRow({
             {deck.descendantCardCount > deck.cardCount && (
               <span>({deck.descendantCardCount} incl. sub-decks)</span>
             )}
+            {stats && stats.lastReviewedAt > 0 && (
+              <span>
+                Last studied {formatRelativeTime(stats.lastReviewedAt).toLowerCase()}
+              </span>
+            )}
           </span>
         </span>
         <span className="flex items-center gap-2">
+          {stats && <StreakChip days={stats.streakDays} />}
           <DeckSizeChip bytes={deck.mediaBytes} />
           <DueTodayBadge count={dueCount} />
         </span>

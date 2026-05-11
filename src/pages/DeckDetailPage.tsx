@@ -2,13 +2,19 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { useDeck, useCardsInDeck, type Card } from "../db";
 import { Button } from "../components/Button";
 import { DeckActionsMenu } from "../components/DeckActionsMenu";
+import { StreakChip } from "../components/StreakChip";
 import { useState } from "react";
 import { CreateDeckDialog } from "../components/CreateDeckDialog";
+import {
+  formatRelativeTime,
+  useDeckPracticeStats,
+} from "../study/practiceStats";
 
 export function DeckDetailPage() {
   const { id } = useParams();
   const deck = useDeck(id);
   const cards = useCardsInDeck(id);
+  const stats = useDeckPracticeStats(id);
   const navigate = useNavigate();
   const [createSubOpen, setCreateSubOpen] = useState(false);
 
@@ -58,6 +64,15 @@ export function DeckDetailPage() {
             {deck.descendantCardCount > deck.cardCount &&
               ` · ${deck.descendantCardCount} including sub-decks`}
           </p>
+          {stats.lastReviewedAt > 0 && (
+            <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-ink-500 dark:text-ink-300">
+              <span>
+                Last studied{" "}
+                {formatRelativeTime(stats.lastReviewedAt).toLowerCase()}.
+              </span>
+              <StreakChip days={stats.streakDays} />
+            </p>
+          )}
         </div>
         <DeckActionsMenu deck={deck} />
       </header>

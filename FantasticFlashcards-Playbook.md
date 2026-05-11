@@ -477,6 +477,9 @@ Every user-visible string in the app is read by a student, not a developer. Trea
 **Toggles**
 - Each toggle should make sense without context. Pair lines like "Play recorded audio on show / on reveal" need to expand to "Play recorded audio when a card appears / when the answer is revealed".
 
+**Emojis**
+Use sparingly. The one sanctioned context is stats / engagement displays (streak chip, achievement summary, share image) where the icon adds quick recognition. Everywhere else, prefer text or an SVG icon.
+
 **Internal naming is exempt**
 This applies to user-visible strings only. Code-side identifiers — props called `pronunciationLanguage`, `variant="primary"`, table columns, type names — stay in their existing technical conventions.
 

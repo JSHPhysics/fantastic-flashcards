@@ -1,17 +1,22 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useProfile } from "../db";
 import { DeckTree } from "../components/DeckTree";
 import { CreateDeckDialog } from "../components/CreateDeckDialog";
 import { Fab } from "../components/Fab";
+import { StreakChip } from "../components/StreakChip";
 
 export function HomePage() {
   const [createOpen, setCreateOpen] = useState(false);
   const navigate = useNavigate();
+  const profile = useProfile();
+  const streakDays = profile?.streakDays ?? 0;
+  const longestStreak = profile?.longestStreak ?? 0;
 
   return (
     <>
       <section className="mt-2">
-        <header className="mb-4 flex items-start justify-between gap-3">
+        <header className="mb-4 flex flex-wrap items-start justify-between gap-3">
           <div>
             <h1 className="text-3xl font-semibold tracking-tight text-navy dark:text-gold">
               Your decks
@@ -20,6 +25,16 @@ export function HomePage() {
               Tap a deck to study or edit it. Nothing here leaves the device.
             </p>
           </div>
+          {streakDays > 0 && (
+            <div className="flex flex-col items-end gap-1">
+              <StreakChip days={streakDays} tone="bold" />
+              {longestStreak > streakDays && (
+                <p className="text-xs text-ink-500 dark:text-ink-300">
+                  Longest: {longestStreak} day{longestStreak === 1 ? "" : "s"}
+                </p>
+              )}
+            </div>
+          )}
         </header>
         <DeckTree />
       </section>
