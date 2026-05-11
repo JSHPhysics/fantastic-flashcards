@@ -36,10 +36,16 @@ export function HomePage() {
             </div>
           )}
         </header>
-        <div className="mb-3 flex justify-end">
+        <div className="mb-3 flex flex-wrap justify-end gap-4 text-sm">
+          <Link
+            to="/import/quizlet"
+            className="text-navy underline dark:text-gold"
+          >
+            Import from Quizlet →
+          </Link>
           <Link
             to="/study/custom"
-            className="text-sm text-navy underline dark:text-gold"
+            className="text-navy underline dark:text-gold"
           >
             Custom study →
           </Link>

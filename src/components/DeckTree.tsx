@@ -32,7 +32,14 @@ export function DeckTree() {
           No decks yet
         </p>
         <p className="mt-1 text-sm text-ink-500 dark:text-ink-300">
-          Tap the + button to create your first deck.
+          Tap the + button to create your first deck, or{" "}
+          <Link
+            to="/import/quizlet"
+            className="text-navy underline dark:text-gold"
+          >
+            import a set from Quizlet
+          </Link>
+          .
         </p>
       </div>
     );
