@@ -4,7 +4,7 @@ export function StatsPage() {
   return (
     <PagePlaceholder
       title="Stats"
-      subtitle="Today, This Week, All Time. Charts and shareable summaries arrive in Session 12."
+      subtitle="Progress charts and study history are coming soon."
     />
   );
 }

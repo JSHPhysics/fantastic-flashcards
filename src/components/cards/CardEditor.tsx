@@ -466,7 +466,7 @@ export function CardEditor({
           if (pendingType) performTypeSwitch(pendingType);
         }}
         title={`Switch to ${pendingType ? TYPE_LABELS[pendingType] : ""}?`}
-        description={`This discards your current ${TYPE_LABELS[type]} draft.`}
+        description={`What you've typed for this ${TYPE_LABELS[type]} card will be cleared.`}
         confirmLabel="Switch"
         destructive
       />
@@ -510,7 +510,7 @@ function TypeTabs({
         aria-hidden
         className="self-center pl-2 text-xs text-ink-500 dark:text-ink-300"
       >
-        Occlusion & Drawing arrive in Sessions 8-9.
+        Image occlusion and drawing cards are coming soon.
       </span>
     </div>
   );
@@ -581,7 +581,7 @@ function CommonFields({
             )}
           </span>
         }
-        hint="Lowercase, kebab-case suggested."
+        hint="Use short labels with hyphens for spaces, e.g. french-vocab, hard."
       >
         <TagsInput value={tags} onChange={onTagsChange} />
       </FormField>

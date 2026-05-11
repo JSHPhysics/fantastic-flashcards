@@ -64,7 +64,7 @@ export function McqForm({ draft, onChange, deckPronunciationLanguage }: Props) {
 
       <FormField
         label="Options"
-        hint={`Pick at least one correct. ${MIN_OPTIONS} to ${MAX_OPTIONS} options.`}
+        hint={`Tick the box next to each correct answer. You need ${MIN_OPTIONS}-${MAX_OPTIONS} options.`}
       >
         <ul className="space-y-2">
           {draft.options.map((opt, idx) => (
@@ -147,7 +147,7 @@ export function McqForm({ draft, onChange, deckPronunciationLanguage }: Props) {
           className="mt-1 h-4 w-4 accent-navy"
         />
         <span className="text-sm text-ink-900 dark:text-dark-ink">
-          Shuffle option order at review time
+          Shuffle the order of options during study
         </span>
       </label>
     </div>

@@ -4,7 +4,7 @@ export function StudyPage() {
   return (
     <PagePlaceholder
       title="Study"
-      subtitle="Spaced repetition review sessions arrive in Session 10."
+      subtitle="Study sessions with spaced repetition are coming soon."
     />
   );
 }

@@ -57,7 +57,7 @@ export function BasicForm({
             type="button"
             onClick={swapSides}
             className="tap-target inline-flex items-center gap-2 rounded-full px-3 text-xs font-medium text-ink-500 hover:bg-ink-100 dark:hover:bg-dark-surface"
-            title="Swap front and back (keeps per-field languages)"
+            title="Swap front and back (each side keeps its language)"
           >
             <svg
               viewBox="0 0 24 24"
@@ -98,8 +98,8 @@ export function BasicForm({
         <span className="text-sm text-ink-900 dark:text-dark-ink">
           Also create the reverse card
           <span className="block text-xs text-ink-500 dark:text-ink-300">
-            Generates a sibling card with front and back swapped. Edits to this
-            card propagate; delete cascades.
+            Makes a second card with the front and back swapped. Editing this
+            card updates both; deleting this card deletes the pair.
           </span>
         </span>
       </label>

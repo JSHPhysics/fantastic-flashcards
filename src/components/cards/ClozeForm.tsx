@@ -42,7 +42,7 @@ export function ClozeForm({ draft, onChange, readOnlyText }: Props) {
     <div className="space-y-4">
       <FormField
         label="Text"
-        hint="Wrap blanks with {{c1::hidden}}. Use the button below to insert one; c1, c2, c3 number automatically."
+        hint="Type your text, then select what you want hidden and tap the button below. Multiple blanks (c1, c2, c3...) are numbered automatically."
         htmlFor="cloze-text"
       >
         <textarea
@@ -63,16 +63,12 @@ export function ClozeForm({ draft, onChange, readOnlyText }: Props) {
           disabled={readOnlyText}
           className="tap-target inline-flex items-center justify-center gap-2 rounded-xl border border-ink-300 bg-surface px-4 text-sm font-semibold text-navy hover:bg-ink-100 dark:border-dark-surface dark:bg-dark-surface dark:text-gold dark:hover:bg-dark-surface/70 disabled:opacity-50"
         >
-          Wrap selection in cloze
+          Hide selected text
         </button>
         <p className="mt-2 text-xs text-ink-500 dark:text-ink-300">
           {numbers.length === 0
-            ? "No blanks yet."
-            : `${numbers.length} blank${numbers.length === 1 ? "" : "s"} (c${numbers.join(", c")})`}
-          {" -> "}
-          {numbers.length === 0
-            ? "save creates 0 cards"
-            : `save creates ${numbers.length} card${numbers.length === 1 ? "" : "s"}`}
+            ? "No blanks yet - select some text and tap the button to add one."
+            : `${numbers.length} blank${numbers.length === 1 ? "" : "s"} so far. Saving will create ${numbers.length} card${numbers.length === 1 ? "" : "s"} (one per blank).`}
         </p>
       </div>
     </div>
@@ -105,7 +101,8 @@ export function ClozePreview({
   if (numbers.length === 0) {
     return (
       <div className="card-surface p-4 text-sm text-ink-500">
-        Add a {"{{c1::blank}}"} to see a preview.
+        Select some text and tap "Hide selected text" to create your first
+        blank, then a preview will appear here.
       </div>
     );
   }
@@ -130,7 +127,7 @@ export function ClozePreview({
       </div>
       <div className="card-surface p-4">
         <p className="text-xs uppercase tracking-wider text-ink-500 dark:text-ink-300">
-          Card for c{current}
+          Card for blank {current}
         </p>
         <p className="mt-1 whitespace-pre-wrap text-base text-ink-900 dark:text-dark-ink">
           {renderClozePreview(draft.text, current)}

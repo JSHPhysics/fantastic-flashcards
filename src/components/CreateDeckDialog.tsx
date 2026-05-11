@@ -84,7 +84,7 @@ export function CreateDeckDialog({
         open={open && !pendingDepthCheck}
         onClose={onClose}
         title="Create deck"
-        description="Decks group related cards. Nest them with a parent."
+        description="A deck is a group of cards on the same topic. You can nest decks inside others to keep things tidy."
         footer={
           <>
             <Button variant="ghost" onClick={onClose}>
@@ -106,7 +106,10 @@ export function CreateDeckDialog({
               className={inputClass}
             />
           </Field>
-          <Field label="Subject" hint="Optional. Used as a chip on the row.">
+          <Field
+            label="Subject"
+            hint="Optional. Shows as a small tag next to the deck name."
+          >
             <input
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
@@ -141,7 +144,10 @@ export function CreateDeckDialog({
               ))}
             </div>
           </Field>
-          <Field label="Parent deck" hint="Leave blank for a root deck.">
+          <Field
+            label="Parent deck"
+            hint="Leave blank to put this at the top level."
+          >
             <select
               value={parentId ?? ""}
               onChange={(e) => setParentId(e.target.value || undefined)}
@@ -190,8 +196,8 @@ export function CreateDeckDialog({
       <Dialog
         open={pendingDepthCheck}
         onClose={() => setPendingDepthCheck(false)}
-        title="Going deeper than 4 levels"
-        description="Most decks work best at 3 or 4 levels of nesting. Continue anyway?"
+        title="More than 4 levels deep"
+        description="Decks tend to be easier to study when they're not nested too deep. Continue?"
         footer={
           <>
             <Button
@@ -205,8 +211,8 @@ export function CreateDeckDialog({
         }
       >
         <p className="text-sm text-ink-700 dark:text-ink-300">
-          You're about to create a 5th level of nesting. The app won't stop you,
-          but flat structures are easier to study and review.
+          This will be the 5th level of sub-decks. You can still make it, but
+          flatter trees are easier to navigate during study.
         </p>
       </Dialog>
     </>
@@ -230,9 +236,9 @@ function LanguagePairSection({
 }) {
   const hint = primary
     ? secondary
-      ? `Bilingual deck. New Basic cards default the front to ${labelForLanguage(primary)} and the back to ${labelForLanguage(secondary)}.`
-      : `Speaker icons on this deck's cards will use ${labelForLanguage(primary)}. Add a translation language to set up a bilingual flow.`
-    : "Optional. For language-learning decks, set one or both. The front of cards uses the primary language; the back uses the translation language.";
+      ? `Each new card will have ${labelForLanguage(primary)} on the front and ${labelForLanguage(secondary)} on the back.`
+      : `Speaker icons on this deck will read ${labelForLanguage(primary)}. Add a translation language if you want each card to have a different language on each side.`
+    : "Optional. For language-learning decks: pick the language for the front of cards, and another for the back.";
 
   return (
     <div className="rounded-xl border border-ink-100 bg-cream/40 p-3 dark:border-dark-surface dark:bg-dark-bg/40">

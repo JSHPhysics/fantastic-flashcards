@@ -5,7 +5,7 @@ export function NotFoundPage() {
   return (
     <PagePlaceholder
       title="Page not found"
-      subtitle="That route doesn't exist yet."
+      subtitle="There's nothing at this address."
     >
       <Link
         to="/"

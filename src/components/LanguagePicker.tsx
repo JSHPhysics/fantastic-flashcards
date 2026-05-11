@@ -42,7 +42,7 @@ export function LanguagePicker({
       open={open}
       onClose={onClose}
       title={title ?? "Pronunciation language"}
-      description="Used by the speaker icon and review-time auto-speak."
+      description="Sets which voice the speaker icon uses on this field."
       footer={
         <Button variant="ghost" onClick={onClose}>
           Close

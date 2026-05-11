@@ -88,7 +88,10 @@ export function DeckEditPage() {
             className={inputClass}
           />
         </FormField>
-        <FormField label="Subject" hint="Optional. Used as a chip on the row.">
+        <FormField
+          label="Subject"
+          hint="Optional. Shows as a small tag next to the deck name."
+        >
           <input
             value={subject}
             onChange={(e) => setSubject(e.target.value)}
@@ -125,9 +128,9 @@ export function DeckEditPage() {
             <p className="text-xs text-ink-500 dark:text-ink-300">
               {pronunciationLanguage
                 ? secondaryLanguage
-                  ? `Bilingual deck. Basic-card fronts default to ${labelForLanguage(pronunciationLanguage)}; backs default to ${labelForLanguage(secondaryLanguage)}.`
-                  : `Speaker icons use ${labelForLanguage(pronunciationLanguage)}. Add a translation language to set up the bilingual flow.`
-                : "For language-learning decks. Set the primary (target) language and optionally the translation language."}
+                  ? `New cards in this deck will have ${labelForLanguage(pronunciationLanguage)} on the front and ${labelForLanguage(secondaryLanguage)} on the back.`
+                  : `Speaker icons in this deck will read ${labelForLanguage(pronunciationLanguage)}. Add a translation language if you want each card to have a different language on each side.`
+                : "For language-learning decks: pick the language for the front of cards, and another for the back."}
             </p>
             <div className="flex flex-wrap gap-2">
               <LangPill

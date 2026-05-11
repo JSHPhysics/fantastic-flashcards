@@ -17,7 +17,7 @@ export function SettingsPage() {
   return (
     <PagePlaceholder
       title="Settings"
-      subtitle="Theme, audio, daily limits, backup. Backup buttons arrive in Session 13."
+      subtitle="Audio, pronunciation, storage. Backup options are coming soon."
     >
       <div className="space-y-4">
         <AudioToggles />
@@ -50,43 +50,41 @@ function AudioToggles() {
     <div className="card-surface p-6">
       <p className="font-medium text-ink-900 dark:text-dark-ink">Audio</p>
       <p className="mt-1 text-sm text-ink-500 dark:text-ink-300">
-        Auto-play behaviour during study sessions.
+        What plays automatically during a study session.
       </p>
       <div className="mt-3 space-y-2">
         <Toggle
-          label="Auto-play recorded audio on show"
+          label="Play recorded audio when a card appears"
           checked={s.audioAutoplayOnShow}
           onChange={(v) => set({ audioAutoplayOnShow: v })}
         />
         <Toggle
-          label="Auto-play recorded audio on reveal"
+          label="Play recorded audio when the answer is revealed"
           checked={s.audioAutoplayOnReveal}
           onChange={(v) => set({ audioAutoplayOnReveal: v })}
         />
         <Toggle
-          label="Auto-speak text on show"
+          label="Speak card text when a card appears"
           checked={s.ttsAutoplayOnShow}
           onChange={(v) => set({ ttsAutoplayOnShow: v })}
         />
         <Toggle
-          label="Auto-speak text on reveal"
+          label="Speak card text when the answer is revealed"
           checked={s.ttsAutoplayOnReveal}
           onChange={(v) => set({ ttsAutoplayOnReveal: v })}
         />
       </div>
       <div className="mt-4 rounded-xl border border-ink-100 bg-cream/40 p-3 dark:border-dark-surface dark:bg-dark-bg/40">
         <Toggle
-          label="Use online voices for pronunciation (Google)"
+          label="Use Google's online voices for pronunciation"
           checked={s.useOnlineVoices ?? false}
           onChange={(v) => set({ useOnlineVoices: v })}
         />
         <p className="mt-1 text-xs text-ink-500 dark:text-ink-300">
-          When on, the speaker icon uses Google's translate-TTS endpoint
-          instead of voices installed on this device. Gives authentic accents
-          for any language without needing the user to download voice packs,
-          but every pronunciation sends the field text to translate.google.com
-          and requires internet. Falls back to local voices if offline. Off by
-          default to keep the app local-first.
+          Speaker icons will use Google's voice for any language, no voice
+          downloads needed. The card text gets sent to Google with each tap,
+          so internet is required. If you go offline, the app falls back to
+          whatever voices your device has installed. Off by default.
         </p>
       </div>
     </div>
@@ -100,14 +98,16 @@ function TtsExplainer() {
         Voice quality
       </p>
       <p className="mt-1">
-        Pronunciation uses voices installed on this device. On iPad / iPhone, go
-        to Settings → Accessibility → Spoken Content → Voices and download
-        Enhanced voices for any language you're studying. On Windows, install
-        additional speech packs via Settings → Time & language → Speech.
+        Pronunciation normally uses voices installed on this device. On iPad
+        and iPhone, go to Settings → Accessibility → Spoken Content → Voices
+        and download an Enhanced voice for any language you're studying. On
+        Windows, additional speech packs are at Settings → Time & language →
+        Speech.
       </p>
       <p className="mt-2">
-        If a speaker icon plays a flat or robotic voice, that just means the
-        Enhanced voice for that language isn't installed yet.
+        If a speaker icon sounds robotic or thin, the device just doesn't have
+        a good voice for that language. Either install one as above, or turn
+        on "Use Google's online voices" to skip the install entirely.
       </p>
     </div>
   );
@@ -122,8 +122,8 @@ function VoiceInspector() {
           Installed voices
         </p>
         <p className="mt-1">
-          This browser doesn't expose Speech Synthesis. Pronunciation will be
-          unavailable.
+          Your browser doesn't support text-to-speech. The speaker icons
+          won't work unless you turn on Google's online voices above.
         </p>
       </div>
     );
@@ -145,8 +145,8 @@ function VoiceInspector() {
       </summary>
       {voices.length === 0 ? (
         <p className="mt-3 text-sm text-ink-500 dark:text-ink-300">
-          Voice list still loading; pull-to-refresh or open a card with a
-          language set to trigger a load.
+          Voices are still loading. Open a card with a language set if they
+          haven't appeared after a moment.
         </p>
       ) : (
         <ul className="mt-3 space-y-3 text-sm">
@@ -235,11 +235,11 @@ function DebugPanel() {
       const result = await seedDebugData();
       if (result.alreadySeeded) {
         setSeedMessage(
-          'Sample decks already present. Wipe data first to reseed.',
+          "Sample decks are already there. Wipe local data first if you want a fresh set.",
         );
       } else {
         setSeedMessage(
-          `Created ${result.decksCreated} decks with ${result.cardsCreated} cards (including auto-reverse siblings).`,
+          `Created ${result.decksCreated} sample decks with ${result.cardsCreated} cards (reverse cards counted in the total).`,
         );
       }
     } catch (err) {
@@ -253,8 +253,8 @@ function DebugPanel() {
     <div className="card-surface p-6">
       <p className="font-medium text-ink-900 dark:text-dark-ink">Debug</p>
       <p className="mt-1 text-sm text-ink-500 dark:text-ink-300">
-        Testing utilities. Toggle off when not in use to hide the destructive
-        actions.
+        Tools for testing the app. Turn off to hide the wipe button when
+        you're not using it.
       </p>
       <div className="mt-3 space-y-3">
         <Toggle
@@ -269,11 +269,10 @@ function DebugPanel() {
                 Sample decks
               </p>
               <p className="mt-0.5 text-xs text-ink-500 dark:text-ink-300">
-                Creates four "[debug]" decks: French / Spanish / German
-                vocabulary (with pronunciation language set, for testing TTS
-                against accented characters) and one deck with every text
-                card type (Basic, Cloze with two blanks, MCQ, Typed).
-                Idempotent - skips if "[debug]" decks already exist.
+                Adds four practice decks (French, Spanish, and German vocab,
+                plus one with a sample of every card type). Each is prefixed
+                with "[debug]" so you can spot them. Won't duplicate
+                anything that's already there.
               </p>
               <div className="mt-2">
                 <Button
@@ -296,9 +295,9 @@ function DebugPanel() {
             <div className="rounded-xl border border-again/30 bg-again/5 p-3">
               <p className="text-sm font-medium text-again">Danger zone</p>
               <p className="mt-0.5 text-xs text-ink-500 dark:text-ink-300">
-                Deletes every deck, card, media file, and the profile on this
-                device. The page reloads with an empty install. Cannot be
-                undone (back up first if there's anything to keep).
+                Deletes every deck, card, image, and recording on this
+                device, then reloads. Cannot be undone — back up first if
+                there's anything to keep.
               </p>
               <div className="mt-2">
                 <Button variant="danger" onClick={() => setWipeOpen(true)}>
@@ -314,8 +313,8 @@ function DebugPanel() {
         open={wipeOpen}
         onClose={() => setWipeOpen(false)}
         onConfirm={() => void wipeAllData()}
-        title="Wipe all local data?"
-        description="Every deck, card, media file, and session history on this device will be deleted. This cannot be undone."
+        title="Wipe everything on this device?"
+        description="Every deck, card, image, recording, and study history on this device will be deleted. This cannot be undone."
         confirmLabel="Wipe everything"
         destructive
       />
@@ -341,8 +340,9 @@ function OnlineTtsDiagnostic() {
       </p>
       {!snapshot ? (
         <p className="mt-0.5 text-xs text-ink-500 dark:text-ink-300">
-          No errors recorded yet. If "Use online voices" is on and the speaker
-          icon falls back to the local voice, the failure shows up here.
+          No errors recorded yet. If "Use Google's online voices" is on and
+          a speaker icon plays the device's voice instead, the reason will
+          appear here.
         </p>
       ) : (
         <>

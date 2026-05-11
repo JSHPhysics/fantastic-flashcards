@@ -34,7 +34,7 @@ export function TypedForm({
       </FormField>
       <FormField
         label="Accepted answers"
-        hint="Comma-separated. Any one is correct."
+        hint="Separate alternatives with commas. Any one will count as correct."
         htmlFor="typed-answers"
       >
         <input
@@ -71,7 +71,7 @@ export function TypedForm({
             className="mt-1 h-4 w-4 accent-navy"
           />
           <span className="text-sm text-ink-900 dark:text-dark-ink">
-            Ignore punctuation when comparing
+            Ignore punctuation when checking answers
           </span>
         </label>
       </div>

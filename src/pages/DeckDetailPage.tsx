@@ -110,7 +110,7 @@ function CardList({ cards }: { cards: Card[] | undefined }) {
           No cards in this deck yet
         </p>
         <p className="mt-1 text-sm text-ink-500 dark:text-ink-300">
-          Tap Add card to author the first one.
+          Tap "Add card" to create your first one.
         </p>
       </div>
     );
