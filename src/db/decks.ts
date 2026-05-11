@@ -2,6 +2,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "./schema";
 import { bumpVersion } from "./profile";
 import { newId } from "./ids";
+import { bulkCopyCardsToDeck } from "./cards";
 import type { Deck } from "./types";
 
 // Curated palette for the deck-create colour picker (Playbook 8). Tokens.ts
@@ -94,6 +95,62 @@ export async function collectDescendantIds(rootId: string): Promise<string[]> {
     }
   }
   return ids;
+}
+
+// Recursive duplicate. Copies the subtree rooted at sourceId under the chosen
+// new parent and copies every card. Cards get fresh FSRS state via
+// bulkCopyCardsToDeck. Name suffixed "(copy)" on the root copy only.
+export async function duplicateDeck(
+  sourceId: string,
+  newParentId?: string,
+): Promise<Deck | undefined> {
+  const original = await db.decks.get(sourceId);
+  if (!original) return undefined;
+
+  // Build the source subtree breadth-first so we copy parents before children.
+  const subtree: Deck[] = [];
+  const queue: string[] = [sourceId];
+  while (queue.length) {
+    const id = queue.shift()!;
+    const d = await db.decks.get(id);
+    if (!d) continue;
+    subtree.push(d);
+    const children = await db.decks.where("parentId").equals(id).toArray();
+    for (const c of children) queue.push(c.id);
+  }
+
+  const idMap = new Map<string, string>();
+  let rootCopy: Deck | undefined;
+  const now = Date.now();
+  for (const src of subtree) {
+    const targetId = newId();
+    idMap.set(src.id, targetId);
+
+    const copy: Deck = {
+      ...src,
+      id: targetId,
+      parentId:
+        src.id === sourceId ? newParentId : idMap.get(src.parentId ?? ""),
+      name: src.id === sourceId ? `${src.name} (copy)` : src.name,
+      cardCount: 0,
+      descendantCardCount: 0,
+      mediaBytes: 0,
+      createdAt: now,
+      updatedAt: now,
+    };
+    await db.decks.add(copy);
+    if (src.id === sourceId) rootCopy = copy;
+  }
+
+  // Copy cards after the new deck tree is in place so descendant-count walks
+  // along the new tree resolve correctly inside bulkCopyCardsToDeck.
+  for (const src of subtree) {
+    const targetId = idMap.get(src.id);
+    if (targetId) await bulkCopyCardsToDeck(src.id, targetId);
+  }
+
+  await bumpVersion("deck duplicated");
+  return rootCopy;
 }
 
 export async function deleteDeck(id: string): Promise<void> {

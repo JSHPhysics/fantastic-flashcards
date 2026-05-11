@@ -60,6 +60,25 @@ export async function listCardsInDecks(deckIds: string[]): Promise<Card[]> {
   return db.cards.where("deckId").anyOf(deckIds).toArray();
 }
 
+// Count cards due (fsrs.due <= now) in a deck. Used for the due-today badge.
+// Includes descendants if a descendant id list is supplied.
+export async function countDueCards(
+  deckIds: string[],
+  now: Date = new Date(),
+): Promise<number> {
+  if (deckIds.length === 0) return 0;
+  const cards = await db.cards.where("deckId").anyOf(deckIds).toArray();
+  const ts = now.getTime();
+  let due = 0;
+  for (const c of cards) {
+    if (c.suspended) continue;
+    const dueAt =
+      c.fsrs.due instanceof Date ? c.fsrs.due.getTime() : new Date(c.fsrs.due).getTime();
+    if (dueAt <= ts) due += 1;
+  }
+  return due;
+}
+
 export async function listCardsByTag(
   tags: string[],
   mode: "any" | "all",
@@ -123,6 +142,51 @@ export async function moveCard(
     });
   });
   await bumpVersion("card moved");
+}
+
+// Bulk-copy cards into a new deck. Used by the recursive deck duplicate flow.
+// Returns the count of created cards. New cards get fresh FSRS state so the
+// duplicated deck behaves as new material for the scheduler.
+export async function bulkCopyCardsToDeck(
+  sourceDeckId: string,
+  targetDeckId: string,
+): Promise<number> {
+  const sources = await db.cards
+    .where("deckId")
+    .equals(sourceDeckId)
+    .toArray();
+  if (sources.length === 0) return 0;
+
+  const now = Date.now();
+  const copies: Card[] = sources.map((c) => ({
+    id: newId(),
+    deckId: targetDeckId,
+    type: c.type,
+    tags: c.tags.slice(),
+    createdAt: now,
+    updatedAt: now,
+    content: structuredClone(c.content),
+    fsrs: initFsrsState(new Date(now)),
+    suspended: false,
+  }));
+
+  await db.transaction("rw", db.cards, db.decks, async () => {
+    await db.cards.bulkAdd(copies);
+    const dest = await db.decks.get(targetDeckId);
+    if (dest) {
+      await db.decks.update(targetDeckId, {
+        cardCount: dest.cardCount + copies.length,
+        updatedAt: now,
+      });
+    }
+    await walkAncestorsInclusive(targetDeckId, async (d) => {
+      await db.decks.update(d.id, {
+        descendantCardCount: d.descendantCardCount + copies.length,
+      });
+    });
+  });
+  await bumpVersion("cards duplicated");
+  return copies.length;
 }
 
 export async function deleteCard(id: string): Promise<void> {

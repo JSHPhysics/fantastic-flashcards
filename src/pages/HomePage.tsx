@@ -1,31 +1,48 @@
-import { Link } from "react-router-dom";
-import { PagePlaceholder } from "./PagePlaceholder";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { DeckTree } from "../components/DeckTree";
+import { CreateDeckDialog } from "../components/CreateDeckDialog";
+import { Fab } from "../components/Fab";
 
 export function HomePage() {
+  const [createOpen, setCreateOpen] = useState(false);
+  const navigate = useNavigate();
+
   return (
-    <PagePlaceholder
-      title="Your decks"
-      subtitle="Local-first flashcards. Nothing leaves this device unless you export it."
-    >
-      <div className="card-surface flex flex-col gap-4 p-6">
-        <p className="text-ink-700 dark:text-ink-300">
-          Deck tree, due-today badges, and the create-deck FAB land in Session 3.
-        </p>
-        <div className="flex flex-wrap gap-3">
-          <Link
-            to="/study"
-            className="tap-target inline-flex items-center justify-center rounded-xl bg-navy px-5 text-sm font-semibold text-cream shadow-sm transition-colors hover:bg-navy/90"
-          >
-            Open study screen
-          </Link>
-          <Link
-            to="/stats"
-            className="tap-target inline-flex items-center justify-center rounded-xl border border-ink-300 px-5 text-sm font-semibold text-navy transition-colors hover:bg-ink-100 dark:border-dark-surface dark:text-gold dark:hover:bg-dark-surface"
-          >
-            View stats
-          </Link>
-        </div>
-      </div>
-    </PagePlaceholder>
+    <>
+      <section className="mt-2">
+        <header className="mb-4 flex items-start justify-between gap-3">
+          <div>
+            <h1 className="text-3xl font-semibold tracking-tight text-navy dark:text-gold">
+              Your decks
+            </h1>
+            <p className="mt-1 text-sm text-ink-700 dark:text-ink-300">
+              Tap a deck to study or edit it. Nothing here leaves the device.
+            </p>
+          </div>
+        </header>
+        <DeckTree />
+      </section>
+
+      <Fab
+        label="Create deck"
+        onClick={() => setCreateOpen(true)}
+      >
+        <svg viewBox="0 0 24 24" className="h-7 w-7" fill="none" aria-hidden>
+          <path
+            d="M12 5v14M5 12h14"
+            stroke="currentColor"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+          />
+        </svg>
+      </Fab>
+
+      <CreateDeckDialog
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        onCreated={(deck) => navigate(`/decks/${deck.id}`)}
+      />
+    </>
   );
 }
