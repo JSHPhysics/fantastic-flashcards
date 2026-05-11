@@ -43,7 +43,7 @@ export async function seedDebugData(): Promise<SeedDebugResult> {
     subject: "French",
     colour: "#3D7AB8",
     pronunciationLanguage: "fr-FR",
-    secondaryLanguage: "en-US",
+    secondaryLanguage: "en-GB",
   });
   decks++;
   for (const [front, back] of [
@@ -62,7 +62,7 @@ export async function seedDebugData(): Promise<SeedDebugResult> {
       // deck's pronunciationLanguage and read the English gloss with a
       // French voice.
       front: { text: front, language: "fr-FR" },
-      back: { text: back, language: "en-US" },
+      back: { text: back, language: "en-GB" },
       autoReverse: true,
     });
     cards += 2; // primary + auto-reverse sibling
@@ -75,7 +75,7 @@ export async function seedDebugData(): Promise<SeedDebugResult> {
     subject: "Spanish",
     colour: "#C9A14A",
     pronunciationLanguage: "es-ES",
-    secondaryLanguage: "en-US",
+    secondaryLanguage: "en-GB",
   });
   decks++;
   for (const [front, back] of [
@@ -90,7 +90,7 @@ export async function seedDebugData(): Promise<SeedDebugResult> {
       deckId: spanish.id,
       tags: ["es", "vocab"],
       front: { text: front, language: "es-ES" },
-      back: { text: back, language: "en-US" },
+      back: { text: back, language: "en-GB" },
       autoReverse: true,
     });
     cards += 2;
@@ -103,7 +103,7 @@ export async function seedDebugData(): Promise<SeedDebugResult> {
     subject: "German",
     colour: "#3E8E63",
     pronunciationLanguage: "de-DE",
-    secondaryLanguage: "en-US",
+    secondaryLanguage: "en-GB",
   });
   decks++;
   for (const [front, back] of [
@@ -118,7 +118,7 @@ export async function seedDebugData(): Promise<SeedDebugResult> {
       deckId: german.id,
       tags: ["de", "vocab"],
       front: { text: front, language: "de-DE" },
-      back: { text: back, language: "en-US" },
+      back: { text: back, language: "en-GB" },
       autoReverse: true,
     });
     cards += 2;
