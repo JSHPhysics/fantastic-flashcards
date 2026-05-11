@@ -12,7 +12,46 @@
     <title>Fantastic Flashcards</title>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <noscript>
+        <div style="padding:2rem;font-family:system-ui,sans-serif;text-align:center">
+          Fantastic Flashcards needs JavaScript to run.
+        </div>
+      </noscript>
+      <div
+        id="boot-fallback"
+        style="
+          display:flex;align-items:center;justify-content:center;
+          min-height:100vh;padding:1rem;
+          font-family:system-ui,-apple-system,'Segoe UI',sans-serif;
+          color:#1E3A5F;background:#FAF7F2;
+        "
+      >
+        <div style="text-align:center">
+          <div style="font-weight:600;font-size:1.125rem">Fantastic Flashcards</div>
+          <div style="margin-top:0.25rem;font-size:0.875rem;color:#6A7287">
+            Loading...
+          </div>
+        </div>
+      </div>
+    </div>
+    <script>
+      // Surface any uncaught script error to the user so a blank page never lies.
+      // React mounts inside #root and replaces the fallback; if mount fails or
+      // the bundle errors out, this handler paints something visible.
+      window.addEventListener("error", function (e) {
+        var fb = document.getElementById("boot-fallback");
+        if (!fb) return;
+        var msg = (e && (e.message || (e.error && e.error.message))) || "Unknown error";
+        fb.innerHTML =
+          '<div style="text-align:center;max-width:32rem">' +
+          '<div style="font-weight:600;font-size:1.125rem;color:#C44545">App failed to start</div>' +
+          '<pre style="margin-top:0.5rem;white-space:pre-wrap;font-size:0.75rem;color:#3A4357;background:#FFFFFF;padding:0.75rem;border-radius:0.5rem;text-align:left">' +
+          (msg.replace(/</g, "&lt;")) +
+          "</pre>" +
+          "</div>";
+      });
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
