@@ -56,8 +56,12 @@ export async function seedDebugData(): Promise<SeedDebugResult> {
     await createBasicCard({
       deckId: french.id,
       tags: ["fr", "vocab"],
+      // Both sides carry an explicit language so each speaker icon picks the
+      // correct voice. Without back.language, it would fall back to the
+      // deck's pronunciationLanguage and read the English gloss with a
+      // French voice.
       front: { text: front, language: "fr-FR" },
-      back: { text: back },
+      back: { text: back, language: "en-US" },
       autoReverse: true,
     });
     cards += 2; // primary + auto-reverse sibling
@@ -84,7 +88,7 @@ export async function seedDebugData(): Promise<SeedDebugResult> {
       deckId: spanish.id,
       tags: ["es", "vocab"],
       front: { text: front, language: "es-ES" },
-      back: { text: back },
+      back: { text: back, language: "en-US" },
       autoReverse: true,
     });
     cards += 2;
@@ -111,7 +115,7 @@ export async function seedDebugData(): Promise<SeedDebugResult> {
       deckId: german.id,
       tags: ["de", "vocab"],
       front: { text: front, language: "de-DE" },
-      back: { text: back },
+      back: { text: back, language: "en-US" },
       autoReverse: true,
     });
     cards += 2;
