@@ -73,6 +73,21 @@ function AudioToggles() {
           onChange={(v) => set({ ttsAutoplayOnReveal: v })}
         />
       </div>
+      <div className="mt-4 rounded-xl border border-ink-100 bg-cream/40 p-3 dark:border-dark-surface dark:bg-dark-bg/40">
+        <Toggle
+          label="Use online voices for pronunciation (Google)"
+          checked={s.useOnlineVoices ?? false}
+          onChange={(v) => set({ useOnlineVoices: v })}
+        />
+        <p className="mt-1 text-xs text-ink-500 dark:text-ink-300">
+          When on, the speaker icon uses Google's translate-TTS endpoint
+          instead of voices installed on this device. Gives authentic accents
+          for any language without needing the user to download voice packs,
+          but every pronunciation sends the field text to translate.google.com
+          and requires internet. Falls back to local voices if offline. Off by
+          default to keep the app local-first.
+        </p>
+      </div>
     </div>
   );
 }

@@ -12,6 +12,7 @@ const DEFAULT_SETTINGS: ProfileSettings = {
   defaultDailyNewLimit: 20,
   defaultDailyReviewLimit: 200,
   debugMode: false,
+  useOnlineVoices: false,
 };
 
 export async function ensureProfile(): Promise<Profile> {

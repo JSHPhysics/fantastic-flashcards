@@ -22,6 +22,12 @@ export interface ProfileSettings {
   // the wipe-everything button. Toggling persists in the profile so a backup
   // round-trip preserves it.
   debugMode?: boolean;
+  // Off by default. When enabled, pronunciation goes through Google's
+  // translate-TTS endpoint instead of the local speechSynthesis voices.
+  // Every speak() call sends the field text to Google. Off-by-default keeps
+  // the local-first promise intact; the user opts in explicitly when they
+  // want authentic accents without installing platform voices.
+  useOnlineVoices?: boolean;
 }
 
 export interface Profile {

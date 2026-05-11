@@ -1,35 +1,65 @@
 import { hasSpeechSynthesis, pickVoice } from "./voices";
+import { cancelOnlineSpeech, speakOnline } from "./online";
 
-// Speak `text` in the requested BCP 47 language. Picks the highest-quality
-// available voice in priority order via pickVoice:
-//   1. Exact lang match, ranked by quality (Enhanced / Premium / Neural...)
-//   2. Primary-subtag match (e.g. "fr-FR" requested, "fr-CA" available),
-//      again ranked by quality
-//   3. No voice: utterance.lang alone is the only hint to the browser.
+// Speak `text` in the requested BCP 47 language. Two paths:
 //
-// Cancels any in-progress speech so a fast-tapping user doesn't queue clips
-// (the Web Speech API queues by default).
+// - LOCAL (default): uses speechSynthesis with the highest-quality matching
+//   voice via pickVoice (Enhanced / Premium / Neural > Compact > nothing).
+//   Quality depends on what the device has installed.
+//
+// - ONLINE (opt-in via options.online or ProfileSettings.useOnlineVoices):
+//   plays Google's translate-TTS endpoint through an <audio> element. Sends
+//   the field text to translate.google.com each call. Falls back to the local
+//   path if the online request fails (offline, text too long, etc.).
+//
+// Always cancels any in-progress utterance / audio first so fast tapping
+// doesn't queue clips.
 
-export function speak(text: string, lang: string): void {
-  if (!hasSpeechSynthesis()) return;
+export interface SpeakOptions {
+  online?: boolean;
+}
+
+// Monotonic invocation counter. Each call increments and captures its own
+// generation; the online-fallback closure compares against the current value
+// so it doesn't fire stale fallbacks for a click the user has already moved
+// past with a second click.
+let speakInvocation = 0;
+
+export function speak(text: string, lang: string, options: SpeakOptions = {}): void {
   if (!text.trim()) return;
-  speechSynthesis.cancel();
+  cancelSpeech();
+  const mine = ++speakInvocation;
 
+  if (options.online) {
+    void speakOnline(text, lang).then((result) => {
+      if (mine !== speakInvocation) return; // user clicked again; abandon
+      if (result.ok) return;
+      // Fallback: if online didn't work for any reason, try a local voice
+      // so the user still hears something. Won't sound as good but beats
+      // silence.
+      speakLocal(text, lang);
+    });
+    return;
+  }
+
+  speakLocal(text, lang);
+}
+
+function speakLocal(text: string, lang: string): void {
+  if (!hasSpeechSynthesis()) return;
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = lang;
-
   const voice = pickVoice(lang);
   if (voice) {
     utterance.voice = voice;
-    // Setting utterance.lang to the voice's actual lang prevents some browsers
-    // from second-guessing the picker when the voice's lang differs from our
-    // request (e.g. fr-CA voice for fr-FR text).
+    // Match utterance.lang to the actual voice's lang so browsers don't
+    // second-guess the picker (e.g. an fr-CA voice playing fr-FR text).
     utterance.lang = voice.lang;
   }
-
   speechSynthesis.speak(utterance);
 }
 
 export function cancelSpeech(): void {
   if (hasSpeechSynthesis()) speechSynthesis.cancel();
+  cancelOnlineSpeech();
 }

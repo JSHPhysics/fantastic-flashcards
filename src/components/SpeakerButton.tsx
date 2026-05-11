@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { speak } from "../tts/speak";
 import { hasSpeechSynthesis, pickVoice, subscribeVoiceChange } from "../tts/voices";
 import { labelForLanguage } from "../tts/languages";
+import { useProfile } from "../db";
 
 interface SpeakerButtonProps {
   text: string;
@@ -9,23 +10,36 @@ interface SpeakerButtonProps {
   size?: "sm" | "md";
 }
 
-// Renders nothing when there's no language or the browser has no TTS - keeps
-// the editor and review surfaces uncluttered for cards that aren't language-
-// oriented.
+// Renders nothing when there's no language and either the browser lacks TTS
+// or online voices are off (in which case we can't speak at all). With online
+// voices on, we can speak any language regardless of local install state.
 //
-// The tooltip surfaces the actual voice that will play, so authors can tell
-// at a glance whether an Enhanced voice is in use or if the browser is about
-// to fall back to a robotic compact voice / English default.
+// The tooltip surfaces the active mode and the matched voice so authors can
+// tell at a glance which path will run.
 export function SpeakerButton({ text, lang, size = "sm" }: SpeakerButtonProps) {
+  const profile = useProfile();
+  const onlineEnabled = profile?.settings.useOnlineVoices ?? false;
   const matched = useMatchedVoice(lang);
-  if (!lang || !hasSpeechSynthesis()) return null;
+
+  if (!lang) return null;
+  if (!onlineEnabled && !hasSpeechSynthesis()) return null;
+
   const dim = !text.trim();
   const sizeClass = size === "sm" ? "h-8 w-8" : "h-10 w-10";
 
   const langLabel = labelForLanguage(lang);
-  const title = matched
-    ? `Pronounce in ${langLabel} (${matched.name})`
-    : `No ${langLabel} voice installed - speaking with the browser default`;
+  let title: string;
+  let active: boolean;
+  if (onlineEnabled) {
+    title = `Pronounce in ${langLabel} (online voice via Google)`;
+    active = true;
+  } else if (matched) {
+    title = `Pronounce in ${langLabel} (${matched.name})`;
+    active = true;
+  } else {
+    title = `No ${langLabel} voice installed - speaking with the browser default`;
+    active = false;
+  }
 
   return (
     <button
@@ -36,10 +50,10 @@ export function SpeakerButton({ text, lang, size = "sm" }: SpeakerButtonProps) {
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();
-        speak(text, lang);
+        speak(text, lang, { online: onlineEnabled });
       }}
       className={`${sizeClass} inline-flex shrink-0 items-center justify-center rounded-full transition-colors hover:bg-navy/10 disabled:opacity-30 dark:hover:bg-gold/10 ${
-        matched
+        active
           ? "text-navy dark:text-gold"
           : "text-ink-500 dark:text-ink-300"
       }`}
