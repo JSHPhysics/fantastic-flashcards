@@ -2,6 +2,16 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <!--
+      Suppress the Referer header on all outbound requests. The only
+      cross-origin call this app makes is to translate.google.com when
+      "Use online voices" is enabled, and Google's translate-TTS endpoint
+      returns 404 HTML when a Referer header is present (their anti-embed
+      check). Without a referer it returns audio/mpeg as expected. We don't
+      use referers for anything else, so a global no-referrer policy is the
+      simplest fix and doesn't affect any other feature.
+    -->
+    <meta name="referrer" content="no-referrer" />
     <link rel="icon" type="image/svg+xml" href="/fantastic-flashcards/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#1E3A5F" />

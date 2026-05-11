@@ -86,6 +86,14 @@ export async function speakOnline(
 
   const url = buildUrl(trimmed, lang);
   const audio = document.createElement("audio");
+  // Belt and braces: index.html sets a document-wide referrer policy of
+  // "no-referrer" because Google's translate-TTS endpoint returns a 404
+  // HTML page when a Referer header is present. Setting it via the HTML
+  // attribute here (referrerPolicy isn't part of HTMLAudioElement's typed
+  // interface, but the underlying attribute is honored by browsers that
+  // extend it to media elements) is harmless and protects against any
+  // future template change.
+  audio.setAttribute("referrerpolicy", "no-referrer");
   audio.src = url;
   audio.preload = "auto";
   // crossOrigin is left as the default (null). Setting it to "anonymous"
