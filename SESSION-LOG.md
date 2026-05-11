@@ -97,6 +97,10 @@ Items deferred to real-device QA:
   downloaded. Speaker icon plays the word; auto-speak hooks fire (Session
   10 will exercise these in the review session).
 
+## Standing rules
+
+**Plain-English user copy** (Playbook section 11 "Voice and copy"). Every user-visible string is read by a student, not a developer. Avoid implementation jargon (chip, propagate, cascade, sibling, endpoint, idempotent, refcount), coding terms (kebab-case, schema), and internal scheduling (Session N). Describe results, not mechanisms. The Playbook has a swap table of patterns to match.
+
 ## Open notes for the next session
 
 - `package.json` still flags 3 moderate npm audit warnings on transitive

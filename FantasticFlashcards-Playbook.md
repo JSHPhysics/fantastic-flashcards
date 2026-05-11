@@ -440,6 +440,46 @@ Dark mode mirrors with adjusted contrast.
 - 44pt minimum tap targets app-wide.
 - Canvas tools: 32pt hit areas even with smaller visual handles.
 
+### Voice and copy
+
+Every user-visible string in the app is read by a student, not a developer. Treat copy as a first-class design surface.
+
+**Principles**
+- Plain English. Describe what the user sees or does, not how the code is structured.
+- Cause-and-effect framing beats abstract description. "Editing this card updates both" reads better than "edits propagate".
+- Use the user's vocabulary, not the codebase's.
+- Concrete examples beat abstract rules. Hints that include an example outperform hints that try to define the format.
+- No roadmap leaks. Code comments may reference "Session 10"; UI strings never do. Unimplemented surfaces say "coming soon".
+
+**Words to avoid in user-visible strings**
+- Implementation jargon: *chip, endpoint, propagate, cascade, sibling, materialise, idempotent, refcount, deprecate, payload, dispatcher*.
+- Coding terms: *kebab-case, camelCase, regex, JSON, primary key, foreign key, schema*.
+- Process terms students don't know: *author* (for *make*), *root* (for *top level*), *transient* (for *temporary*).
+- Brand-internal scheduling: *Session 4, ships in v1*, etc.
+
+**Concrete swaps that have already landed (use as the pattern)**
+
+| Before | After |
+|---|---|
+| "Optional. Used as a chip on the row." | "Optional. Shows as a small tag next to the deck name." |
+| "Lowercase, kebab-case suggested." | "Use short labels with hyphens for spaces, e.g. `french-vocab`, `hard`." |
+| "Generates a sibling card with front and back swapped. Edits to this card propagate; delete cascades." | "Makes a second card with the front and back swapped. Editing this card updates both; deleting this card deletes the pair." |
+| "Wrap blanks with `{{c1::hidden}}`. c1, c2, c3 number automatically." | "Type your text, then select what you want hidden and tap the button below. Multiple blanks (c1, c2, c3...) are numbered automatically." |
+| "Comma-separated. Any one is correct." | "Separate alternatives with commas. Any one will count as correct." |
+| "Spaced repetition review sessions arrive in Session 10." | "Study sessions with spaced repetition are coming soon." |
+| "Theme, audio, daily limits, backup. Backup buttons arrive in Session 13." | "Audio, pronunciation, storage. Backup options are coming soon." |
+| "Tap Add card to author the first one." | 'Tap "Add card" to create your first one.' |
+
+**Buttons**
+- Verb first, object second: *Add card*, *Hide selected text*, *Wipe everything*.
+- The button label should describe the result, not the mechanism. *Hide selected text* > *Wrap selection in cloze*.
+
+**Toggles**
+- Each toggle should make sense without context. Pair lines like "Play recorded audio on show / on reveal" need to expand to "Play recorded audio when a card appears / when the answer is revealed".
+
+**Internal naming is exempt**
+This applies to user-visible strings only. Code-side identifiers — props called `pronunciationLanguage`, `variant="primary"`, table columns, type names — stay in their existing technical conventions.
+
 ---
 
 ## 12. Privacy and data posture
