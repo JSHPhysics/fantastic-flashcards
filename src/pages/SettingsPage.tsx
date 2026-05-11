@@ -1,12 +1,16 @@
 import { useEffect, useState } from "react";
 import { PagePlaceholder } from "./PagePlaceholder";
 import {
+  seedDebugData,
   totalMediaBytes,
   updateSettings,
   useProfile,
+  wipeAllData,
   type ProfileSettings,
 } from "../db";
 import { useVoices, hasSpeechSynthesis } from "../tts/useVoices";
+import { Button } from "../components/Button";
+import { ConfirmDialog } from "../components/ConfirmDialog";
 
 export function SettingsPage() {
   return (
@@ -19,6 +23,7 @@ export function SettingsPage() {
         <TtsExplainer />
         <VoiceInspector />
         <StorageInfo />
+        <DebugPanel />
         <div className="card-surface p-6 text-sm text-ink-700 dark:text-ink-300">
           <p className="font-medium text-ink-900 dark:text-dark-ink">Privacy</p>
           <p className="mt-1">
@@ -194,6 +199,108 @@ function StorageInfo() {
           <Row label="Available quota" value={formatBytes(quota.quota)} />
         )}
       </dl>
+    </div>
+  );
+}
+
+function DebugPanel() {
+  const profile = useProfile();
+  const [seedMessage, setSeedMessage] = useState<string | null>(null);
+  const [wipeOpen, setWipeOpen] = useState(false);
+  const [seeding, setSeeding] = useState(false);
+  if (!profile) return null;
+
+  const debugOn = profile.settings.debugMode ?? false;
+
+  const handleSeed = async () => {
+    setSeedMessage(null);
+    setSeeding(true);
+    try {
+      const result = await seedDebugData();
+      if (result.alreadySeeded) {
+        setSeedMessage(
+          'Sample decks already present. Wipe data first to reseed.',
+        );
+      } else {
+        setSeedMessage(
+          `Created ${result.decksCreated} decks with ${result.cardsCreated} cards (including auto-reverse siblings).`,
+        );
+      }
+    } catch (err) {
+      setSeedMessage(err instanceof Error ? err.message : "Seed failed");
+    } finally {
+      setSeeding(false);
+    }
+  };
+
+  return (
+    <div className="card-surface p-6">
+      <p className="font-medium text-ink-900 dark:text-dark-ink">Debug</p>
+      <p className="mt-1 text-sm text-ink-500 dark:text-ink-300">
+        Testing utilities. Toggle off when not in use to hide the destructive
+        actions.
+      </p>
+      <div className="mt-3 space-y-3">
+        <Toggle
+          label="Enable debug mode"
+          checked={debugOn}
+          onChange={(v) => updateSettings({ debugMode: v })}
+        />
+        {debugOn && (
+          <>
+            <div className="rounded-xl border border-ink-100 bg-cream/40 p-3 dark:border-dark-surface dark:bg-dark-bg/40">
+              <p className="text-sm font-medium text-ink-900 dark:text-dark-ink">
+                Sample decks
+              </p>
+              <p className="mt-0.5 text-xs text-ink-500 dark:text-ink-300">
+                Creates four "[debug]" decks: French / Spanish / German
+                vocabulary (with pronunciation language set, for testing TTS
+                against accented characters) and one deck with every text
+                card type (Basic, Cloze with two blanks, MCQ, Typed).
+                Idempotent - skips if "[debug]" decks already exist.
+              </p>
+              <div className="mt-2">
+                <Button
+                  variant="secondary"
+                  onClick={handleSeed}
+                  disabled={seeding}
+                >
+                  {seeding ? "Seeding..." : "Generate sample decks"}
+                </Button>
+              </div>
+              {seedMessage && (
+                <p className="mt-2 text-xs text-ink-700 dark:text-ink-300">
+                  {seedMessage}
+                </p>
+              )}
+            </div>
+
+            <div className="rounded-xl border border-again/30 bg-again/5 p-3">
+              <p className="text-sm font-medium text-again">Danger zone</p>
+              <p className="mt-0.5 text-xs text-ink-500 dark:text-ink-300">
+                Deletes every deck, card, media file, and the profile on this
+                device. The page reloads with an empty install. Cannot be
+                undone (back up first if there's anything to keep).
+              </p>
+              <div className="mt-2">
+                <Button variant="danger" onClick={() => setWipeOpen(true)}>
+                  Wipe all local data
+                </Button>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+
+      <ConfirmDialog
+        open={wipeOpen}
+        onClose={() => setWipeOpen(false)}
+        onConfirm={() => void wipeAllData()}
+        title="Wipe all local data?"
+        description="Every deck, card, media file, and session history on this device will be deleted. This cannot be undone."
+        confirmLabel="Wipe everything"
+        destructive
+      />
     </div>
   );
 }

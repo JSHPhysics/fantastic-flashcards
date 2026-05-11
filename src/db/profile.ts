@@ -11,6 +11,7 @@ const DEFAULT_SETTINGS: ProfileSettings = {
   showTimerInSession: true,
   defaultDailyNewLimit: 20,
   defaultDailyReviewLimit: 200,
+  debugMode: false,
 };
 
 export async function ensureProfile(): Promise<Profile> {

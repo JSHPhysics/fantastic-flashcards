@@ -18,6 +18,10 @@ export interface ProfileSettings {
   showTimerInSession: boolean;
   defaultDailyNewLimit: number;
   defaultDailyReviewLimit: number;
+  // Off by default. When enabled, Settings exposes the sample-data seeder and
+  // the wipe-everything button. Toggling persists in the profile so a backup
+  // round-trip preserves it.
+  debugMode?: boolean;
 }
 
 export interface Profile {

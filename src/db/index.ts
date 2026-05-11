@@ -62,6 +62,8 @@ export {
   listSessionsInRange,
 } from "./sessions";
 export { seedDevData } from "./seed";
+export { seedDebugData, wipeAllData } from "./seed-debug";
+export type { SeedDebugResult } from "./seed-debug";
 
 export type { CreateDeckInput } from "./decks";
 export type { CreateCardInput } from "./cards";
