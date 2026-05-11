@@ -13,6 +13,13 @@ pick up without context. Keep entries terse; commit messages hold the detail.
 before moving on. Fix bugs found during the review in a follow-up commit. Don't
 build on bad code.
 
+**Deploy is live (Session 16 work front-loaded):**
+https://jshphysics.github.io/fantastic-flashcards/ — `.github/workflows/deploy.yml`
+builds on push to `main` and deploys via the official GitHub Pages actions.
+First-time setup the repo owner must do (one-time): GitHub repo →
+Settings → Pages → "Build and deployment" → Source = **GitHub Actions**
+(not "Deploy from a branch"). After that, every push to main redeploys.
+
 ## Resume on a new machine
 
 ```
@@ -53,7 +60,7 @@ npm run build
 | 13      | Backup export / import                         | Pending       | -         |
 | 14      | PWA polish + install flow + offline            | Pending       | -         |
 | 15      | Accessibility + iPad QA + final polish         | Pending       | -         |
-| 16      | Deploy to GitHub Pages + README                | Pending       | -         |
+| 16      | Deploy to GitHub Pages + README                | Partial (deploy front-loaded; README still pending) | -         |
 
 ## Bugs caught in review and what they tell us
 
