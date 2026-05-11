@@ -70,7 +70,7 @@ const TYPE_LABELS: Record<CardType, string> = {
 // (occlusion now, drawing later) need a canvas-heavy layout and live on
 // their own page; the tab strip surfaces them as a quick way to start one.
 const TEXT_CARD_TYPES: CardType[] = ["basic", "cloze", "mcq", "typed"];
-const IMAGE_CARD_TYPES: CardType[] = ["occlusion"];
+const IMAGE_CARD_TYPES: CardType[] = ["occlusion", "drawing"];
 
 interface CardEditorProps {
   cardId?: string;
@@ -522,7 +522,7 @@ function TypeTabs({
         aria-hidden
         className="self-center pl-2 text-xs text-ink-500 dark:text-ink-300"
       >
-        Drawing cards coming soon.
+        Pick a type to start.
       </span>
     </div>
   );

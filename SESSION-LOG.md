@@ -7,8 +7,8 @@ pick up without context. Keep entries terse; commit messages hold the detail.
 
 ## Status
 
-**Last completed:** Session 8 — image occlusion (rectangle + ellipse masks, undo/redo, hide-one / hide-all modes, lazy-loaded Konva chunk)
-**Next up:** Session 9 — drawing card type (Konva canvas, pressure-sensitive pen, reveal modes)
+**Last completed:** Session 9 — drawing card type (pen / eraser, optional background image, model answer captured as WebP, three reveal modes)
+**Next up:** Session 10 — FSRS scheduler + standard review session
 **Stopping discipline (new):** After each session, do a rigorous code review
 before moving on. Fix bugs found during the review in a follow-up commit. Don't
 build on bad code.
@@ -53,7 +53,7 @@ npm run build
 | 6       | Media pipeline (images + audio)                | Done          | `6f96042`, `55c6368` (review fixes) |
 | 7       | TTS pronunciation                              | Done          | `0c4610a` |
 | 8       | Image occlusion                                | Done (polygon + groups + labels deferred) | (this push) |
-| 9       | Drawing card type                              | Pending       | -         |
+| 9       | Drawing card type                              | Done (pressure-sensitive width is base only for now) | (this push) |
 | 10      | FSRS scheduler + standard review               | Pending       | -         |
 | 11      | Custom Study mode                              | Pending       | -         |
 | 12      | Stats + history + graphs                       | Pending       | -         |
@@ -101,6 +101,11 @@ Items deferred to real-device QA:
   Transformer resize handles), Apple Pencil drawing, "Done drawing"
   letting the page scroll past the canvas. Polygon, group, and label
   tools were deferred from v1.
+- Session 9 deliverable: real Apple Pencil + iPad - drawing
+  responsiveness, pressure registering through PointerEvent.pressure,
+  eraser feel. Pressure currently sets a one-time width per stroke
+  using the pressure at pointerdown; per-point pressure variation
+  along the stroke (sceneFunc approach) is future polish.
 
 ## Standing rules
 

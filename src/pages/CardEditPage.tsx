@@ -3,10 +3,13 @@ import { useParams } from "react-router-dom";
 import { CardEditor } from "../components/cards/CardEditor";
 import { useCard } from "../db";
 
-// Konva is heavy; lazy-load the occlusion editor so editing a Basic / Cloze
+// Konva is heavy; lazy-load the canvas editors so editing a Basic / Cloze
 // card doesn't pull it in.
 const OcclusionEditor = lazy(
   () => import("../components/cards/occlusion/OcclusionEditor"),
+);
+const DrawingEditor = lazy(
+  () => import("../components/cards/drawing/DrawingEditor"),
 );
 
 export function CardEditPage() {
@@ -31,6 +34,19 @@ export function CardEditPage() {
         }
       >
         <OcclusionEditor cardId={cardId} />
+      </Suspense>
+    );
+  }
+  if (card && card.type === "drawing") {
+    return (
+      <Suspense
+        fallback={
+          <div className="mt-8 text-center text-sm text-ink-500">
+            Loading the drawing editor...
+          </div>
+        }
+      >
+        <DrawingEditor cardId={cardId} />
       </Suspense>
     );
   }
