@@ -1,6 +1,8 @@
-import { useEffect, useRef, useState } from "react";
-import { compressImage, objectUrlFromBlob } from "../../media/image";
-import { getMedia, storeMedia } from "../../db";
+import { useRef, useState } from "react";
+import { compressImage } from "../../media/image";
+import { storeMedia } from "../../db";
+import { useObjectUrl } from "../../media/useObjectUrl";
+import { ImageSourceDialog } from "./ImageSourceDialog";
 
 interface ImageInputProps {
   imageHash?: string;
@@ -8,31 +10,23 @@ interface ImageInputProps {
   label?: string;
 }
 
+// Adds an image to a RichField. Tapping "Add image" opens a source picker;
+// the user either uploads a file or pastes from the clipboard. The same
+// compressImage pipeline is used for both paths so deduplication still works
+// (hash-keyed media table).
+//
+// The clipboard read uses navigator.clipboard.read(), which is available in
+// modern Chrome / Edge / Safari over HTTPS (GH Pages provides this).
+
 export function ImageInput({ imageHash, onChange, label }: ImageInputProps) {
-  const inputRef = useRef<HTMLInputElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
-  // Build a preview URL from the stored blob when imageHash is set.
-  useEffect(() => {
-    let cancelled = false;
-    let url: string | null = null;
-    setPreviewUrl(null);
-    if (!imageHash) return;
-    (async () => {
-      const m = await getMedia(imageHash);
-      if (!m || cancelled) return;
-      url = objectUrlFromBlob(m.blob);
-      setPreviewUrl(url);
-    })();
-    return () => {
-      cancelled = true;
-      if (url) URL.revokeObjectURL(url);
-    };
-  }, [imageHash]);
+  const previewUrl = useObjectUrl(imageHash);
 
-  const handleFile = async (file: File) => {
+  const handleFile = async (file: File | Blob) => {
     setBusy(true);
     setError(null);
     try {
@@ -48,8 +42,28 @@ export function ImageInput({ imageHash, onChange, label }: ImageInputProps) {
       setError(err instanceof Error ? err.message : "Image import failed");
     } finally {
       setBusy(false);
-      if (inputRef.current) inputRef.current.value = "";
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
+  };
+
+  const handlePasteFromClipboard = async (): Promise<void> => {
+    if (!navigator.clipboard || !navigator.clipboard.read) {
+      throw new Error(
+        "Clipboard reads aren't supported on this browser. Paste with Ctrl+V / Cmd+V instead.",
+      );
+    }
+    const items = await navigator.clipboard.read();
+    for (const item of items) {
+      const imageType = item.types.find((t) => t.startsWith("image/"));
+      if (imageType) {
+        const blob = await item.getType(imageType);
+        await handleFile(blob);
+        return;
+      }
+    }
+    throw new Error(
+      "No image found on the clipboard. Take a screenshot first, then try again.",
+    );
   };
 
   if (imageHash && previewUrl) {
@@ -82,7 +96,7 @@ export function ImageInput({ imageHash, onChange, label }: ImageInputProps) {
   return (
     <div className="space-y-1">
       <input
-        ref={inputRef}
+        ref={fileInputRef}
         type="file"
         accept="image/*"
         className="hidden"
@@ -94,7 +108,7 @@ export function ImageInput({ imageHash, onChange, label }: ImageInputProps) {
       <button
         type="button"
         disabled={busy}
-        onClick={() => inputRef.current?.click()}
+        onClick={() => setDialogOpen(true)}
         className="tap-target inline-flex items-center gap-2 rounded-xl border border-ink-300 bg-surface px-4 text-sm font-medium text-ink-700 hover:bg-ink-100 disabled:opacity-50 dark:border-dark-surface dark:bg-dark-bg dark:text-ink-300"
       >
         <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden>
@@ -107,12 +121,7 @@ export function ImageInput({ imageHash, onChange, label }: ImageInputProps) {
             stroke="currentColor"
             strokeWidth="1.6"
           />
-          <circle
-            cx="9"
-            cy="11"
-            r="1.6"
-            fill="currentColor"
-          />
+          <circle cx="9" cy="11" r="1.6" fill="currentColor" />
           <path
             d="m3 17 5-5 5 4 3-2 5 4"
             stroke="currentColor"
@@ -127,6 +136,14 @@ export function ImageInput({ imageHash, onChange, label }: ImageInputProps) {
           {error}
         </p>
       )}
+
+      <ImageSourceDialog
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        onUploadClick={() => fileInputRef.current?.click()}
+        onPasteClick={handlePasteFromClipboard}
+        busyMessage={busy ? "Importing..." : null}
+      />
     </div>
   );
 }
