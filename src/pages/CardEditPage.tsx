@@ -1,12 +1,8 @@
 import { useParams } from "react-router-dom";
-import { PagePlaceholder } from "./PagePlaceholder";
+import { CardEditor } from "../components/cards/CardEditor";
 
 export function CardEditPage() {
   const { cardId } = useParams();
-  return (
-    <PagePlaceholder
-      title="Edit card"
-      subtitle={`Editing card ${cardId ?? "?"}. Type tabs and editors arrive in Sessions 4-9.`}
-    />
-  );
+  if (!cardId) return null;
+  return <CardEditor cardId={cardId} />;
 }
