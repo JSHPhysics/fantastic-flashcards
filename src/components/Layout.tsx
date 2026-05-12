@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { BackupNudge } from "./BackupNudge";
 import { UpdateBanner } from "./UpdateBanner";
 import { InstallTipBanner } from "./InstallTipBanner";
+import { useThemeManager } from "../themes/manager";
 
 const tabs: { to: string; label: string; icon: ReactNode }[] = [
   { to: "/", label: "Home", icon: <HomeIcon /> },
@@ -14,6 +15,8 @@ export function Layout({ children }: { children?: ReactNode }) {
   const { pathname } = useLocation();
   // Hide tab nav while studying to keep the surface uncluttered
   const hideTabs = pathname.startsWith("/study");
+  // Apply the user's theme + font choice every render. Hook is idempotent.
+  useThemeManager();
 
   return (
     <div className="flex min-h-full flex-col bg-cream text-ink-900 dark:bg-dark-bg dark:text-dark-ink">

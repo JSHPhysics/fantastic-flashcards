@@ -2,6 +2,12 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useProfile } from "../db";
 import { StreakChip } from "../components/StreakChip";
+import { CoinBalance } from "../components/gamification/CoinBalance";
+import {
+  computeOverallMasteryPct,
+  rankForPct,
+  type RankInfo,
+} from "../gamification/ranks";
 import { AccuracyRing } from "../components/stats/AccuracyRing";
 import { WeekChart } from "../components/stats/WeekChart";
 import { YearHeatmap } from "../components/stats/YearHeatmap";
@@ -32,6 +38,9 @@ export function StatsPage() {
         </p>
       </header>
 
+      <RankCard />
+
+
       <div role="tablist" className="-mx-1 flex gap-1">
         <TabButton active={tab === "today"} onClick={() => setTab("today")}>
           Today
@@ -48,6 +57,45 @@ export function StatsPage() {
       {tab === "week" && <WeekView />}
       {tab === "alltime" && <AllTimeView />}
     </section>
+  );
+}
+
+function RankCard() {
+  const [pct, setPct] = useState<number | null>(null);
+  const [rank, setRank] = useState<RankInfo | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    computeOverallMasteryPct().then((p) => {
+      if (cancelled) return;
+      setPct(p);
+      setRank(rankForPct(p));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return (
+    <div className="card-surface flex flex-wrap items-center justify-between gap-4 p-5">
+      <div className="flex items-center gap-3">
+        <span className="text-4xl" aria-hidden>
+          {rank?.icon ?? "○"}
+        </span>
+        <div>
+          <p className="text-xs uppercase tracking-wider text-ink-500 dark:text-ink-300">
+            Your rank
+          </p>
+          <p className="text-lg font-semibold text-ink-900 dark:text-dark-ink">
+            {rank?.label ?? "..."}
+          </p>
+          <p className="text-xs text-ink-500 dark:text-ink-300">
+            {pct === null ? "Calculating..." : `${pct.toFixed(0)}% of cards mature`}
+          </p>
+        </div>
+      </div>
+      <CoinBalance showRemaining />
+    </div>
   );
 }
 

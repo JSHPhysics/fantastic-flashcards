@@ -13,6 +13,11 @@ const DEFAULT_SETTINGS: ProfileSettings = {
   defaultDailyReviewLimit: 200,
   debugMode: false,
   useOnlineVoices: false,
+  // Gamification: zero coins, nothing unlocked beyond the free set.
+  coins: 0,
+  unlockedThemes: [],
+  unlockedFonts: [],
+  unlockedCodes: [],
 };
 
 export async function ensureProfile(): Promise<Profile> {

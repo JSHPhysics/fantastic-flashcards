@@ -426,6 +426,60 @@ No merge logic in v1. Last-write-wins at the file level.
 
 ---
 
+## 9b. Gamification (coins, ranks, themes, fonts)
+
+Adapted from the Revision Tracker. All gamification state lives in
+`ProfileSettings` so it round-trips through the backup file.
+
+### Coins
+- 1 coin per unique card reviewed per local calendar day. Re-reviewing the
+  same card the same day awards nothing (dedup key:
+  `cardId + YYYY-MM-DD`).
+- +1 bonus when the rating is Good or Easy and it's the first review of
+  that card today.
+- +5 deck-complete bonus, once per deck per day, awarded when a standard
+  session reaches the end of its queue.
+- Daily cap: 25 coins/day total. Prevents cramming-as-grinding.
+- Coins are spent in the theme/font shop and never go negative
+  (`spendCoins` is atomic).
+
+### Ranks
+- Mastery % = proportion of non-suspended cards in the "mature" FSRS
+  state (state=Review, scheduled_days > 21).
+- Ten bands: Unranked, Recruit, Apprentice, Scholar, Practitioner, Expert,
+  Master, Grandmaster, Elite, Legend.
+- Rank-up detection runs once at session end. The new rank is persisted
+  to `lastKnownRank` so the next session compares against it instead of
+  re-firing.
+- Legend prefix: "Double Legend" at 2+ decks at 100%, "Triple Legend" at
+  3+. Adds a tier to the celebration without changing the rank ladder.
+
+### Themes
+- Six free themes (Slate, Warm, Lavender, Midnight, Graphite, Forest).
+- Eight purchasable themes (Ocean/Sunset 100🪙 → Rose Gold/Amethyst 400🪙).
+- Ten subject themes (CS, Chem, Bio, Classics, Physics — light + dark
+  variants), unlocked only via TEAM* codes.
+- Themes set CSS variables on `:root[data-theme=X]`; Tailwind tokens
+  resolve through those variables so utility classes (`bg-cream`,
+  `text-navy/30`) re-tint automatically.
+- A theme owns its full light-or-dark identity. The legacy themeMode
+  (light/dark/system) only matters when no premium theme is selected.
+
+### Fonts
+- 13 unlockable fonts via code (Inter, Poppins, Nunito, Raleway, etc.).
+- Subject-team codes also bundle a font (Share Tech Mono, Rajdhani,
+  Comfortaa, Cinzel).
+- Loaded from Google Fonts on first use with `font-display: swap`.
+
+### Unlock codes
+- Case-insensitive, whitespace-trimmed, idempotent.
+- Categories: theme, font, team (theme pair + font bundle), master
+  (everything), staff (reveals the reference panel), debug (dev-only
+  cheats — COINMAX, RESETALL, DEBUGMODE).
+- Redeemed codes are tracked in `unlockedCodes` for display + dedup.
+
+---
+
 ## 10. PWA configuration
 
 - Manifest: standalone display, theme colour, 192/512/maskable-512 icons.

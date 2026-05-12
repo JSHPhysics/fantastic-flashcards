@@ -13,6 +13,10 @@ import { getLastOnlineSpeechError } from "../tts/online";
 import { Button } from "../components/Button";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { BackupSection } from "../components/BackupSection";
+import { Shop } from "../components/gamification/Shop";
+import { CoinBalance } from "../components/gamification/CoinBalance";
+import { getTheme } from "../themes/catalogue";
+import { getFont } from "../themes/fonts";
 
 export function SettingsPage() {
   return (
@@ -21,6 +25,7 @@ export function SettingsPage() {
       subtitle="Audio, pronunciation, storage. Backup options are coming soon."
     >
       <div className="space-y-4">
+        <AppearanceSection />
         <BackupSection />
         <AudioToggles />
         <TtsExplainer />
@@ -37,6 +42,38 @@ export function SettingsPage() {
         </div>
       </div>
     </PagePlaceholder>
+  );
+}
+
+function AppearanceSection() {
+  const profile = useProfile();
+  const [shopOpen, setShopOpen] = useState(false);
+  if (!profile) return null;
+  const themeId =
+    profile.settings.themeId ??
+    (profile.settings.themeMode === "dark" ? "default-dark" : "default-light");
+  const themeName = getTheme(themeId)?.name ?? "Default light";
+  const fontName =
+    getFont(profile.settings.fontId)?.name ?? "System UI";
+
+  return (
+    <div className="card-surface p-6">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="font-medium text-ink-900 dark:text-dark-ink">
+            Look &amp; feel
+          </p>
+          <p className="mt-1 text-sm text-ink-500 dark:text-ink-300">
+            Currently using {themeName} · {fontName}.
+          </p>
+        </div>
+        <CoinBalance showRemaining />
+      </div>
+      <div className="mt-3">
+        <Button onClick={() => setShopOpen(true)}>Open theme &amp; font shop</Button>
+      </div>
+      <Shop open={shopOpen} onClose={() => setShopOpen(false)} />
+    </div>
   );
 }
 

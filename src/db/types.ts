@@ -28,6 +28,35 @@ export interface ProfileSettings {
   // the local-first promise intact; the user opts in explicitly when they
   // want authentic accents without installing platform voices.
   useOnlineVoices?: boolean;
+
+  // ---- Gamification ----
+  // All fields below are optional so backups + legacy profiles keep working.
+
+  // Active theme id (e.g. "slate", "ocean"). Overrides themeMode for
+  // light/dark when set; theme.kind decides whether .dark class is applied.
+  themeId?: string;
+  // Active font id (e.g. "inter"). Undefined = system font stack.
+  fontId?: string;
+  // Total coin balance.
+  coins?: number;
+  // Theme + font ids the user has unlocked beyond the free set.
+  unlockedThemes?: string[];
+  unlockedFonts?: string[];
+  // Codes already redeemed — used for idempotency and the "history" list.
+  unlockedCodes?: string[];
+  // Today's coin bookkeeping. Resets when the local calendar date changes.
+  coinsToday?: CoinDayBucket;
+  // Rank label as of the last session end. Compared on the next session
+  // end to detect a rank-up and fire the celebration popup.
+  lastKnownRank?: string;
+}
+
+export interface CoinDayBucket {
+  date: string; // YYYY-MM-DD local
+  cardIds: string[]; // dedup: each card earns at most one base coin per day
+  firstCorrectCardIds: string[]; // dedup: bonus for first-attempt correct
+  deckCompletions: string[]; // dedup: bonus for clearing a deck's due cards
+  total: number; // total coins awarded today (cap at 25)
 }
 
 export interface Profile {

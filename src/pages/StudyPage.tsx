@@ -31,6 +31,18 @@ import { CardReviewer } from "../components/study/CardReviewer";
 import { SessionTopBar } from "../components/study/SessionTopBar";
 import { SessionSummary } from "../components/study/SessionSummary";
 import { ConfirmDialog } from "../components/ConfirmDialog";
+import { RankUpDialog } from "../components/gamification/RankUpDialog";
+import {
+  awardCoinsForReview,
+  awardDeckCompleteBonus,
+} from "../gamification/coins";
+import {
+  computeOverallMasteryPct,
+  detectRankUp,
+  rankForPct,
+  type RankInfo,
+} from "../gamification/ranks";
+import { updateSettings } from "../db";
 
 interface CustomStudyLocationState {
   customConfig: CustomStudyConfig;
@@ -217,11 +229,33 @@ function Runner({
   const [ratings, setRatings] = useState<Rating[]>([]);
   const [done, setDone] = useState(false);
   const [exitOpen, setExitOpen] = useState(false);
+  const [rankUp, setRankUp] = useState<RankInfo | null>(null);
 
   const sessionIdRef = useRef<string>(newId());
   const sessionStartRef = useRef<number>(Date.now());
   const cardStartRef = useRef<number>(Date.now());
   const recordedRef = useRef<boolean>(false);
+  // Captures the rank label at the start of the session so we can compare
+  // against the end-of-session rank to detect a rank-up exactly once per
+  // session — not once per card.
+  const startRankRef = useRef<string | undefined>(undefined);
+
+  // Snapshot starting rank when the session mounts (only when we have
+  // cards to review). Skips for done sessions and zero-card runs.
+  useEffect(() => {
+    if (startRankRef.current !== undefined) return;
+    if (cards.length === 0) return;
+    let cancelled = false;
+    computeOverallMasteryPct().then((pct) => {
+      if (cancelled) return;
+      const rank = rankForPct(pct);
+      startRankRef.current = profile?.settings.lastKnownRank ?? rank.id;
+    });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cards.length]);
 
   const card = cards[index];
 
@@ -230,15 +264,21 @@ function Runner({
   }, [card?.id]);
 
   if (done) {
+    // Rank-up dialog is mounted alongside the summary so the celebration
+    // overlays the "session complete" screen rather than disappearing when
+    // we transition away from the active card view.
     return (
-      <SessionSummary
-        ratings={ratings}
-        totalTimeMs={Date.now() - sessionStartRef.current}
-        reviewsRemaining={reviewsRemaining}
-        newRemaining={newRemaining}
-        deckId={deckIds[0] ?? ""}
-        mode={mode}
-      />
+      <>
+        <RankUpDialog rank={rankUp} onClose={() => setRankUp(null)} />
+        <SessionSummary
+          ratings={ratings}
+          totalTimeMs={Date.now() - sessionStartRef.current}
+          reviewsRemaining={reviewsRemaining}
+          newRemaining={newRemaining}
+          deckId={deckIds[0] ?? ""}
+          mode={mode}
+        />
+      </>
     );
   }
 
@@ -268,6 +308,14 @@ function Runner({
       sessionId: sessionIdRef.current,
     });
 
+    // Coin economy. Base coin + first-attempt-correct bonus, daily cap +
+    // dedup all handled inside awardCoinsForReview.
+    await awardCoinsForReview({
+      cardId: card.id,
+      rating,
+      now: new Date(now),
+    });
+
     const nextRatings = [...ratings, rating];
     setRatings(nextRatings);
 
@@ -288,6 +336,26 @@ function Runner({
         // Both modes contribute to the global streak: the user practised
         // today either way.
         await bumpStreakForReview(new Date(now));
+
+        // Deck-complete bonus: only the standard-mode "I finished the
+        // queue for this deck" flow earns the +5; custom sessions can mix
+        // multiple decks and pick a subset of cards so the concept of
+        // "completed deck" doesn't cleanly apply.
+        if (mode === "standard" && deckIds[0]) {
+          await awardDeckCompleteBonus(deckIds[0], new Date(now));
+        }
+
+        // Rank-up check. Recompute mastery after the session's FSRS
+        // updates have landed; compare to the rank captured at session
+        // start. Show the popup once if the band changed.
+        const newPct = await computeOverallMasteryPct();
+        const newRank = rankForPct(newPct);
+        const up = detectRankUp(startRankRef.current, newPct);
+        if (up) setRankUp(up);
+        // Persist the new rank so subsequent sessions compare against
+        // this baseline (otherwise re-entering Study would always show
+        // "Unranked -> Recruit" again).
+        await updateSettings({ lastKnownRank: newRank.id });
       }
       setDone(true);
     } else {
@@ -313,6 +381,8 @@ function Runner({
       />
 
       {card && <CardReviewer card={card} onRate={handleRate} />}
+
+      <RankUpDialog rank={rankUp} onClose={() => setRankUp(null)} />
 
       <ConfirmDialog
         open={exitOpen}

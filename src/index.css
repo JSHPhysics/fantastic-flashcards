@@ -2,6 +2,377 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Theme palette as CSS variables.
+ *
+ * Each colour token in tailwind.config.ts resolves to `rgb(var(--color-X) /
+ * <alpha-value>)`, so flipping these custom properties theme-swaps the whole
+ * UI without touching any utility class. Format is `r g b` (space-separated,
+ * 0-255) — that's what `rgb(...)` expects.
+ *
+ * Layering:
+ *  - :root carries the default light theme (matches the original brand
+ *    palette so the app looks identical to before gamification landed).
+ *  - .dark carries the default dark theme (applied when system / user picks
+ *    dark and no premium theme is set).
+ *  - [data-theme="X"] blocks below override either by repainting all
+ *    surface + ink vars. The theme catalogue in src/themes/catalogue.ts
+ *    documents which themes are "dark-natured" so the theme manager can
+ *    also toggle the .dark class for dark-flavoured premium themes.
+ */
+:root {
+  /* Light palette (default). */
+  --color-cream: 250 247 242;
+  --color-surface: 255 255 255;
+  --color-navy: 30 58 95;
+  --color-gold: 201 161 74;
+  --color-again: 196 69 69;
+  --color-hard: 212 145 46;
+  --color-good: 62 142 99;
+  --color-easy: 61 122 184;
+  --color-ink-900: 26 31 44;
+  --color-ink-700: 58 67 87;
+  --color-ink-500: 106 114 135;
+  --color-ink-300: 183 188 200;
+  --color-ink-100: 231 233 238;
+  /* "dark" tokens point at the dark palette by default. When a dark
+   * theme is active, .dark is added to html and these still resolve to
+   * dark values. Premium dark themes can override these per theme. */
+  --color-dark-bg: 18 24 33;
+  --color-dark-surface: 27 35 48;
+  --color-dark-ink: 233 237 243;
+}
+
+.dark {
+  /* Default dark theme: keep the brand gold/navy but flip surfaces. */
+  --color-cream: 18 24 33;
+  --color-surface: 27 35 48;
+  --color-navy: 100 130 200;
+  --color-gold: 222 188 110;
+  --color-ink-900: 233 237 243;
+  --color-ink-700: 200 200 210;
+  --color-ink-500: 160 165 175;
+  --color-ink-300: 90 95 110;
+  --color-ink-100: 48 55 68;
+}
+
+/* ===== Free themes ===== */
+
+/* Slate — neutral cool light. */
+:root[data-theme="slate"] {
+  --color-cream: 240 242 247;
+  --color-surface: 255 255 255;
+  --color-navy: 45 80 130;
+  --color-gold: 200 155 70;
+  --color-ink-900: 30 35 50;
+  --color-ink-700: 70 80 100;
+  --color-ink-500: 120 130 150;
+  --color-ink-300: 190 195 210;
+  --color-ink-100: 225 230 240;
+}
+
+/* Warm — paper-and-coffee light. */
+:root[data-theme="warm"] {
+  --color-cream: 252 246 232;
+  --color-surface: 255 252 245;
+  --color-navy: 130 70 35;
+  --color-gold: 200 130 50;
+  --color-ink-900: 60 40 30;
+  --color-ink-700: 95 70 55;
+  --color-ink-500: 145 120 105;
+  --color-ink-300: 215 200 180;
+  --color-ink-100: 240 230 215;
+}
+
+/* Lavender — soft purple light. */
+:root[data-theme="lavender"] {
+  --color-cream: 245 240 255;
+  --color-surface: 255 253 255;
+  --color-navy: 95 65 165;
+  --color-gold: 180 110 200;
+  --color-ink-900: 45 30 70;
+  --color-ink-700: 85 70 110;
+  --color-ink-500: 140 125 170;
+  --color-ink-300: 215 205 230;
+  --color-ink-100: 235 225 245;
+}
+
+/* Midnight — pure dark. */
+:root[data-theme="midnight"] {
+  --color-cream: 12 15 24;
+  --color-surface: 22 26 38;
+  --color-navy: 130 160 230;
+  --color-gold: 235 200 120;
+  --color-ink-900: 232 236 245;
+  --color-ink-700: 198 204 220;
+  --color-ink-500: 155 160 178;
+  --color-ink-300: 80 88 105;
+  --color-ink-100: 35 42 58;
+}
+
+/* Graphite — neutral dark. */
+:root[data-theme="graphite"] {
+  --color-cream: 22 24 28;
+  --color-surface: 32 35 42;
+  --color-navy: 165 175 195;
+  --color-gold: 220 200 130;
+  --color-ink-900: 230 232 238;
+  --color-ink-700: 198 200 210;
+  --color-ink-500: 150 153 162;
+  --color-ink-300: 78 82 90;
+  --color-ink-100: 40 44 52;
+}
+
+/* Forest — deep green dark. */
+:root[data-theme="forest"] {
+  --color-cream: 15 28 22;
+  --color-surface: 22 38 30;
+  --color-navy: 130 200 160;
+  --color-gold: 215 185 110;
+  --color-ink-900: 230 245 235;
+  --color-ink-700: 190 215 200;
+  --color-ink-500: 140 170 155;
+  --color-ink-300: 75 95 85;
+  --color-ink-100: 32 50 40;
+}
+
+/* ===== Purchasable themes ===== */
+
+/* Ocean (100🪙) — Teal + blue light theme. */
+:root[data-theme="ocean"] {
+  --color-cream: 232 246 250;
+  --color-surface: 255 255 255;
+  --color-navy: 15 95 140;
+  --color-gold: 46 196 182;
+  --color-ink-900: 18 40 58;
+  --color-ink-700: 50 80 100;
+  --color-ink-500: 100 135 155;
+  --color-ink-300: 180 205 215;
+  --color-ink-100: 215 232 240;
+}
+
+/* Sunset (100🪙) — Coral + amber light theme. */
+:root[data-theme="sunset"] {
+  --color-cream: 255 240 230;
+  --color-surface: 255 250 245;
+  --color-navy: 200 70 60;
+  --color-gold: 235 145 60;
+  --color-ink-900: 75 35 25;
+  --color-ink-700: 115 65 50;
+  --color-ink-500: 170 115 95;
+  --color-ink-300: 225 195 175;
+  --color-ink-100: 245 220 200;
+}
+
+/* Cherry Blossom (200🪙) — Pink + rose light. */
+:root[data-theme="cherry-blossom"] {
+  --color-cream: 255 240 246;
+  --color-surface: 255 250 252;
+  --color-navy: 195 70 130;
+  --color-gold: 230 145 175;
+  --color-ink-900: 80 30 55;
+  --color-ink-700: 120 60 85;
+  --color-ink-500: 175 115 140;
+  --color-ink-300: 230 195 210;
+  --color-ink-100: 245 220 230;
+}
+
+/* Volcanic (200🪙) — Red+black dark. */
+:root[data-theme="volcanic"] {
+  --color-cream: 22 14 14;
+  --color-surface: 36 22 22;
+  --color-navy: 235 90 75;
+  --color-gold: 245 155 90;
+  --color-ink-900: 245 230 225;
+  --color-ink-700: 215 185 175;
+  --color-ink-500: 170 130 120;
+  --color-ink-300: 90 65 60;
+  --color-ink-100: 50 32 30;
+}
+
+/* Arctic (300🪙) — Icy blue light. */
+:root[data-theme="arctic"] {
+  --color-cream: 235 244 252;
+  --color-surface: 250 253 255;
+  --color-navy: 45 110 175;
+  --color-gold: 110 175 215;
+  --color-ink-900: 20 40 65;
+  --color-ink-700: 55 80 110;
+  --color-ink-500: 110 140 170;
+  --color-ink-300: 195 215 230;
+  --color-ink-100: 220 235 245;
+}
+
+/* Neon (300🪙) — Saturated cyan/magenta dark. */
+:root[data-theme="neon"] {
+  --color-cream: 12 12 22;
+  --color-surface: 22 22 36;
+  --color-navy: 0 230 235;
+  --color-gold: 235 80 200;
+  --color-ink-900: 240 240 250;
+  --color-ink-700: 195 195 215;
+  --color-ink-500: 140 140 165;
+  --color-ink-300: 70 70 95;
+  --color-ink-100: 36 36 56;
+}
+
+/* Rose Gold (400🪙) — Soft metallic light. */
+:root[data-theme="rose-gold"] {
+  --color-cream: 252 240 235;
+  --color-surface: 255 250 248;
+  --color-navy: 165 85 80;
+  --color-gold: 220 145 130;
+  --color-ink-900: 70 35 35;
+  --color-ink-700: 110 65 60;
+  --color-ink-500: 165 115 110;
+  --color-ink-300: 220 190 185;
+  --color-ink-100: 240 215 210;
+}
+
+/* Amethyst (400🪙) — Deep purple dark. */
+:root[data-theme="amethyst"] {
+  --color-cream: 22 14 36;
+  --color-surface: 36 24 56;
+  --color-navy: 195 145 240;
+  --color-gold: 235 175 215;
+  --color-ink-900: 240 230 250;
+  --color-ink-700: 200 185 220;
+  --color-ink-500: 155 140 180;
+  --color-ink-300: 90 75 115;
+  --color-ink-100: 48 35 70;
+}
+
+/* ===== Subject (team) themes — unlocked via code only ===== */
+
+/* CS Terminal Light */
+:root[data-theme="cs-light"] {
+  --color-cream: 245 245 245;
+  --color-surface: 255 255 255;
+  --color-navy: 30 110 50;
+  --color-gold: 220 110 30;
+  --color-ink-900: 25 35 25;
+  --color-ink-700: 60 80 60;
+  --color-ink-500: 120 130 120;
+  --color-ink-300: 200 205 200;
+  --color-ink-100: 225 230 225;
+}
+
+/* CS Terminal Dark */
+:root[data-theme="cs-dark"] {
+  --color-cream: 8 12 8;
+  --color-surface: 18 24 18;
+  --color-navy: 80 240 120;
+  --color-gold: 245 180 80;
+  --color-ink-900: 220 245 220;
+  --color-ink-700: 180 215 180;
+  --color-ink-500: 130 160 130;
+  --color-ink-300: 60 80 60;
+  --color-ink-100: 28 38 28;
+}
+
+/* Chem Lab Light */
+:root[data-theme="chem-light"] {
+  --color-cream: 235 248 245;
+  --color-surface: 250 255 253;
+  --color-navy: 35 120 110;
+  --color-gold: 200 140 60;
+  --color-ink-900: 25 50 45;
+  --color-ink-700: 55 90 80;
+  --color-ink-500: 110 145 135;
+  --color-ink-300: 195 220 210;
+  --color-ink-100: 220 240 232;
+}
+
+/* Chem Lab Dark */
+:root[data-theme="chem-dark"] {
+  --color-cream: 8 18 16;
+  --color-surface: 18 32 28;
+  --color-navy: 80 220 195;
+  --color-gold: 220 165 95;
+  --color-ink-900: 225 245 240;
+  --color-ink-700: 185 215 205;
+  --color-ink-500: 135 165 155;
+  --color-ink-300: 70 95 88;
+  --color-ink-100: 30 50 44;
+}
+
+/* Bio Specimen Light */
+:root[data-theme="bio-light"] {
+  --color-cream: 240 247 234;
+  --color-surface: 252 255 248;
+  --color-navy: 75 130 50;
+  --color-gold: 200 155 70;
+  --color-ink-900: 35 55 30;
+  --color-ink-700: 70 95 60;
+  --color-ink-500: 125 150 110;
+  --color-ink-300: 200 215 180;
+  --color-ink-100: 225 240 210;
+}
+
+/* Bio Specimen Dark */
+:root[data-theme="bio-dark"] {
+  --color-cream: 14 22 12;
+  --color-surface: 24 34 22;
+  --color-navy: 145 215 105;
+  --color-gold: 225 195 110;
+  --color-ink-900: 230 245 220;
+  --color-ink-700: 190 215 175;
+  --color-ink-500: 140 165 125;
+  --color-ink-300: 75 95 65;
+  --color-ink-100: 36 50 32;
+}
+
+/* Classics Papyrus Light */
+:root[data-theme="classics-light"] {
+  --color-cream: 250 240 218;
+  --color-surface: 255 248 232;
+  --color-navy: 130 75 40;
+  --color-gold: 190 145 75;
+  --color-ink-900: 60 40 25;
+  --color-ink-700: 95 70 50;
+  --color-ink-500: 145 120 95;
+  --color-ink-300: 215 195 165;
+  --color-ink-100: 240 225 200;
+}
+
+/* Classics Papyrus Dark */
+:root[data-theme="classics-dark"] {
+  --color-cream: 22 16 12;
+  --color-surface: 38 28 22;
+  --color-navy: 220 160 100;
+  --color-gold: 245 195 130;
+  --color-ink-900: 245 230 210;
+  --color-ink-700: 215 195 170;
+  --color-ink-500: 170 145 120;
+  --color-ink-300: 95 78 62;
+  --color-ink-100: 50 40 32;
+}
+
+/* Physics Oscilloscope (light variant) */
+:root[data-theme="physics-oscilloscope"] {
+  --color-cream: 4 18 16;
+  --color-surface: 12 28 24;
+  --color-navy: 80 240 220;
+  --color-gold: 235 200 80;
+  --color-ink-900: 220 245 240;
+  --color-ink-700: 180 215 210;
+  --color-ink-500: 130 165 160;
+  --color-ink-300: 60 90 85;
+  --color-ink-100: 22 40 36;
+}
+
+/* Physics Signal (dark variant) */
+:root[data-theme="physics-signal"] {
+  --color-cream: 8 8 18;
+  --color-surface: 18 18 32;
+  --color-navy: 130 170 255;
+  --color-gold: 235 145 90;
+  --color-ink-900: 230 232 245;
+  --color-ink-700: 195 198 220;
+  --color-ink-500: 140 145 175;
+  --color-ink-300: 70 75 100;
+  --color-ink-100: 30 32 56;
+}
+
 @layer base {
   :root {
     color-scheme: light dark;
@@ -16,12 +387,10 @@
 
   body {
     @apply bg-cream text-ink-900 antialiased;
-    font-family: theme("fontFamily.sans");
+    font-family: var(--font-family, ui-sans-serif), system-ui, -apple-system,
+      "Segoe UI", Roboto, "Helvetica Neue", Arial, "Apple Color Emoji",
+      "Segoe UI Emoji";
     overscroll-behavior-y: contain;
-  }
-
-  .dark body {
-    @apply bg-dark-bg text-dark-ink;
   }
 
   /* Focus rings visible to keyboard users only - accessibility pass in Session 15 */

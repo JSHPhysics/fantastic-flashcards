@@ -7,7 +7,7 @@ pick up without context. Keep entries terse; commit messages hold the detail.
 
 ## Status
 
-**Last completed:** Sessions 13 + 14 — Backup export/import + PWA polish (update banner, iOS install tip, persistent storage, About card, Quizlet import + per-side languages, stats streak chips)
+**Last completed:** Gamification layer — coins (per-card, +1 first-correct, +5 deck-complete, 25/day cap), ranks (10 bands, confetti rank-up dialog), theme system (6 free + 8 paid + 10 subject themes via CSS variables), font system (13 fonts via Google Fonts), unlock codes (TH/FN/TEAM/master/staff/debug), shop UI in Settings. Plus deck-level baseLanguage auto-TTS redirect, layout polish, brighter checkboxes, beefed-up demo seed.
 **Next up:** Session 15 — Accessibility + iPad QA + final polish
 **Stopping discipline (new):** After each session, do a rigorous code review
 before moving on. Fix bugs found during the review in a follow-up commit. Don't
