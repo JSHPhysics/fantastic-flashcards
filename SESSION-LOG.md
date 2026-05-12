@@ -111,6 +111,8 @@ Items deferred to real-device QA:
 
 **Plain-English user copy** (Playbook section 11 "Voice and copy"). Every user-visible string is read by a student, not a developer. Avoid implementation jargon (chip, propagate, cascade, sibling, endpoint, idempotent, refcount), coding terms (kebab-case, schema), and internal scheduling (Session N). Describe results, not mechanisms. The Playbook has a swap table of patterns to match.
 
+**Rejected ideas live in `DESIGN-DECISIONS.md`.** Before re-suggesting a refactor or feature shape, skim that file. If the trade-off has changed (e.g. data scale, new requirement), update the existing entry rather than starting over.
+
 ## Open notes for the next session
 
 - `package.json` still flags 3 moderate npm audit warnings on transitive
