@@ -24,7 +24,7 @@ export function StatsPage() {
   return (
     <section className="space-y-4">
       <header>
-        <h1 className="text-3xl font-semibold tracking-tight text-navy dark:text-gold">
+        <h1 className="text-2xl font-semibold tracking-tight text-navy dark:text-gold sm:text-3xl">
           Progress
         </h1>
         <p className="mt-1 text-sm text-ink-700 dark:text-ink-300">

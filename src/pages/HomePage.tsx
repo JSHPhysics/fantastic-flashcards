@@ -18,7 +18,7 @@ export function HomePage() {
       <section className="mt-2">
         <header className="mb-4 flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-3xl font-semibold tracking-tight text-navy dark:text-gold">
+            <h1 className="text-2xl font-semibold tracking-tight text-navy dark:text-gold sm:text-3xl">
               Your decks
             </h1>
             <p className="mt-1 text-sm text-ink-700 dark:text-ink-300">

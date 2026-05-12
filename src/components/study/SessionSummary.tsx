@@ -52,7 +52,7 @@ export function SessionSummary({
             Custom study
           </span>
         )}
-        <h1 className="mt-1 text-3xl font-semibold tracking-tight text-navy dark:text-gold">
+        <h1 className="mt-1 text-2xl font-semibold tracking-tight text-navy dark:text-gold sm:text-3xl">
           Session complete
         </h1>
         <p className="mt-1 text-sm text-ink-700 dark:text-ink-300">

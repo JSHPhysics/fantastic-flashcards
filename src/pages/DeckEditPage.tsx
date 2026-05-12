@@ -90,7 +90,7 @@ export function DeckEditPage() {
         >
           {"<-"} Back to deck
         </Link>
-        <h1 className="mt-1 text-3xl font-semibold tracking-tight text-navy dark:text-gold">
+        <h1 className="mt-1 text-2xl font-semibold tracking-tight text-navy dark:text-gold sm:text-3xl">
           Edit deck
         </h1>
       </header>

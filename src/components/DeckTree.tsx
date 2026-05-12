@@ -154,11 +154,11 @@ function DeckRow({
 
       <Link
         to={`/decks/${deck.id}`}
-        className="flex flex-1 items-center justify-between gap-3 rounded-md py-1 text-left text-base text-ink-900 hover:underline dark:text-dark-ink"
+        className="flex flex-1 min-w-0 flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-md py-1 text-left text-base text-ink-900 hover:underline dark:text-dark-ink"
       >
-        <span className="flex flex-col">
-          <span className="font-medium">{deck.name}</span>
-          <span className="flex flex-wrap items-center gap-2 text-xs text-ink-500 dark:text-ink-300">
+        <span className="flex min-w-0 flex-1 flex-col">
+          <span className="truncate font-medium">{deck.name}</span>
+          <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink-500 dark:text-ink-300">
             {deck.subject && (
               <span className="rounded-full bg-ink-100 px-2 py-0.5 text-[11px] dark:bg-dark-surface">
                 {deck.subject}
@@ -166,18 +166,24 @@ function DeckRow({
             )}
             <span>{deck.cardCount} cards</span>
             {deck.descendantCardCount > deck.cardCount && (
-              <span>({deck.descendantCardCount} incl. sub-decks)</span>
+              <span className="hidden sm:inline">
+                ({deck.descendantCardCount} incl. sub-decks)
+              </span>
             )}
             {stats && stats.lastReviewedAt > 0 && (
-              <span>
+              <span className="hidden sm:inline">
                 Last studied {formatRelativeTime(stats.lastReviewedAt).toLowerCase()}
               </span>
             )}
           </span>
         </span>
-        <span className="flex items-center gap-2">
+        <span className="flex shrink-0 items-center gap-1.5">
           {stats && <StreakChip days={stats.streakDays} />}
-          <DeckSizeChip bytes={deck.mediaBytes} />
+          {/* Media-size chip is least important on narrow screens; hide it
+              below sm so the streak + due-today badge stay readable. */}
+          <span className="hidden sm:inline-flex">
+            <DeckSizeChip bytes={deck.mediaBytes} />
+          </span>
           <DueTodayBadge count={dueCount} />
         </span>
       </Link>

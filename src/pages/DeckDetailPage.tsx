@@ -43,7 +43,7 @@ export function DeckDetailPage() {
           >
             ← All decks
           </Link>
-          <h1 className="mt-1 flex items-center gap-2 text-3xl font-semibold tracking-tight text-navy dark:text-gold">
+          <h1 className="mt-1 flex items-center gap-2 text-2xl font-semibold tracking-tight text-navy dark:text-gold sm:text-3xl">
             <span
               aria-hidden
               className="h-4 w-4 rounded-full"

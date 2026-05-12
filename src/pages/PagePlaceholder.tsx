@@ -11,7 +11,7 @@ export function PagePlaceholder({
 }) {
   return (
     <section className="mt-2">
-      <h1 className="text-3xl font-semibold tracking-tight text-navy dark:text-gold">
+      <h1 className="text-2xl font-semibold tracking-tight text-navy dark:text-gold sm:text-3xl">
         {title}
       </h1>
       {subtitle && (

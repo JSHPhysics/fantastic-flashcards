@@ -19,7 +19,7 @@ export function Layout({ children }: { children?: ReactNode }) {
     <div className="flex min-h-full flex-col bg-cream text-ink-900 dark:bg-dark-bg dark:text-dark-ink">
       <TopBar />
       <main
-        className="mx-auto w-full max-w-4xl flex-1 px-4 pb-24 pt-4 sm:px-6"
+        className="mx-auto w-full max-w-4xl flex-1 px-4 pb-24 pt-4 sm:px-6 xl:max-w-5xl"
         id="main-content"
       >
         {children ?? <Outlet />}
@@ -37,7 +37,7 @@ export function Layout({ children }: { children?: ReactNode }) {
 function TopBar() {
   return (
     <header className="sticky top-0 z-20 border-b border-ink-100 bg-cream/85 backdrop-blur dark:border-dark-surface dark:bg-dark-bg/85">
-      <div className="mx-auto flex h-14 w-full max-w-4xl items-center justify-between px-4 sm:px-6">
+      <div className="mx-auto flex h-14 w-full max-w-4xl items-center justify-between px-4 sm:px-6 xl:max-w-5xl">
         <NavLink
           to="/"
           className="flex items-center gap-2 text-base font-semibold tracking-tight"
@@ -64,7 +64,7 @@ function BottomTabs() {
       aria-label="Primary"
       className="fixed inset-x-0 bottom-0 z-20 border-t border-ink-100 bg-cream/95 pb-[env(safe-area-inset-bottom)] backdrop-blur dark:border-dark-surface dark:bg-dark-bg/95"
     >
-      <ul className="mx-auto flex w-full max-w-4xl">
+      <ul className="mx-auto flex w-full max-w-4xl xl:max-w-5xl">
         {tabs.map((tab) => (
           <li key={tab.to} className="flex-1">
             <NavLink

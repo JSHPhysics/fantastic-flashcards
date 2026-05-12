@@ -330,12 +330,14 @@ function DebugPanel() {
                 Sample decks
               </p>
               <p className="mt-0.5 text-xs text-ink-500 dark:text-ink-300">
-                Adds four practice decks (French, Spanish, and German vocab,
-                plus one with a sample of every card type), each prefixed
-                with "[debug]". Also seeds a few days of fake review
-                history so the streak chips and "last studied" lines have
-                something to show. Won't duplicate anything that's already
-                there.
+                Adds a demo set you can walk through with someone: a Languages
+                deck with French, Spanish, and German sub-decks; a Physics
+                A-level deck with Mechanics, Waves, and Electricity; a Biology
+                GCSE deck with Cells and Genetics; and a Card types showcase.
+                Each card has tags, and two weeks of made-up review history
+                fills in the Stats screen. All deck names start with "[demo]"
+                so they're easy to spot. Won't duplicate anything that's
+                already there.
               </p>
               <div className="mt-2">
                 <Button
