@@ -2,7 +2,7 @@
 // is keyed on card.id so React unmounts the previous card cleanly when the
 // student advances - reset state, kill any in-progress TTS, etc.
 
-import type { Card, Rating } from "../../db";
+import { useDeck, type Card, type Rating } from "../../db";
 import { BasicReview } from "./BasicReview";
 import { ClozeReview } from "./ClozeReview";
 import { McqReview } from "./McqReview";
@@ -17,9 +17,21 @@ interface CardReviewerProps {
 
 export function CardReviewer({ card, onRate }: CardReviewerProps) {
   const c = card.content;
+  // Custom-study sessions can mix cards from multiple decks, so we look up
+  // each card's deck rather than threading one deck through from the runner.
+  // useLiveQuery makes this a cheap memoised read.
+  const deck = useDeck(card.deckId);
+  const baseLanguage = deck?.baseLanguage;
   switch (c.type) {
     case "basic":
-      return <BasicReview key={card.id} content={c} onRate={onRate} />;
+      return (
+        <BasicReview
+          key={card.id}
+          content={c}
+          onRate={onRate}
+          baseLanguage={baseLanguage}
+        />
+      );
     case "cloze":
       return <ClozeReview key={card.id} content={c} onRate={onRate} />;
     case "mcq":

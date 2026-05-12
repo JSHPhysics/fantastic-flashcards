@@ -21,6 +21,9 @@ export function DeckEditPage() {
   const [secondaryLanguage, setSecondaryLanguage] = useState<
     string | undefined
   >(undefined);
+  const [baseLanguage, setBaseLanguage] = useState<string | undefined>(
+    undefined,
+  );
   const [langPickerSlot, setLangPickerSlot] = useState<
     "primary" | "secondary" | null
   >(null);
@@ -34,7 +37,19 @@ export function DeckEditPage() {
     setColour(deck.colour);
     setPronunciationLanguage(deck.pronunciationLanguage);
     setSecondaryLanguage(deck.secondaryLanguage);
+    setBaseLanguage(deck.baseLanguage);
   }, [deck]);
+
+  // Drop a stale baseLanguage if the language pair no longer references it.
+  useEffect(() => {
+    if (
+      baseLanguage &&
+      baseLanguage !== pronunciationLanguage &&
+      baseLanguage !== secondaryLanguage
+    ) {
+      setBaseLanguage(undefined);
+    }
+  }, [pronunciationLanguage, secondaryLanguage, baseLanguage]);
 
   if (!deck || !id) {
     return (
@@ -58,6 +73,7 @@ export function DeckEditPage() {
         colour,
         pronunciationLanguage,
         secondaryLanguage,
+        baseLanguage,
       });
       navigate(`/decks/${id}`);
     } finally {
@@ -150,6 +166,14 @@ export function DeckEditPage() {
                 onClear={() => setSecondaryLanguage(undefined)}
               />
             </div>
+            {pronunciationLanguage && secondaryLanguage && (
+              <NativeLanguageRadio
+                primary={pronunciationLanguage}
+                secondary={secondaryLanguage}
+                base={baseLanguage}
+                onChange={setBaseLanguage}
+              />
+            )}
           </div>
         </FormField>
       </div>
@@ -178,6 +202,52 @@ export function DeckEditPage() {
         title="Translation language (back of cards)"
       />
     </section>
+  );
+}
+
+function NativeLanguageRadio({
+  primary,
+  secondary,
+  base,
+  onChange,
+}: {
+  primary: string;
+  secondary: string;
+  base: string | undefined;
+  onChange: (value: string | undefined) => void;
+}) {
+  const options: { value: string | undefined; label: string }[] = [
+    { value: secondary, label: labelForLanguage(secondary) },
+    { value: primary, label: labelForLanguage(primary) },
+    { value: undefined, label: "Read whichever side I'm looking at" },
+  ];
+  return (
+    <div className="mt-1 rounded-xl border border-ink-100 bg-cream/40 p-3 dark:border-dark-surface dark:bg-dark-bg/40">
+      <p className="text-xs font-medium text-ink-900 dark:text-dark-ink">
+        Which one do you already speak?
+      </p>
+      <p className="mt-0.5 text-xs text-ink-500 dark:text-ink-300">
+        Auto-pronounce will always read the other language out loud, so you
+        hear the one you're learning whichever side of the card you're on.
+      </p>
+      <div className="mt-2 flex flex-col gap-1.5">
+        {options.map((opt) => (
+          <label
+            key={opt.value ?? "none"}
+            className="flex items-center gap-2 text-sm text-ink-900 dark:text-dark-ink"
+          >
+            <input
+              type="radio"
+              name="deck-edit-base-language"
+              checked={base === opt.value}
+              onChange={() => onChange(opt.value)}
+              className="h-4 w-4"
+            />
+            <span>{opt.label}</span>
+          </label>
+        ))}
+      </div>
+    </div>
   );
 }
 

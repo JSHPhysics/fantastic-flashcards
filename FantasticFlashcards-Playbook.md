@@ -96,7 +96,9 @@ interface Deck {
   description?: string;
   subject?: string;
   colour: string;
-  pronunciationLanguage?: string;     // BCP 47
+  pronunciationLanguage?: string;     // BCP 47, primary (front) language
+  secondaryLanguage?: string;         // BCP 47, translation (back) language
+  baseLanguage?: string;              // BCP 47, student's native side - auto-speak redirects to the other side
   createdAt: number;
   updatedAt: number;
   cardCount: number;                  // direct children only
@@ -321,13 +323,32 @@ No merge logic in v1. Last-write-wins at the file level.
 
 ## 6. Pronunciation / TTS
 
-- Each deck has an optional `pronunciationLanguage` (BCP 47).
+- Each deck has an optional `pronunciationLanguage` (BCP 47) for the primary
+  (front) side and an optional `secondaryLanguage` for the back. When both
+  are set the deck is a language pair.
 - Each `RichField` can override the deck's language.
 - Speaker icon appears wherever a field with a language is displayed.
 - Voice list via `speechSynthesis.getVoices()` with `voiceschanged` listener for iOS async load.
+- Optional online voices via Google's translate-TTS endpoint when the user
+  opts in (Settings -> "Use online voices"); off by default to keep the
+  local-first promise.
 - Auto-speak settings: on show, on reveal (independent toggles).
 - Settings explainer: "Voice quality depends on languages installed on your device. On iPad, download Enhanced voices in Settings -> Accessibility -> Spoken Content for best results."
 - Listening card auto-generation falls back to TTS at review time when language is set but no audio recorded.
+
+### Base language (per-deck)
+- Each deck has an optional `baseLanguage` (BCP 47) — the student's *native*
+  language for this deck (e.g. en-GB for an English speaker learning Spanish).
+- When set, auto-speak during Basic review never reads the base language: if
+  the side that would normally be spoken is in the base language, the player
+  redirects to the *other* side's text + language instead. The point is that
+  the student always hears the language they are *learning* read aloud,
+  whichever direction the (possibly auto-reversed) card is facing.
+- The manual speaker icon on each face is unaffected — it always reads the
+  text on the face it's attached to.
+- The radio only appears when both `pronunciationLanguage` and
+  `secondaryLanguage` are set. Default is "Read whichever side I'm looking
+  at" (unset) so existing decks keep their old behaviour.
 
 ---
 

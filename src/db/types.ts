@@ -63,6 +63,14 @@ export interface Deck {
   // pronunciationLanguage is set the back falls back to that (single-
   // language deck, same as before this field existed).
   secondaryLanguage?: string;
+  // BCP 47 of the student's own language for this deck. When set, auto-TTS
+  // during review never speaks this language: it speaks the *other* side
+  // instead. The point is that an English speaker learning Spanish always
+  // hears the Spanish word read aloud, whether the card is showing the
+  // English or the Spanish side. Must match one of pronunciationLanguage or
+  // secondaryLanguage. Undefined means "no preference" — auto-TTS reads
+  // whichever side it's currently looking at.
+  baseLanguage?: string;
   createdAt: number;
   updatedAt: number;
   cardCount: number;

@@ -37,6 +37,9 @@ export function CreateDeckDialog({
   const [secondaryLanguage, setSecondaryLanguage] = useState<
     string | undefined
   >(undefined);
+  const [baseLanguage, setBaseLanguage] = useState<string | undefined>(
+    undefined,
+  );
   const [langPickerSlot, setLangPickerSlot] = useState<
     "primary" | "secondary" | null
   >(null);
@@ -51,9 +54,23 @@ export function CreateDeckDialog({
       setPendingDepthCheck(false);
       setPronunciationLanguage(undefined);
       setSecondaryLanguage(undefined);
+      setBaseLanguage(undefined);
       setLangPickerSlot(null);
     }
   }, [open, initialParentId]);
+
+  // If the language pair ever becomes invalid (one side cleared, or the
+  // chosen base no longer matches either side) drop the baseLanguage so we
+  // never persist a stale value.
+  useEffect(() => {
+    if (
+      baseLanguage &&
+      baseLanguage !== pronunciationLanguage &&
+      baseLanguage !== secondaryLanguage
+    ) {
+      setBaseLanguage(undefined);
+    }
+  }, [pronunciationLanguage, secondaryLanguage, baseLanguage]);
 
   const submit = async (skipDepthCheck = false) => {
     if (!name.trim()) return;
@@ -73,6 +90,7 @@ export function CreateDeckDialog({
       parentId,
       pronunciationLanguage,
       secondaryLanguage,
+      baseLanguage,
     });
     onCreated?.(created);
     onClose();
@@ -165,6 +183,7 @@ export function CreateDeckDialog({
           <LanguagePairSection
             primary={pronunciationLanguage}
             secondary={secondaryLanguage}
+            base={baseLanguage}
             onClearPrimary={() => {
               setPronunciationLanguage(undefined);
               // Clearing the primary clears the secondary too; the pair is
@@ -174,6 +193,7 @@ export function CreateDeckDialog({
             onClearSecondary={() => setSecondaryLanguage(undefined)}
             onPickPrimary={() => setLangPickerSlot("primary")}
             onPickSecondary={() => setLangPickerSlot("secondary")}
+            onChangeBase={setBaseLanguage}
           />
         </div>
 
@@ -222,17 +242,21 @@ export function CreateDeckDialog({
 function LanguagePairSection({
   primary,
   secondary,
+  base,
   onPickPrimary,
   onPickSecondary,
   onClearPrimary,
   onClearSecondary,
+  onChangeBase,
 }: {
   primary: string | undefined;
   secondary: string | undefined;
+  base: string | undefined;
   onPickPrimary: () => void;
   onPickSecondary: () => void;
   onClearPrimary: () => void;
   onClearSecondary: () => void;
+  onChangeBase: (value: string | undefined) => void;
 }) {
   const hint = primary
     ? secondary
@@ -260,6 +284,60 @@ function LanguagePairSection({
           onPick={onPickSecondary}
           onClear={onClearSecondary}
         />
+      </div>
+      {primary && secondary && (
+        <NativeLanguageRadio
+          primary={primary}
+          secondary={secondary}
+          base={base}
+          onChange={onChangeBase}
+        />
+      )}
+    </div>
+  );
+}
+
+function NativeLanguageRadio({
+  primary,
+  secondary,
+  base,
+  onChange,
+}: {
+  primary: string;
+  secondary: string;
+  base: string | undefined;
+  onChange: (value: string | undefined) => void;
+}) {
+  const options: { value: string | undefined; label: string }[] = [
+    { value: secondary, label: labelForLanguage(secondary) },
+    { value: primary, label: labelForLanguage(primary) },
+    { value: undefined, label: "Read whichever side I'm looking at" },
+  ];
+  return (
+    <div className="mt-3 border-t border-ink-100 pt-3 dark:border-dark-surface">
+      <p className="text-xs font-medium text-ink-900 dark:text-dark-ink">
+        Which one do you already speak?
+      </p>
+      <p className="mt-0.5 text-xs text-ink-500 dark:text-ink-300">
+        Auto-pronounce will always read the other language out loud, so you
+        hear the one you're learning whichever side of the card you're on.
+      </p>
+      <div className="mt-2 flex flex-col gap-1.5">
+        {options.map((opt) => (
+          <label
+            key={opt.value ?? "none"}
+            className="flex items-center gap-2 text-sm text-ink-900 dark:text-dark-ink"
+          >
+            <input
+              type="radio"
+              name="base-language"
+              checked={base === opt.value}
+              onChange={() => onChange(opt.value)}
+              className="h-4 w-4"
+            />
+            <span>{opt.label}</span>
+          </label>
+        ))}
       </div>
     </div>
   );
