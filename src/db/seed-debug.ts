@@ -80,7 +80,7 @@ export async function seedDebugData(): Promise<SeedDebugResult> {
       ["merci beaucoup", "thank you very much"],
       ["s'il vous plaît", "please (formal)"],
     ]],
-    ["Numbers 1–10", ["fr", "vocab", "numbers", "beginner"], [
+    ["Numbers 1–10", ["fr", "vocab", "numbers", "A1"], [
       ["un", "one"],
       ["deux", "two"],
       ["trois", "three"],
@@ -92,7 +92,7 @@ export async function seedDebugData(): Promise<SeedDebugResult> {
       ["neuf", "nine"],
       ["dix", "ten"],
     ]],
-    ["Common verbs", ["fr", "vocab", "verbs", "tricky"], [
+    ["Common verbs", ["fr", "vocab", "verbs", "irregular"], [
       ["être", "to be"],
       ["avoir", "to have"],
       ["aller", "to go"],
@@ -319,7 +319,7 @@ async function addPhysicsMechanicsCards(deckId: string): Promise<number> {
     [
       "Define elastic vs inelastic collision.",
       "Elastic: kinetic energy is conserved. Inelastic: kinetic energy is not conserved (some becomes heat/sound), but momentum still is.",
-      ["physics", "mechanics", "tricky"],
+      ["physics", "mechanics", "definitions", "conservation-laws"],
     ],
   ] as const) {
     await createBasicCard({
@@ -361,7 +361,7 @@ async function addPhysicsWavesCards(deckId: string): Promise<number> {
     [
       "What is total internal reflection?",
       "When light hits a boundary from the denser side at an angle greater than the critical angle, it reflects entirely back into the denser medium.",
-      ["physics", "waves", "optics", "tricky"],
+      ["physics", "waves", "optics", "definitions"],
     ],
   ] as const) {
     await createBasicCard({
@@ -433,7 +433,7 @@ async function addPhysicsElectricityCards(deckId: string): Promise<number> {
   n += 1;
   await createTypedCard({
     deckId,
-    tags: ["physics", "electricity", "calculation", "tricky"],
+    tags: ["physics", "electricity", "calculation", "power"],
     prompt: { text: "Power dissipated by a 5 Ω resistor carrying 3 A (in watts)?" },
     acceptedAnswers: ["45", "45 W", "45W"],
     caseSensitive: false,
@@ -513,7 +513,7 @@ async function addBiologyGeneticsCards(deckId: string): Promise<number> {
   n += 1;
   await createTypedCard({
     deckId,
-    tags: ["biology", "gcse", "genetics", "calculation"],
+    tags: ["biology", "gcse", "genetics", "chromosomes"],
     prompt: { text: "How many pairs of chromosomes in a human body cell?" },
     acceptedAnswers: ["23", "twenty-three", "twenty three"],
     caseSensitive: false,
