@@ -9,6 +9,10 @@ interface SessionSummaryProps {
   newRemaining: number;
   deckId: string;
   mode?: "standard" | "custom-study";
+  // For custom-study sessions: did the cards' FSRS schedule advance, or
+  // was the session "practice only"? Standard sessions always update —
+  // pass true (or omit) for them.
+  spacedRepetitionUpdated?: boolean;
 }
 
 const RATING_LABELS: Record<Rating, string> = {
@@ -32,6 +36,7 @@ export function SessionSummary({
   newRemaining,
   deckId,
   mode = "standard",
+  spacedRepetitionUpdated = true,
 }: SessionSummaryProps) {
   const profile = useProfile();
   const cards = ratings.length;
@@ -60,6 +65,24 @@ export function SessionSummary({
             ? "No cards reviewed."
             : `Reviewed ${cards} card${cards === 1 ? "" : "s"} in ${minutes}m ${seconds}s.`}
         </p>
+        {cards > 0 && (
+          <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-ink-100 px-3 py-0.5 text-xs text-ink-700 dark:bg-dark-surface dark:text-ink-300">
+            {spacedRepetitionUpdated ? (
+              <>
+                <span aria-hidden className="text-good">
+                  ✓
+                </span>
+                Schedule updated — these cards will reappear at their new due
+                dates.
+              </>
+            ) : (
+              <>
+                <span aria-hidden>•</span>
+                Practice only — your schedule wasn't changed.
+              </>
+            )}
+          </p>
+        )}
       </header>
 
       <div className="grid gap-3 sm:grid-cols-3">

@@ -277,6 +277,7 @@ function Runner({
           newRemaining={newRemaining}
           deckId={deckIds[0] ?? ""}
           mode={mode}
+          spacedRepetitionUpdated={mode === "standard" || updateSpacedRepetition}
         />
       </>
     );

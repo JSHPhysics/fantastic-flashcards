@@ -169,14 +169,23 @@ export interface RedeemResult {
 }
 
 function isDevEnv(): boolean {
-  // Vite exposes DEV via import.meta.env. Debug codes are gated behind it
-  // per spec: "only in development". The Settings -> Debug toggle uses the
-  // same signal so behaviour is consistent.
+  // Vite exposes DEV via import.meta.env. Use this as one signal for the
+  // debug-code gate.
   try {
     return import.meta.env.DEV === true;
   } catch {
     return false;
   }
+}
+
+// Debug codes (COINMAX / RESETALL / DEBUGMODE) work when either:
+//  - the build is a Vite dev build, OR
+//  - the user has Debug mode turned on in Settings.
+// The spec said "development only" but in practice the maintainer needs
+// these on the production-deployed build for QA, and they're harmless to
+// anyone who hasn't deliberately flipped Debug mode on.
+function debugCodesAllowed(settings: import("../db/types").ProfileSettings): boolean {
+  return isDevEnv() || settings.debugMode === true;
 }
 
 export async function redeemCode(rawCode: string): Promise<RedeemResult> {
@@ -194,8 +203,10 @@ export async function redeemCode(rawCode: string): Promise<RedeemResult> {
   const def = CODES[normalised];
   if (!def) return { success: false, error: "That code doesn't match anything." };
 
-  // Debug codes only fire in development builds.
-  if (def.category === "debug" && !isDevEnv()) {
+  // Debug codes only fire when Debug mode is on (or the build is a Vite
+  // dev build). Production users who haven't flipped Debug mode get the
+  // same "Invalid code" response as if the code didn't exist.
+  if (def.category === "debug" && !debugCodesAllowed(profile.settings)) {
     return { success: false, error: "That code doesn't match anything." };
   }
 

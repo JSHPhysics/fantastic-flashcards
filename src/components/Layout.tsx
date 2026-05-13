@@ -1,9 +1,30 @@
 import { NavLink, Outlet, useLocation } from "react-router-dom";
-import type { ReactNode } from "react";
+import { createContext, useCallback, useContext, useState, type ReactNode } from "react";
 import { BackupNudge } from "./BackupNudge";
 import { UpdateBanner } from "./UpdateBanner";
 import { InstallTipBanner } from "./InstallTipBanner";
 import { useThemeManager } from "../themes/manager";
+import { Shop } from "./gamification/Shop";
+import { CoinBalance } from "./gamification/CoinBalance";
+
+// Global shop state so any page can open the theme + font shop. The TopBar
+// surfaces a coin chip that calls open(); Settings has a "Look & feel"
+// card that does the same. Single source of truth so we don't end up with
+// two shop instances mounted at once.
+interface ShopContextValue {
+  open: () => void;
+  close: () => void;
+  isOpen: boolean;
+}
+const ShopContext = createContext<ShopContextValue | null>(null);
+
+export function useShop(): ShopContextValue {
+  const ctx = useContext(ShopContext);
+  if (!ctx) {
+    throw new Error("useShop must be used inside <Layout>");
+  }
+  return ctx;
+}
 
 const tabs: { to: string; label: string; icon: ReactNode }[] = [
   { to: "/", label: "Home", icon: <HomeIcon /> },
@@ -18,44 +39,73 @@ export function Layout({ children }: { children?: ReactNode }) {
   // Apply the user's theme + font choice every render. Hook is idempotent.
   useThemeManager();
 
+  const [shopOpen, setShopOpen] = useState(false);
+  const shopCtx: ShopContextValue = {
+    isOpen: shopOpen,
+    open: useCallback(() => setShopOpen(true), []),
+    close: useCallback(() => setShopOpen(false), []),
+  };
+
   return (
-    <div className="flex min-h-full flex-col bg-cream text-ink-900 dark:bg-dark-bg dark:text-dark-ink">
-      <TopBar />
-      <main
-        className="mx-auto w-full max-w-4xl flex-1 px-4 pb-24 pt-4 sm:px-6 xl:max-w-5xl"
-        id="main-content"
-      >
-        {children ?? <Outlet />}
-      </main>
-      {!hideTabs && <BottomTabs />}
-      {/* Globally mounted so the toast can appear on any page, but the nudge
-          component is no-op until the 20-hour condition kicks in. */}
-      {!pathname.startsWith("/study") && <BackupNudge />}
-      {!pathname.startsWith("/study") && <InstallTipBanner />}
-      <UpdateBanner />
-    </div>
+    <ShopContext.Provider value={shopCtx}>
+      <div className="flex min-h-full flex-col bg-cream text-ink-900 dark:bg-dark-bg dark:text-dark-ink">
+        <TopBar onOpenShop={shopCtx.open} hideShop={pathname.startsWith("/study")} />
+        <main
+          className="mx-auto w-full max-w-4xl flex-1 px-4 pb-24 pt-4 sm:px-6 xl:max-w-5xl"
+          id="main-content"
+        >
+          {children ?? <Outlet />}
+        </main>
+        {!hideTabs && <BottomTabs />}
+        {/* Globally mounted so the toast can appear on any page, but the nudge
+            component is no-op until the 20-hour condition kicks in. */}
+        {!pathname.startsWith("/study") && <BackupNudge />}
+        {!pathname.startsWith("/study") && <InstallTipBanner />}
+        <UpdateBanner />
+        <Shop open={shopOpen} onClose={shopCtx.close} />
+      </div>
+    </ShopContext.Provider>
   );
 }
 
-function TopBar() {
+function TopBar({
+  onOpenShop,
+  hideShop,
+}: {
+  onOpenShop: () => void;
+  hideShop: boolean;
+}) {
   return (
     <header className="sticky top-0 z-20 border-b border-ink-100 bg-cream/85 backdrop-blur dark:border-dark-surface dark:bg-dark-bg/85">
-      <div className="mx-auto flex h-14 w-full max-w-4xl items-center justify-between px-4 sm:px-6 xl:max-w-5xl">
+      <div className="mx-auto flex h-14 w-full max-w-4xl items-center justify-between gap-3 px-4 sm:px-6 xl:max-w-5xl">
         <NavLink
           to="/"
-          className="flex items-center gap-2 text-base font-semibold tracking-tight"
+          className="flex min-w-0 items-center gap-2 text-base font-semibold tracking-tight"
           aria-label="Fantastic Flashcards home"
         >
           <span
             aria-hidden
-            className="inline-block h-6 w-6 rounded-md bg-navy"
+            className="inline-block h-6 w-6 shrink-0 rounded-md bg-navy"
             style={{
               backgroundImage:
                 "linear-gradient(135deg, #1E3A5F 0%, #1E3A5F 55%, #C9A14A 55%, #C9A14A 100%)",
             }}
           />
-          <span>Fantastic Flashcards</span>
+          {/* Title shrinks to "Flashcards" on phones so the coin chip has
+              room. Full title on sm+ where the top bar can fit both. */}
+          <span className="hidden truncate sm:inline">Fantastic Flashcards</span>
+          <span className="truncate sm:hidden">Flashcards</span>
         </NavLink>
+        {!hideShop && (
+          <button
+            type="button"
+            onClick={onOpenShop}
+            aria-label="Open theme and font shop"
+            className="tap-target -mr-2 rounded-full px-1"
+          >
+            <CoinBalance size="sm" />
+          </button>
+        )}
       </div>
     </header>
   );

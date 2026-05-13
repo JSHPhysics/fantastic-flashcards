@@ -69,10 +69,14 @@ export function Dialog({
   // bottom — that's what makes the action buttons reachable even when the
   // body content overflows (e.g. CreateDeck in iPad landscape with the
   // keyboard up).
+  //
+  // Heights use dvh (dynamic viewport height) so iOS Safari's on-screen
+  // keyboard shrinks the dialog's usable height instead of pushing the
+  // footer off-screen. Falls back to vh on older browsers.
   const containerClass =
     variant === "sheet"
       ? "fixed inset-x-0 bottom-0 w-full sm:inset-0 sm:m-auto sm:max-w-md sm:rounded-2xl"
-      : "fixed inset-x-4 top-[5vh] mx-auto w-auto max-w-md rounded-2xl sm:inset-x-0 sm:top-[10vh]";
+      : "fixed inset-x-4 top-[5dvh] mx-auto w-auto max-w-md rounded-2xl sm:inset-x-0 sm:top-[8dvh]";
 
   return createPortal(
     <div
@@ -89,7 +93,7 @@ export function Dialog({
       />
       <div
         ref={dialogRef}
-        className={`${containerClass} relative z-10 flex max-h-[90vh] flex-col rounded-t-2xl bg-surface shadow-xl dark:bg-dark-surface`}
+        className={`${containerClass} relative z-10 flex max-h-[90dvh] flex-col rounded-t-2xl bg-surface shadow-xl dark:bg-dark-surface`}
       >
         <header className="flex shrink-0 items-start justify-between gap-4 px-5 pt-5">
           <div>

@@ -101,6 +101,10 @@ export function BackupSection() {
         audio, and history. Move it to another device and import to copy
         everything over.
       </p>
+      <p className="mt-1 text-xs text-ink-500 dark:text-ink-300">
+        On iPad the Files picker shows everything in a folder — look for the
+        most recent file starting with "flashcards-".
+      </p>
 
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
         <div>
@@ -127,10 +131,16 @@ export function BackupSection() {
           >
             Import backup
           </Button>
+          {/* The Files picker on iPadOS doesn't always filter to the
+              custom .flashcards extension — the user has to spot the
+              file by name. We list both the extension and the underlying
+              zip MIME types so non-iOS browsers narrow the picker; on
+              iPad the wider list is harmless because the picker shows
+              everything anyway. */}
           <input
             ref={fileInputRef}
             type="file"
-            accept=".flashcards,application/zip,application/octet-stream"
+            accept=".flashcards,.zip,application/zip,application/x-zip-compressed,application/octet-stream"
             className="hidden"
             onChange={(e) => {
               const f = e.target.files?.[0];

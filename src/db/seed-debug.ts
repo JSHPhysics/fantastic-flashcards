@@ -679,15 +679,51 @@ async function seedReviewHistory(decks: ReviewSeedDeckIds): Promise<void> {
   await db.reviews.bulkAdd(reviews);
   await db.sessions.bulkAdd(sessions);
 
+  // Mark ~40% of the seeded cards as mature in FSRS. Without this, all
+  // cards stay "new" and overall mastery is stuck at 0%, so the Rank card
+  // forever reads Unranked — which makes the demo flat. Bumping a chunk
+  // into mature puts the demo profile somewhere around Practitioner /
+  // Expert, which is what a real returning student would look like.
+  const matureCount = Math.floor(allCards.length * 0.4);
+  const matureUpdates = allCards.slice(0, matureCount).map((card) => ({
+    id: card.id,
+    fsrs: {
+      ...card.fsrs,
+      state: 2, // ts-fsrs State.Review
+      reps: 4,
+      lapses: 0,
+      scheduled_days: 30,
+      elapsed_days: 0,
+      stability: 30,
+      difficulty: 5,
+    } as FsrsState,
+  }));
+  for (const u of matureUpdates) {
+    await db.cards.update(u.id, { fsrs: u.fsrs });
+  }
+
   // Streak: count consecutive non-rest active days at the tail of the
   // pattern. The DAILY_PATTERN has the rest day early on, so by today
   // we've got a 12-day run.
   const today = new Date(anchor);
+
+  // Pre-fund coins so the demo profile can immediately try the theme
+  // shop without having to grind. 300 is enough for any single 100 / 200
+  // theme + still have some left.
   await db.profile.update("self", {
     streakDays,
     longestStreak: Math.max(streakDays, activeDays),
     lastReviewDate: isoLocalDate(today),
   });
+  const profile = await db.profile.get("self");
+  if (profile) {
+    await db.profile.update("self", {
+      settings: {
+        ...profile.settings,
+        coins: Math.max(profile.settings.coins ?? 0, 300),
+      },
+    });
+  }
 }
 
 function buildReview(

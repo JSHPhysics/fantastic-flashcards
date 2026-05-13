@@ -13,11 +13,18 @@ import { getLastOnlineSpeechError } from "../tts/online";
 import { Button } from "../components/Button";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { BackupSection } from "../components/BackupSection";
-import { Shop } from "../components/gamification/Shop";
 import { CoinBalance } from "../components/gamification/CoinBalance";
+import { RankUpDialog } from "../components/gamification/RankUpDialog";
+import { useShop } from "../components/Layout";
 import { getTheme } from "../themes/catalogue";
 import { getFont } from "../themes/fonts";
 import { db } from "../db/schema";
+import {
+  awardCoinsForReview,
+  awardDeckCompleteBonus,
+  setCoinBalance,
+} from "../gamification/coins";
+import { RANKS, type RankInfo } from "../gamification/ranks";
 
 export function SettingsPage() {
   return (
@@ -48,7 +55,7 @@ export function SettingsPage() {
 
 function AppearanceSection() {
   const profile = useProfile();
-  const [shopOpen, setShopOpen] = useState(false);
+  const shop = useShop();
   if (!profile) return null;
   const themeId =
     profile.settings.themeId ??
@@ -65,15 +72,15 @@ function AppearanceSection() {
             Look &amp; feel
           </p>
           <p className="mt-1 text-sm text-ink-500 dark:text-ink-300">
-            Currently using {themeName} · {fontName}.
+            Currently using {themeName} · {fontName}. Tap the coin pill at the
+            top of any page to open the shop too.
           </p>
         </div>
         <CoinBalance showRemaining />
       </div>
       <div className="mt-3">
-        <Button onClick={() => setShopOpen(true)}>Open theme &amp; font shop</Button>
+        <Button onClick={shop.open}>Open theme &amp; font shop</Button>
       </div>
-      <Shop open={shopOpen} onClose={() => setShopOpen(false)} />
     </div>
   );
 }
@@ -220,6 +227,13 @@ function StorageInfo() {
   const [mediaBytes, setMediaBytes] = useState<number | null>(null);
   const [quota, setQuota] = useState<StorageEstimate | null>(null);
   const [persistent, setPersistent] = useState<boolean | null>(null);
+  // Tracks the outcome of the most recent persist() call so we can give the
+  // user useful feedback when the browser silently refuses (Safari's
+  // engagement-gated implementation never shows a prompt).
+  const [requestOutcome, setRequestOutcome] = useState<
+    null | "granted" | "denied" | "unsupported"
+  >(null);
+  const [requestBusy, setRequestBusy] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -251,14 +265,27 @@ function StorageInfo() {
   }, []);
 
   const askForPersist = async () => {
-    if (!navigator.storage?.persist) return;
+    if (!navigator.storage?.persist) {
+      setRequestOutcome("unsupported");
+      return;
+    }
+    setRequestBusy(true);
     try {
       const granted = await navigator.storage.persist();
       setPersistent(granted);
+      setRequestOutcome(granted ? "granted" : "denied");
     } catch {
-      // No-op; the indicator just stays where it was.
+      setRequestOutcome("denied");
+    } finally {
+      setRequestBusy(false);
     }
   };
+
+  const isStandalone =
+    typeof window !== "undefined" &&
+    (window.matchMedia("(display-mode: standalone)").matches ||
+      // Safari iOS legacy
+      (navigator as Navigator & { standalone?: boolean }).standalone === true);
 
   return (
     <div className="card-surface p-6 text-sm">
@@ -286,18 +313,41 @@ function StorageInfo() {
         />
       </dl>
       {persistent === false && Boolean(navigator.storage?.persist) && (
-        <p className="mt-2 text-xs text-ink-500 dark:text-ink-300">
-          Add the app to your home screen and use it for a while - most
-          browsers grant persistent storage automatically. Tapping{" "}
+        <div className="mt-2 space-y-1 text-xs text-ink-500 dark:text-ink-300">
+          <p>
+            Safari and Chrome decide this automatically based on how often
+            you open the app. Adding it to the home screen and using it on
+            a couple of separate days usually flips it to Yes.
+          </p>
+          {!isStandalone && (
+            <p>
+              Open from the home-screen icon (not the Safari tab) to give
+              the browser the strongest signal.
+            </p>
+          )}
           <button
             type="button"
             onClick={askForPersist}
+            disabled={requestBusy}
             className="text-navy underline dark:text-gold"
           >
-            request now
-          </button>{" "}
-          asks the browser directly.
-        </p>
+            {requestBusy ? "Asking..." : "Ask now"}
+          </button>
+          {requestOutcome === "granted" && (
+            <p className="text-good">
+              Granted. Your data won't be auto-cleared.
+            </p>
+          )}
+          {requestOutcome === "denied" && (
+            <p>
+              The browser didn't grant it this time. Keep using the app —
+              most browsers grant it after a few sessions, no action needed.
+            </p>
+          )}
+          {requestOutcome === "unsupported" && (
+            <p>This browser doesn't support persistent storage requests.</p>
+          )}
+        </div>
       )}
     </div>
   );
@@ -395,6 +445,8 @@ function DebugPanel() {
 
             <OnlineTtsDiagnostic />
 
+            <GamificationTestbench />
+
             <StorageInspector />
 
             <div className="rounded-xl border border-again/30 bg-again/5 p-3">
@@ -423,6 +475,175 @@ function DebugPanel() {
         confirmLabel="Wipe everything"
         destructive
       />
+    </div>
+  );
+}
+
+// Quick-fire buttons for verifying the gamification flows on a deployed
+// build where the COINMAX / RESETALL / DEBUGMODE codes alone aren't
+// enough. Set a coin balance directly, force a rank-up popup at any
+// tier, reset today's coin bucket, or simulate a card review to test the
+// "+1 / +2 / cap at 25" logic without having to actually drill cards.
+function GamificationTestbench() {
+  const profile = useProfile();
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [forcedRank, setForcedRank] = useState<RankInfo | null>(null);
+  const [coinInput, setCoinInput] = useState("9999");
+  const [pickedRankId, setPickedRankId] = useState<string>("recruit");
+
+  if (!profile) return null;
+
+  const run = async (label: string, fn: () => Promise<string | void>) => {
+    if (busy) return;
+    setBusy(true);
+    setMessage(null);
+    try {
+      const r = await fn();
+      setMessage(typeof r === "string" ? r : `${label} done.`);
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "Failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="rounded-xl border border-ink-100 bg-cream/40 p-3 dark:border-dark-surface dark:bg-dark-bg/40">
+      <p className="text-sm font-medium text-ink-900 dark:text-dark-ink">
+        Gamification testbench
+      </p>
+      <p className="mt-0.5 text-xs text-ink-500 dark:text-ink-300">
+        Quick-fire buttons for verifying the coin economy and rank popup
+        without grinding cards. All actions write to the same profile
+        gamification state as normal review, so behave like the real
+        feature would.
+      </p>
+
+      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+        <div className="rounded-lg border border-ink-100 p-2 dark:border-dark-surface">
+          <p className="text-xs font-medium text-ink-900 dark:text-dark-ink">
+            Coins
+          </p>
+          <p className="mt-0.5 text-xs text-ink-500 dark:text-ink-300">
+            Current: {profile.settings.coins ?? 0}, today's total:{" "}
+            {profile.settings.coinsToday?.total ?? 0}
+          </p>
+          <div className="mt-2 flex flex-wrap gap-1">
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={busy}
+              onClick={() =>
+                run("Award base + first-correct", async () => {
+                  const r = await awardCoinsForReview({
+                    cardId: `debug-${Date.now()}`,
+                    rating: 3,
+                  });
+                  return `Awarded ${r.awarded} coin${r.awarded === 1 ? "" : "s"}. Total today: ${
+                    profile.settings.coinsToday?.total ?? 0
+                  } → balance ${r.balance}${r.reachedCap ? " (cap reached)" : ""}.`;
+                })
+              }
+            >
+              +1 review
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={busy}
+              onClick={() =>
+                run("Award deck-complete", async () => {
+                  const r = await awardDeckCompleteBonus(`debug-deck-${Date.now()}`);
+                  return `Deck-complete bonus: +${r.awarded}, balance ${r.balance}.`;
+                })
+              }
+            >
+              +5 deck-complete
+            </Button>
+          </div>
+          <div className="mt-2 flex flex-wrap items-center gap-1">
+            <input
+              value={coinInput}
+              onChange={(e) => setCoinInput(e.target.value)}
+              inputMode="numeric"
+              className="w-20 rounded-md border border-ink-300 bg-surface px-2 py-1 text-xs text-ink-900 dark:border-dark-surface dark:bg-dark-bg dark:text-dark-ink"
+              autoComplete="off"
+            />
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={busy}
+              onClick={() =>
+                run("Set balance", async () => {
+                  const n = Math.max(0, Number(coinInput) || 0);
+                  await setCoinBalance(n);
+                  return `Balance set to ${n}.`;
+                })
+              }
+            >
+              Set balance
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={busy}
+              onClick={() =>
+                run("Reset today's bucket", async () => {
+                  const p = await db.profile.get("self");
+                  if (!p) return;
+                  await db.profile.update("self", {
+                    settings: { ...p.settings, coinsToday: undefined },
+                  });
+                  return "Today's coin bucket cleared.";
+                })
+              }
+            >
+              Reset today
+            </Button>
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-ink-100 p-2 dark:border-dark-surface">
+          <p className="text-xs font-medium text-ink-900 dark:text-dark-ink">
+            Rank-up popup
+          </p>
+          <p className="mt-0.5 text-xs text-ink-500 dark:text-ink-300">
+            Force the popup at any rank — confetti intensity matches the
+            real flow.
+          </p>
+          <div className="mt-2 flex flex-wrap items-center gap-1">
+            <select
+              value={pickedRankId}
+              onChange={(e) => setPickedRankId(e.target.value)}
+              className="rounded-md border border-ink-300 bg-surface px-2 py-1 text-xs text-ink-900 dark:border-dark-surface dark:bg-dark-bg dark:text-dark-ink"
+            >
+              {RANKS.filter((r) => r.id !== "unranked").map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.icon} {r.label}
+                </option>
+              ))}
+            </select>
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={busy}
+              onClick={() => {
+                const rank = RANKS.find((r) => r.id === pickedRankId);
+                if (rank) setForcedRank(rank);
+              }}
+            >
+              Show popup
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {message && (
+        <p className="mt-2 text-xs text-ink-700 dark:text-ink-300">{message}</p>
+      )}
+
+      <RankUpDialog rank={forcedRank} onClose={() => setForcedRank(null)} />
     </div>
   );
 }
