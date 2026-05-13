@@ -30,6 +30,11 @@ export interface ThemeDefinition {
   // Three colour swatches for the shop preview.
   // Format: hex strings so the swatch JSX doesn't have to compute rgb().
   swatches: [string, string, string];
+  // Optional pairing — applying a theme that names a font will also switch
+  // to that font (provided it's been unlocked). Used by the subject team
+  // themes so picking "CS Terminal" automatically applies Share Tech Mono
+  // and the whole subject identity lands in one tap.
+  pairedFontId?: string;
 }
 
 // "Default" entries map the legacy light/dark themes (no data-theme attr)
@@ -171,6 +176,8 @@ export const PURCHASABLE_THEMES: ThemeDefinition[] = [
   },
 ];
 
+// Subject themes pair with the matching team font — picking a theme also
+// applies the font, so the full subject identity lands in one tap.
 export const SUBJECT_THEMES: ThemeDefinition[] = [
   {
     id: "cs-light",
@@ -179,6 +186,7 @@ export const SUBJECT_THEMES: ThemeDefinition[] = [
     category: "subject",
     cost: 0,
     swatches: ["#F5F5F5", "#1E6E32", "#DC6E1E"],
+    pairedFontId: "share-tech-mono",
   },
   {
     id: "cs-dark",
@@ -187,6 +195,7 @@ export const SUBJECT_THEMES: ThemeDefinition[] = [
     category: "subject",
     cost: 0,
     swatches: ["#080C08", "#50F078", "#F5B450"],
+    pairedFontId: "share-tech-mono",
   },
   {
     id: "chem-light",
@@ -195,6 +204,7 @@ export const SUBJECT_THEMES: ThemeDefinition[] = [
     category: "subject",
     cost: 0,
     swatches: ["#EBF8F5", "#23786E", "#C88C3C"],
+    pairedFontId: "rajdhani",
   },
   {
     id: "chem-dark",
@@ -203,6 +213,7 @@ export const SUBJECT_THEMES: ThemeDefinition[] = [
     category: "subject",
     cost: 0,
     swatches: ["#08120F", "#50DCC3", "#DCA55F"],
+    pairedFontId: "rajdhani",
   },
   {
     id: "bio-light",
@@ -211,6 +222,7 @@ export const SUBJECT_THEMES: ThemeDefinition[] = [
     category: "subject",
     cost: 0,
     swatches: ["#F0F7EA", "#4B8232", "#C89B46"],
+    pairedFontId: "comfortaa",
   },
   {
     id: "bio-dark",
@@ -219,6 +231,7 @@ export const SUBJECT_THEMES: ThemeDefinition[] = [
     category: "subject",
     cost: 0,
     swatches: ["#0E160C", "#91D769", "#E1C36E"],
+    pairedFontId: "comfortaa",
   },
   {
     id: "classics-light",
@@ -227,6 +240,7 @@ export const SUBJECT_THEMES: ThemeDefinition[] = [
     category: "subject",
     cost: 0,
     swatches: ["#FAF0DA", "#824B28", "#BE914B"],
+    pairedFontId: "cinzel",
   },
   {
     id: "classics-dark",
@@ -235,6 +249,7 @@ export const SUBJECT_THEMES: ThemeDefinition[] = [
     category: "subject",
     cost: 0,
     swatches: ["#16100C", "#DCA064", "#F5C382"],
+    pairedFontId: "cinzel",
   },
   {
     id: "physics-notebook",
@@ -243,6 +258,7 @@ export const SUBJECT_THEMES: ThemeDefinition[] = [
     category: "subject",
     cost: 0,
     swatches: ["#F8F4E8", "#1E3C6E", "#BE823C"],
+    pairedFontId: "share-tech-mono",
   },
   {
     id: "physics-oscilloscope",
@@ -251,6 +267,7 @@ export const SUBJECT_THEMES: ThemeDefinition[] = [
     category: "subject",
     cost: 0,
     swatches: ["#041210", "#50F0DC", "#EBC850"],
+    pairedFontId: "share-tech-mono",
   },
   {
     id: "physics-signal",
@@ -259,6 +276,7 @@ export const SUBJECT_THEMES: ThemeDefinition[] = [
     category: "subject",
     cost: 0,
     swatches: ["#080812", "#82AAFF", "#EB915A"],
+    pairedFontId: "share-tech-mono",
   },
 ];
 

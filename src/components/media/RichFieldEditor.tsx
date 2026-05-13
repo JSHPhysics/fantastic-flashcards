@@ -8,6 +8,7 @@ import { SpeakerButton } from "../SpeakerButton";
 import { LanguagePicker } from "../LanguagePicker";
 import { AccentBar } from "../AccentBar";
 import { accentsFor, labelForLanguage } from "../../tts/languages";
+import { noAutoFill } from "../FormField";
 
 interface RichFieldEditorProps {
   value: RichField;
@@ -131,10 +132,7 @@ export function RichFieldEditor({
           placeholder={placeholder}
           autoFocus={autoFocus}
           className={`${commonInputClass} resize-y`}
-          autoComplete="off"
-          autoCorrect="off"
-          autoCapitalize="off"
-          spellCheck={false}
+          {...noAutoFill}
         />
       ) : (
         <input
@@ -148,10 +146,7 @@ export function RichFieldEditor({
           placeholder={placeholder}
           autoFocus={autoFocus}
           className={commonInputClass}
-          autoComplete="off"
-          autoCorrect="off"
-          autoCapitalize="off"
-          spellCheck={false}
+          {...noAutoFill}
         />
       )}
 

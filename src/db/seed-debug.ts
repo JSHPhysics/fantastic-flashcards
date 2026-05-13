@@ -19,7 +19,7 @@ import {
   createTypedCard,
 } from "../cards/service";
 import { newId } from "./ids";
-import type { Card, FsrsState, ReviewEvent, Session, Rating } from "./types";
+import type { FsrsState, ReviewEvent, Session, Rating } from "./types";
 
 export interface SeedDebugResult {
   decksCreated: number;
@@ -236,17 +236,12 @@ export async function seedDebugData(): Promise<SeedDebugResult> {
   cards += await addShowcaseCards(showcase.id);
 
   // ---- Review history + sessions ----
-
-  await seedReviewHistory({
-    french: french.id,
-    spanish: spanish.id,
-    german: german.id,
-    mechanics: mechanics.id,
-    waves: waves.id,
-    electricity: electricity.id,
-    cells: cellsDeck.id,
-    genetics: geneticsDeck.id,
-  });
+  //
+  // Pass the showcase deck id so its cards are EXCLUDED from the review
+  // history + mature-state seeding. The showcase deck is meant to remain
+  // pristine so a stakeholder can see what a fresh card looks like in
+  // every editor.
+  await seedReviewHistory({ excludeDeckId: showcase.id });
 
   return { decksCreated: decks, cardsCreated: cards, alreadySeeded: false };
 }
@@ -577,15 +572,10 @@ async function addShowcaseCards(deckId: string): Promise<number> {
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-interface ReviewSeedDeckIds {
-  french: string;
-  spanish: string;
-  german: string;
-  mechanics: string;
-  waves: string;
-  electricity: string;
-  cells: string;
-  genetics: string;
+interface ReviewSeedConfig {
+  // Cards in this deck (and only this deck) are NOT given any review
+  // history. The showcase deck is excluded so its cards stay fresh.
+  excludeDeckId: string;
 }
 
 // Daily review counts for the last 14 days (oldest -> today). Designed to
@@ -609,14 +599,15 @@ const DAILY_PATTERN: { count: number; mix: Rating[] }[] = [
   { count: 20, mix: [3, 3, 3, 3, 4, 3, 3, 2, 3, 3, 4, 3, 3, 3, 4, 3, 3, 3, 2, 3] }, // today
 ];
 
-async function seedReviewHistory(decks: ReviewSeedDeckIds): Promise<void> {
-  // Pick a stable shortlist of cards from each deck to populate review
-  // history. We don't need *every* card to be reviewed — just enough to
-  // make the deck-stats and global-stats screens come alive.
-  const deckCards = await Promise.all(
-    Object.values(decks).map((id) => db.cards.where("deckId").equals(id).toArray()),
-  );
-  const allCards: Card[] = deckCards.flat();
+async function seedReviewHistory(config: ReviewSeedConfig): Promise<void> {
+  // Grab every card in the demo set minus the showcase deck. The previous
+  // version queried by parent-deck id and missed every sub-deck card,
+  // which is where almost every demo card actually lives — so the mature-
+  // state pass only touched ~10% of cards. Querying flat-everything fixes
+  // the mastery percentage.
+  const allCards = await db.cards
+    .filter((c) => c.deckId !== config.excludeDeckId)
+    .toArray();
   if (allCards.length === 0) return;
 
   const todayAfternoon = new Date();

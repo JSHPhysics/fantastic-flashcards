@@ -14,16 +14,16 @@
     <meta name="referrer" content="no-referrer" />
     <link rel="icon" type="image/svg+xml" href="/fantastic-flashcards/favicon.svg" />
     <!--
-      `interactive-widget=resizes-content` is a Chrome-specific viewport
-      hint (Chrome 108+, Android Chrome) that resizes the layout viewport
-      when the on-screen keyboard is up, instead of just the visual
-      viewport. Combined with `dvh` units in dialogs, that means the
-      keyboard doesn't push modal footers off-screen on Android phones.
-      Other browsers ignore the unknown directive — no-op for iOS / desktop.
+      Default keyboard behaviour (visual viewport shrinks; layout viewport
+      stays full-height). The dialog rewrite uses dvh + flex flow, which
+      handles keyboards on its own without needing the Chrome-specific
+      `interactive-widget=resizes-content` hint. That hint also resizes
+      every fixed-positioned element on Android, which made the bottom
+      tab bar appear to scroll up off-screen — not worth the trade.
     -->
     <meta
       name="viewport"
-      content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
     />
     <meta name="theme-color" content="#1E3A5F" />
     <meta name="apple-mobile-web-app-capable" content="yes" />

@@ -123,17 +123,20 @@ export function Dialog({
         onClick={onClose}
       />
       {/* Positioning layer — flexbox decides where the dialog sits.
-          On phones: bottom-aligned, no padding (sheet feel).
-          On sm+: centred with 16px breathing room. */}
-      <div className="absolute inset-0 flex items-end justify-center sm:items-center sm:p-4">
+          Modal floats with breathing room on every device: 12px gutters
+          + 16px (sm+) bottom inset on phones; 16px around on sm+. The
+          earlier bottom-sheet style touched the screen edge which looked
+          rough on phones, especially next to the bottom tab bar. */}
+      <div className="absolute inset-0 flex items-end justify-center px-3 pb-3 pt-[max(env(safe-area-inset-top),0.75rem)] sm:items-center sm:p-4">
         <div
           ref={dialogRef}
           // Width: full on phones, capped at size's max-width from sm up.
           // Height: capped at 90dvh; body scrolls if content overflows.
-          // Radius: top-only on phones for the bottom-sheet shape, full on sm+.
+          // Rounded all corners since the modal floats above the screen
+          // edge now rather than docking to the bottom.
           // overscroll-contain prevents iOS rubber-band scrolling out of
           // the body section into the page underneath.
-          className={`relative flex w-full max-h-[90dvh] flex-col overflow-hidden bg-surface shadow-xl rounded-t-2xl sm:rounded-2xl dark:bg-dark-surface ${SIZE_CLASS[size]}`}
+          className={`relative flex w-full max-h-[90dvh] flex-col overflow-hidden rounded-2xl bg-surface shadow-xl dark:bg-dark-surface ${SIZE_CLASS[size]}`}
         >
           <header className="flex shrink-0 items-start justify-between gap-4 px-4 pt-4 sm:px-5 sm:pt-5">
             <div className="min-w-0">

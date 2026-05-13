@@ -166,9 +166,20 @@ function ThemeRow({ theme, active }: { theme: ThemeDefinition; active: boolean }
         themeId: undefined,
         themeMode: theme.id === "default-dark" ? "dark" : "light",
       });
-    } else {
-      await updateSettings({ themeId: theme.id });
+      return;
     }
+    // Subject themes carry a paired font (Share Tech Mono for CS / Physics,
+    // Cinzel for Classics, etc). When the user picks a theme that has a
+    // pairedFontId AND that font is unlocked, switch the font at the same
+    // time so the whole subject identity lands together. The user can
+    // still override the font afterwards in the Fonts tab.
+    const fontUnlocked =
+      theme.pairedFontId &&
+      (profile?.settings.unlockedFonts ?? []).includes(theme.pairedFontId);
+    await updateSettings({
+      themeId: theme.id,
+      ...(fontUnlocked ? { fontId: theme.pairedFontId } : {}),
+    });
   };
 
   const handleClick = async () => {

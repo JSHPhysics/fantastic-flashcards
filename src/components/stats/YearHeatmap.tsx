@@ -1,6 +1,14 @@
 // GitHub-style heatmap of review counts across the last 53 weeks. Pure SVG.
 // Intensity is 0-4: 0 (no reviews), 1-4 (busier).
+//
+// Sizing is adaptive: a ResizeObserver measures the container and picks a
+// cell size that fits the full 53 weeks without horizontal scrolling. On
+// a narrow phone (~360px container) cells end up around 6-7px; on iPad
+// portrait around 12px; on iPad landscape / desktop the full 16px target
+// size. Anything below the floor (~5px) and we fall back to horizontal
+// scroll with bigger cells — at that point readability needs the scroll.
 
+import { useEffect, useRef, useState } from "react";
 import type { YearHeatmap } from "../../study/statsAggregator";
 
 interface YearHeatmapProps {
@@ -28,27 +36,59 @@ const INTENSITY_FILL = [
   "rgba(30,58,95,0.92)", // 4
 ];
 
+const MAX_CELL = 16;
+const MIN_CELL_FOR_FIT = 6;
+const GAP_RATIO = 0.2; // gap = round(cell * GAP_RATIO) — keeps proportions tidy
+const LABEL_HEIGHT = 14;
+const ROW_LABEL_WIDTH = 26;
+
+// Choose the largest cell size (capped at MAX_CELL) such that the entire
+// heatmap fits within the container width. Below MIN_CELL_FOR_FIT we stop
+// shrinking and let the chart scroll horizontally instead.
+function pickCellSize(containerWidth: number, cols: number): number {
+  if (containerWidth <= 0) return MAX_CELL;
+  // Solve: rowLabel + cols * (cell + gap) <= width
+  // gap = round(cell * GAP_RATIO) ≈ cell * 0.2
+  // So: cell ≈ (width - rowLabel) / (cols * 1.2)
+  const fitCell = Math.floor((containerWidth - ROW_LABEL_WIDTH) / (cols * (1 + GAP_RATIO)));
+  return Math.max(MIN_CELL_FOR_FIT, Math.min(MAX_CELL, fitCell));
+}
+
 export function YearHeatmap({ data, onSelectDay }: YearHeatmapProps) {
-  // 16px cells with 3px gaps render at a proper finger tap target on iPad
-  // (visible square ~16px wide instead of the ~8px we got at viewBox-scaled
-  // 12px). The chart scrolls horizontally if it overflows; that's preferable
-  // to micro-cells nobody can hit accurately.
-  const cell = 16;
-  const gap = 3;
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
+
+  // Watch the wrapper width so the heatmap re-sizes when the parent
+  // changes (orientation flip, dialog open/close, theme drawer, etc.).
+  useEffect(() => {
+    const el = wrapperRef.current;
+    if (!el) return;
+    const update = () => setContainerWidth(el.clientWidth);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   const cols = data.weeksShown;
+  const cell = pickCellSize(containerWidth, cols);
+  const gap = Math.max(1, Math.round(cell * GAP_RATIO));
   const monthLabels = computeMonthLabels(data);
 
-  const labelHeight = 14;
-  const rowLabelWidth = 26;
-  const width = rowLabelWidth + cols * (cell + gap);
-  const height = labelHeight + 7 * (cell + gap);
+  const width = ROW_LABEL_WIDTH + cols * (cell + gap);
+  const height = LABEL_HEIGHT + 7 * (cell + gap);
+
+  // If even at MIN_CELL_FOR_FIT the chart still doesn't fit, we allow
+  // horizontal scroll rather than further shrinking. In practice this
+  // only triggers on narrow phones.
+  const needsHScroll = width > containerWidth && containerWidth > 0;
 
   return (
-    <div className="w-full overflow-x-auto">
+    <div
+      ref={wrapperRef}
+      className={`w-full ${needsHScroll ? "overflow-x-auto" : ""}`}
+    >
       <svg
-        // Native pixel sizing — no viewBox scaling — so each cell renders at
-        // its full px width regardless of how wide the container is. The
-        // outer div handles horizontal scroll on narrow viewports.
         width={width}
         height={height}
         className="block"
@@ -59,7 +99,7 @@ export function YearHeatmap({ data, onSelectDay }: YearHeatmapProps) {
         {monthLabels.map((m) => (
           <text
             key={m.col}
-            x={rowLabelWidth + m.col * (cell + gap)}
+            x={ROW_LABEL_WIDTH + m.col * (cell + gap)}
             y={10}
             className="fill-current opacity-70"
             style={{ fontSize: 10 }}
@@ -72,8 +112,8 @@ export function YearHeatmap({ data, onSelectDay }: YearHeatmapProps) {
         {[1, 3, 5].map((row) => (
           <text
             key={row}
-            x={rowLabelWidth - 4}
-            y={labelHeight + row * (cell + gap) + cell - 2}
+            x={ROW_LABEL_WIDTH - 4}
+            y={LABEL_HEIGHT + row * (cell + gap) + cell - 2}
             textAnchor="end"
             className="fill-current opacity-70"
             style={{ fontSize: 9 }}
@@ -86,8 +126,8 @@ export function YearHeatmap({ data, onSelectDay }: YearHeatmapProps) {
         {data.grid.map((row, rowIdx) =>
           row.map((cellData, colIdx) => {
             if (!cellData) return null;
-            const x = rowLabelWidth + colIdx * (cell + gap);
-            const y = labelHeight + rowIdx * (cell + gap);
+            const x = ROW_LABEL_WIDTH + colIdx * (cell + gap);
+            const y = LABEL_HEIGHT + rowIdx * (cell + gap);
             const intensity = intensityFor(cellData.count, data.maxCount);
             const clickable = onSelectDay && cellData.count > 0;
             return (

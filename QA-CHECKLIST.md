@@ -29,50 +29,55 @@ Each item links back to the round-1 note that prompted it.
 ### Layout + modals
 - [ ] **Modal goes off the bottom in iPad landscape with keyboard up** (s.2, s.13). CreateDeck / RenameDeck / Move dialogs should stay on-screen; header + footer pin, body scrolls. Heights use `dvh` so the iOS keyboard shrinks the dialog instead of pushing the footer down.
 - [x] **Tree expansion persists across reloads** (s.2). Collapse a few decks, reload — same nodes stay collapsed.
-- [ ] **Bottom-most deck's actions menu opens upward** (s.2). The three-dots menu now flips above the button when there's no room below.
+- [x] **Bottom-most deck's actions menu opens upward** (s.2). The three-dots menu now flips above the button when there's no room below.
 - [ ] **iOS autofill bar suppressed** (s.2 / s.13). White password-manager strip should NOT appear when tapping deck names, card text, cloze text, MCQ options, tags input, or Quizlet paste box.
 
 NOTES
-Modal still touches the bottom of screen, no clearance space like at the top, looks unprofessional with zero clearance space at bottom.
-
+- Modal still touches the bottom of screen, no clearance space like at the top, looks unprofessional with zero clearance space at bottom.
+- I can now edit the bottom most deck, however, when I scroll down the footer bar on the page scrolls up leaving a blank section on the screen. The footer banner should hold its position at the bottom of the page always, like the header does.
+- Unfortunately the password-manager strip does still appear when tapping editor front on basic, tags, back.  In fact, any textbox.
+- In phone interface on android, the modal for wipe everything still appears in the wrong location and too large.
 ### Drawing card
-- [ ] **Drawing card review has a working canvas** (s.7 / s.8). Pen, eraser, four colours, clear button.
-- [ ] **Reveal modes work**: overlay = model on top of your strokes, side-by-side = mirror view, toggle = swap button.
-- [ ] Self-rate after reveal → drawing discarded → next card.
+- [x] **Drawing card review has a working canvas** (s.7 / s.8). Pen, eraser, four colours, clear button.
+- [x] **Reveal modes work**: overlay = model on top of your strokes, side-by-side = mirror view, toggle = swap button.
+- [x] Self-rate after reveal → drawing discarded → next card.
 
 ### Occlusion
-- [ ] **Ellipse drag-to-draw grows from the touch-down point** (s.6). Previously it collapsed back to centre.
+- [x] **Ellipse drag-to-draw grows from the touch-down point** (s.6). Previously it collapsed back to centre.
 
 ### Stats
-- [ ] **Heatmap cells big enough to tap on iPad** (s.10). Now 16×16 native pixels with 3px gaps.
-- [ ] **Day drill-down shows deck names and top tag counts** (s.10).
-- [ ] **Rank card is tappable** (s.10) — opens the rank ladder dialog showing every tier, your current rank highlighted, and "x% to next rank".
-- [ ] **Demo data now produces a real rank** (s.10). The seed marks ~40% of cards mature so overall mastery lands in the Practitioner / Expert band.
-
+- [x] **Heatmap cells big enough to tap on iPad** (s.10). Now 16×16 native pixels with 3px gaps.
+- [x] **Day drill-down shows deck names and top tag counts** (s.10).
+- [x] **Rank card is tappable** (s.10) — opens the rank ladder dialog showing every tier, your current rank highlighted, and "x% to next rank".
+- [x] **Demo data now produces a real rank** (s.10). The seed marks ~40% of cards mature so overall mastery lands in the Practitioner / Expert band.
+NOTES
+- Cells are big enough but they now feature scroll sideways, not ideal. Is there a layout where maxwidth is portrait screenwidth (with margins) but the squares are still big enough for tapping sensibly?
+- Seed only marks 11% as mature, but thats enough to test
 ### TTS
-- [ ] **Google online voices on by default** (s.5). New profiles + the seed both start with `useOnlineVoices: true`. Existing profiles keep whatever they had.
+- [x] **Google online voices on by default** (s.5). New profiles + the seed both start with `useOnlineVoices: true`. Existing profiles keep whatever they had.
 
 ### Custom Study
-- [ ] **Update spaced repetition defaults to on** (s.9). Toggle still there for "practice only" mode.
-- [ ] **Session summary says whether the schedule was updated** (s.9). Look for the chip below "Session complete": green check "Schedule updated…" or "Practice only — your schedule wasn't changed".
+- [x] **Update spaced repetition defaults to on** (s.9). Toggle still there for "practice only" mode.
+- [x] **Session summary says whether the schedule was updated** (s.9). Look for the chip below "Session complete": green check "Schedule updated…" or "Practice only — your schedule wasn't changed".
 
 ### Gamification
-- [ ] **Demo profile starts with 300 coins and ~Practitioner-ish rank** (s.10 / s.11).
-- [ ] **Coin pill in the top-bar opens the shop from any page** (s.17). Available on home, deck detail, card editor, stats, settings — anywhere except inside an active study session.
-- [ ] **Theme switching from the shop applies immediately**.
-- [ ] **Paid theme purchase with enough coins succeeds** (s.11). Try Ocean (100🪙) on the demo profile.
-- [ ] **COINMAX code works when Debug mode is on** (s.11). Turn on Settings → Debug → "Enable debug mode", then Codes → `COINMAX` → balance → 9999.
-- [ ] **Debug → Gamification testbench buttons all work** (s.11): `+1 review`, `+5 deck-complete`, "Set balance" input, "Reset today", "Show popup" at any rank.
-
+- [x] **Demo profile starts with 300 coins and ~Practitioner-ish rank** (s.10 / s.11).
+- [x] **Coin pill in the top-bar opens the shop from any page** (s.17). Available on home, deck detail, card editor, stats, settings — anywhere except inside an active study session.
+- [x] **Theme switching from the shop applies immediately**.
+- [x] **Paid theme purchase with enough coins succeeds** (s.11). Try Ocean (100🪙) on the demo profile.
+- [x] **COINMAX code works when Debug mode is on** (s.11). Turn on Settings → Debug → "Enable debug mode", then Codes → `COINMAX` → balance → 9999.
+- [x] **Debug → Gamification testbench buttons all work** (s.11): `+1 review`, `+5 deck-complete`, "Set balance" input, "Reset today", "Show popup" at any rank.
+Starting rank on demo set appears to be Recruit, not Practitioner.
+- When setting a theme it should override a previous font settings, and vice-versa if a font is set. Whichever is set last should take priority.
 ### Storage / persistence
-- [ ] **Storage inspector visible in Debug panel** (s.4). Row counts for every Dexie table; "Orphaned media" reads 0 after the GC sweep on next launch.
-- [ ] **"Ask now" persistent storage button gives clearer feedback** (s.15). Now shows granted / denied / unsupported, plus a hint to launch from the home-screen icon for the strongest engagement signal.
+- [x] **Storage inspector visible in Debug panel** (s.4). Row counts for every Dexie table; "Orphaned media" reads 0 after the GC sweep on next launch.
+- [x] **"Ask now" persistent storage button gives clearer feedback** (s.15). Now shows granted / denied / unsupported, plus a hint to launch from the home-screen icon for the strongest engagement signal.
 
 ### Backup
-- [ ] **Import picker is slightly more filtered on iPad** (s.14). Still not perfect — iPadOS Files often ignores `.flashcards` — but `.zip` and the zip MIME types are now in the accept list, and an on-screen hint tells the user to look for "flashcards-…".
+- [x] **Import picker is slightly more filtered on iPad** (s.14). Still not perfect — iPadOS Files often ignores `.flashcards` — but `.zip` and the zip MIME types are now in the accept list, and an on-screen hint tells the user to look for "flashcards-…".
 
 ### Themes
-- [ ] **Physics now has a light variant** (s.11 note 1). "Physics Notebook Light" should appear in the Subject group after redeeming `TEAMPHYSICS`, alongside the renamed "Physics Oscilloscope Dark" and "Physics Signal Dark".
+- [x] **Physics now has a light variant** (s.11 note 1). "Physics Notebook Light" should appear in the Subject group after redeeming `TEAMPHYSICS`, alongside the renamed "Physics Oscilloscope Dark" and "Physics Signal Dark".
 
 ### Notes
 - Anything you find on retest that I missed:
@@ -123,7 +128,7 @@ All ticked. No notes.
 - [x] Record audio
 - [x] Save + reload media
 - [x] Accent pills
-- [ ] **refCount cleanup verification** — Storage Inspector now in Debug panel; check "Orphaned media: 0" after delete + reload.
+- [x] **refCount cleanup verification** — Storage Inspector now in Debug panel; check "Orphaned media: 0" after delete + reload.
 
 ### 5. TTS pronunciation
 All ticked. **Online voices on by default now.**
@@ -143,10 +148,10 @@ Round-1 notes:
 
 ### 7. Drawing card
 
-- [ ] Pressure at pointerdown — per-spec v1, **per-point pressure deferred**.
+- [x] Pressure at pointerdown — per-spec v1, **per-point pressure deferred**.
 - [x] Eraser feel
 - [x] Palm rejection
-- [ ] **Review prompt + canvas + reveal modes** — now shipped. Retest in Round 2.
+- [x] **Review prompt + canvas + reveal modes** — now shipped. Retest in Round 2.
 - [ ] **Self-rate + discard** — retest in Round 2.
 
 Round-1 notes:
@@ -172,9 +177,9 @@ Round-1 notes:
 ### 9. Custom study
 
 - [x] Build session
-- [ ] **Update FSRS off → state unchanged** — retest with the new "Practice only" chip on SessionSummary.
-- [ ] **Update FSRS on → state updates** — retest with the new "Schedule updated" chip.
-- [ ] Max-cards respected.
+- [x] **Update FSRS off → state unchanged** — retest with the new "Practice only" chip on SessionSummary.
+- [x] **Update FSRS on → state updates** — retest with the new "Schedule updated" chip.
+- [x] Max-cards respected.
 
 Round-1 notes:
 - FSRS-updated visibility → **fixed** (SessionSummary chip).
@@ -235,7 +240,7 @@ All ticked. No notes.
 Round-1 notes:
 - Modals off bottom in both orientations → **fixed** (dvh, sticky footer).
 - iPhone not available.
-
+- 
 ### 14. Backup round-trip
 All ticked.
 
