@@ -1,24 +1,35 @@
 # Session log
 
-Tracks build-plan progress so any device (or any fresh Claude Code session) can
-pick up without context. Keep entries terse; commit messages hold the detail.
+The single-file resumption brief. Clone the repo, read this file, and
+you're caught up — current status, how to run the app, what's done,
+what's next.
+
+Commit messages hold the line-level detail. This file holds the
+narrative.
 
 ---
 
 ## Status
 
-**Last completed:** Gamification layer — coins (per-card, +1 first-correct, +5 deck-complete, 25/day cap), ranks (10 bands, confetti rank-up dialog), theme system (6 free + 8 paid + 10 subject themes via CSS variables), font system (13 fonts via Google Fonts), unlock codes (TH/FN/TEAM/master/staff/debug), shop UI in Settings. Plus deck-level baseLanguage auto-TTS redirect, layout polish, brighter checkboxes, beefed-up demo seed.
-**Next up:** Session 15 — Accessibility + iPad QA + final polish
-**Stopping discipline (new):** After each session, do a rigorous code review
-before moving on. Fix bugs found during the review in a follow-up commit. Don't
-build on bad code.
+**Where v1 stands:** every session in the original build plan is shipped
+(sessions 1–14). The gamification layer (coins, ranks, themes, fonts,
+unlock codes, shop) landed on top of that. Three rounds of iPad QA
+have run; pass-1 and pass-2 fixes are in production. Live at
+https://jshphysics.github.io/fantastic-flashcards/.
 
-**Deploy is live (Session 16 work front-loaded):**
-https://jshphysics.github.io/fantastic-flashcards/ — `.github/workflows/deploy.yml`
-builds on push to `main` and deploys via the official GitHub Pages actions.
-First-time setup the repo owner must do (one-time): GitHub repo →
-Settings → Pages → "Build and deployment" → Source = **GitHub Actions**
-(not "Deploy from a branch"). After that, every push to main redeploys.
+**What's left for a v1.0.0 tag:**
+
+1. Round 3 retest on real devices (iPad + Android phone). See
+   `QA-CHECKLIST.md` for the live retest list.
+2. Accessibility pass (untested at all — Round 3 includes a checklist).
+3. README polish for end-user audience (this commit ships a first cut).
+4. Tag v1.0.0 once Round 3 is clean.
+
+Deferred polish (drawing canvas Apple Pencil refinements, document-
+photo crop / straighten, etc.) is logged in `QA-CHECKLIST.md` under
+"Deferred". None is blocking the v1 release.
+
+---
 
 ## Resume on a new machine
 
@@ -26,12 +37,14 @@ Settings → Pages → "Build and deployment" → Source = **GitHub Actions**
 git clone https://github.com/JSHPhysics/fantastic-flashcards.git
 cd fantastic-flashcards
 npm install
-npm run dev       # http://localhost:5173/fantastic-flashcards/ (or 5174 etc.)
+npm run dev       # http://localhost:5173/fantastic-flashcards/
 ```
 
-`npm run dev` serves the app with seeded data (2 decks x 5 cards, dev-only). To
-reset the local IndexedDB during dev, open DevTools and run `window.__wipeDev()`;
-to re-seed, `window.__seedDev()`.
+`npm run dev` serves the app with seeded dev data (2 decks × 5 cards).
+To reset the local IndexedDB during dev, open DevTools and run
+`window.__wipeDev()`; to re-seed, `window.__seedDev()`. The
+`?reset-app=1` URL parameter also wipes everything and works in any
+browser, dev or prod.
 
 Build / typecheck / lint must stay green before each commit:
 
@@ -41,121 +54,161 @@ npm run lint
 npm run build
 ```
 
-## Build-plan progress
+Deploy is automatic: `.github/workflows/deploy.yml` builds on every
+push to `main` and ships via GitHub Pages Actions. One-time repo
+setup (already done): Settings → Pages → Source = **GitHub Actions**.
 
-| Session | Title                                          | Status        | Commit    |
-|---------|------------------------------------------------|---------------|-----------|
-| 1       | Scaffold + design system + routing + PWA       | Done          | `b250a8d` |
-| 2       | Dexie data layer + repositories + version cnt  | Done          | `2b49d5c` |
-| 3       | Deck management with sub-decks                 | Done          | `da8eb48` |
-| 4       | Card editor: Basic, Cloze, MCQ, Typed          | Done          | `f1fa428` |
-| 5       | Frozen fields + bulk authoring                 | Done          | `e39836b` |
-| 6       | Media pipeline (images + audio)                | Done          | `6f96042`, `55c6368` (review fixes) |
-| 7       | TTS pronunciation                              | Done          | `0c4610a` |
-| 8       | Image occlusion                                | Done (polygon + groups + labels deferred) | (this push) |
-| 9       | Drawing card type                              | Done (pressure-sensitive width is base only for now) | (this push) |
-| 10      | FSRS scheduler + standard review               | Done          | (this push) |
-| 11      | Custom Study mode                              | Done          | (this push) |
-| 12      | Stats + history + graphs                       | Done (share-to-PNG deferred to Session 14 polish) | (this push) |
-| 13      | Backup export / import                         | Done          | (this push) |
-| 14      | PWA polish + install flow + offline            | Done (share-to-PNG still deferred to Session 15) | (this push) |
-| 15      | Accessibility + iPad QA + final polish         | Pending       | -         |
-| 16      | Deploy to GitHub Pages + README                | Partial (deploy front-loaded; README still pending) | -         |
+---
 
-## Bugs caught in review and what they tell us
+## Repo documents at a glance
 
-These are kept here as a reminder of what kinds of failures the code base
-tends to ship. Future reviews should look for the same patterns.
+| File | What it is | When to read |
+|---|---|---|
+| `README.md` | End-user / contributor front door | First, if you're new |
+| `SESSION-LOG.md` | This file — current state + next steps | When resuming on a new machine |
+| `QA-CHECKLIST.md` | Live retest items + deferred polish | Before a QA pass |
+| `FantasticFlashcards-Playbook.md` | Full spec: data model, design system, every feature's contract | When designing or reviewing code |
+| `FantasticFlashcards-BuildPlan.md` | Original 16-session brief (historical; v1 sessions complete) | For context on architectural decisions |
+| `DESIGN-DECISIONS.md` | Rejected ideas with rationale | Before re-proposing a feature shape we've already discussed |
 
-- **Session 6 — storeMedia refCount leak.** `storeMedia` was inserting new
-  rows with `refCount = 1` AND incrementing on existing rows, while
-  `createCard` also called `retainMedia`. Every save permanently double-
-  counted, and the GC sweep could never reclaim. Lesson: when two layers
-  both touch refcount, exactly one owns it. Cards own refcount now.
-- **Session 6 — audio safety-timer race.** The MediaRecorder "stop" event
-  listener was registered lazily inside `stopAndCleanup()`. If the 15s
-  safety timer fired first, the event dispatched with no listener, and the
-  eventual user stop() awaited an event that would never fire again ->
-  promise hangs forever. Lesson: register lifecycle event listeners at
-  construction, not at "stop" time. Use a shared resolved promise.
-- **Session 6 — preview gap.** McqPreview / TypedPreview only rendered
-  text, not images / audio that were authored on the question / prompt
-  RichField. Lesson: when widening a draft shape, check every consumer.
-  Now there's a shared `RichFieldRender` helper, so future RichField
-  consumers get the same render for free.
+---
 
-## Verification still needed (manual / on-device)
+## What's next
 
-Items deferred to real-device QA:
+In priority order:
 
-- Session 3 deliverable: 3-level deck tree creation, move semantics, depth
-  warning at level 5, reload persistence.
-- Session 6 deliverable: image add (compresses to WebP, persists), audio
-  record (15s cap, mic permissions, countdown), refCount sanity after
-  card delete + reload.
-- Session 7 deliverable: TTS quality on iPad with Enhanced French voice
-  downloaded. Speaker icon plays the word; auto-speak hooks fire (Session
-  10 will exercise these in the review session).
-- Session 8 deliverable: import an image, draw a few rectangle / ellipse
-  masks, save. Verify on iPad touch (drag-to-draw, drag-to-move,
-  Transformer resize handles), Apple Pencil drawing, "Done drawing"
-  letting the page scroll past the canvas. Polygon, group, and label
-  tools were deferred from v1.
-- Session 9 deliverable: real Apple Pencil + iPad - drawing
-  responsiveness, pressure registering through PointerEvent.pressure,
-  eraser feel. Pressure currently sets a one-time width per stroke
-  using the pressure at pointerdown; per-point pressure variation
-  along the stroke (sceneFunc approach) is future polish.
+### 1. Round 3 QA + accessibility pass
 
-## Deferred (caught during iPad QA, logged for a later pass)
+`QA-CHECKLIST.md` carries the live retest list. Cover:
+- Modals across Android phone, iPhone, iPad portrait + landscape,
+  desktop. Wipe-all dialog on Android specifically.
+- Demo seed rank lands at Practitioner (~38% mature). Coin balance 300
+  out of the box.
+- Heatmap fits iPad portrait width without horizontal scroll.
+- Subject-theme + paired-font auto-application (TEAMCS → Share Tech
+  Mono, etc.).
+- Service-worker recovery: `?reset-app=1` URL, 8-second watchdog,
+  recovery panel.
+- Accessibility (tab order, focus rings, ARIA labels, contrast in
+  every premium theme).
 
-Real-device QA on 2026-05-12 surfaced these. None are blocking v1; all
-are quality-of-life wins on the drawing + occlusion canvases.
+### 2. Persistent storage on real device
 
-- **Apple Pencil pressure variation along a stroke.** Currently we sample
-  pressure at pointerdown and use it for the whole stroke. Smooth variation
-  needs the Konva sceneFunc approach to draw per-point thickness.
-- **Eraser hit reticule.** A circle indicator under the pencil showing
-  which area would be erased. Helps confidence on dense diagrams.
-- **Drawing-card background take-photo preview black on iPad.** The camera
-  preview renders black for the drawing-card background image picker
-  specifically (the basic-card paste/upload flow shows the preview fine).
-  Capture works — the photo lands correctly — but the user can't see
-  what they're framing.
-- **Microsoft Lens-style image crop / straighten.** Document-mode crops
-  the frame but doesn't auto-detect paper edges, deskew, or straighten.
-  Worth investigating opencv.js or a simpler edge-detector.
-- **Occlusion canvas scroll on tall images.** Selecting a mask on a large
-  image requires scrolling past the canvas first; the mask list at the
-  bottom is hard to reach without losing canvas position.
-- **Occlusion touch-and-hold ellipse mode.** Touch + hold scales an ellipse
-  out from the touch point — easier than drag-to-corner on a touch screen.
-- **Drawing-canvas accidental select-all on pencil tap.** Tapping on the
-  drawing area sometimes triggers a select-all gesture instead of placing
-  a stroke. Needs investigation — likely a Konva touch-action or stage
-  draggable interaction.
-- **"Clear all" tap registers as select with Apple Pencil.** The button
-  inside the drawing toolbar sometimes intercepts as a selection.
+Open in Safari → install to home screen → use for two or three days
+across separate sessions → check Settings → Storage → "Persistent:
+Yes". This is engagement-gated by the browser; can't be forced.
+
+### 3. README polish round
+
+The first cut shipped in this commit covers the basics. A second pass
+should add:
+- Screenshots of each major flow (home, study, stats, shop)
+- Step-by-step "Add to home screen" walkthroughs for iOS Safari +
+  Android Chrome with images
+- A "What's the data story?" section linking to the Playbook's
+  Privacy section
+
+### 4. v1.0.0 tag + CHANGELOG
+
+Once Round 3 passes:
+```
+git tag v1.0.0
+git push --tags
+```
+
+`CHANGELOG.md` from v1.0.0 onwards documenting what shipped in each
+release. The 25+ commits to date can be collapsed under a single
+"Initial release" heading.
+
+### 5. Deferred polish items
+
+Logged in `QA-CHECKLIST.md` under "Deferred". Pull from this list
+post-v1 as time + device access allow. Highlights:
+- Apple Pencil per-point pressure variation (`sceneFunc` approach)
+- Document-photo crop / straighten / deskew
+- Eraser hit reticule
+- Drawing-card take-photo preview black on iPad
+
+---
 
 ## Standing rules
 
-**Plain-English user copy** (Playbook section 11 "Voice and copy"). Every user-visible string is read by a student, not a developer. Avoid implementation jargon (chip, propagate, cascade, sibling, endpoint, idempotent, refcount), coding terms (kebab-case, schema), and internal scheduling (Session N). Describe results, not mechanisms. The Playbook has a swap table of patterns to match.
+**Plain-English user copy** (Playbook section 11 "Voice and copy").
+Every user-visible string is read by a student, not a developer. Avoid
+implementation jargon (chip, propagate, cascade, sibling, endpoint,
+idempotent, refcount), coding terms (kebab-case, schema), and internal
+scheduling (Session N). Describe results, not mechanisms. The Playbook
+has a swap table of patterns to match.
 
-**Rejected ideas live in `DESIGN-DECISIONS.md`.** Before re-suggesting a refactor or feature shape, skim that file. If the trade-off has changed (e.g. data scale, new requirement), update the existing entry rather than starting over.
+**Rejected ideas live in `DESIGN-DECISIONS.md`.** Before re-suggesting
+a refactor or feature shape, skim that file. If the trade-off has
+changed (e.g. data scale, new requirement), update the existing entry
+rather than starting over.
 
-## Open notes for the next session
+**Code review after each session.** Don't build on bad code. A
+rigorous self-review pass before moving on caught real bugs in
+Session 6 (storeMedia refCount leak, audio safety-timer race, MCQ
+preview gap) that would have shipped otherwise. Same discipline going
+forward.
 
-- `package.json` still flags 3 moderate npm audit warnings on transitive
-  deps; review at Session 14.
-- Bundle currently 393 KB raw / 124 KB gzipped. Konva (Sessions 8-9) is
-  the next big add and **must be lazy-loaded** per the playbook so the
-  Konva chunk only loads when an occlusion or drawing route is visited.
-- `src/srs/state.ts` wraps ts-fsrs with `initFsrsState()`. Session 10
-  builds the full scheduler around this.
-- All Dexie usage is confined to `src/db/`. Components must import from
-  `../db` (or `@/db`), not from `dexie` directly.
-- Cards own all media refcounts via createCard / updateCard / deleteCard /
-  bulkCopyCardsToDeck / (deck) deleteDeck. `storeMedia` is idempotent and
-  never touches refCount.
-- The 14 react-refresh "only-export-components" warnings are dev-time only
-  (fast-refresh boundary heuristics); they don't affect production.
+---
+
+## Architectural invariants worth knowing
+
+These are stable design rules current code relies on. Breaking them
+without justification will cause subtle bugs.
+
+- **Cards own all media refcounts.** `createCard` / `updateCard` /
+  `deleteCard` / `bulkCopyCardsToDeck` / (deck) `deleteDeck` retain
+  and release media. `storeMedia` is idempotent and never touches
+  refCount. The sweep on profile load reclaims orphans.
+- **Dexie usage is confined to `src/db/`.** Components import from
+  `../db` (or `@/db`), not from `dexie` directly. Same for the new
+  gamification modules — DB access goes through repositories.
+- **Konva is lazy-loaded.** Occlusion editor, drawing editor, and the
+  drawing-card review canvas are all dynamic-imported so the ~290 KB
+  Konva chunk only loads on routes that need it.
+- **Theme colours are CSS variables.** Tailwind tokens (`bg-cream`,
+  `text-navy/30`, etc.) resolve to `rgb(var(--color-X) / alpha)`. Any
+  theme can override the palette without touching utility classes.
+  See `src/index.css` for the variable definitions.
+- **Gamification state lives in `ProfileSettings`.** Coins, unlocked
+  themes/fonts, redeemed codes, today's coin bucket, last known rank
+  — all on `profile.settings`. The backup file round-trips the full
+  profile, so gamification state survives backup/restore for free.
+- **The 17 `react-refresh/only-export-components` warnings** are
+  dev-time only (fast-refresh boundary heuristics). They don't affect
+  production. Ignore unless a real lint error appears.
+
+---
+
+## Bug-pattern reminders
+
+Kept as a record of failure modes this codebase tends to ship. Future
+reviews should look for the same patterns.
+
+- **Two layers touching one piece of state.** Session 6's media-refcount
+  leak: `storeMedia` and `createCard` both bumped the refcount. Rule:
+  exactly one owner per piece of state.
+- **Lifecycle event listeners registered lazily.** Session 6's audio
+  safety-timer race: the "stop" listener was attached only when
+  `stopAndCleanup()` was called. If a safety timer fired first, the
+  event went nowhere and the eventual user stop awaited forever.
+  Register lifecycle listeners at construction.
+- **Widening a draft shape without checking every consumer.** Session 6
+  again: when RichField gained images + audio, the MCQ and Typed
+  previews didn't render them. Now there's a shared `RichFieldRender`
+  helper so new consumers get the same render for free.
+- **`position: fixed` inside a `flex` parent.** The original Dialog had
+  this — the parent's alignment classes did nothing because fixed
+  children leave flex flow, and positioning fell through to brittle
+  per-variant top/inset math that diverged across browsers. Rewrite
+  used flex flow throughout.
+- **Stable indexing in seed lookups.** The first version of the
+  mature-cards seed pass queried by parent-deck id, but cards live in
+  sub-decks — the parent decks had zero cards. Sub-deck lookup or
+  flat-everything queries are the safe defaults.
+- **`interactive-widget=resizes-content` on Android.** Dragged the
+  bottom tab bar up with the keyboard. The `dvh` units already handle
+  modal sizing without needing the viewport hint — net cost,
+  reverted.

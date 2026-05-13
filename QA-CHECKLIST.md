@@ -1,283 +1,115 @@
-# QA checklist — round 2
+# QA checklist — live items
 
-Round 1 (sections 1–17 below) was the full walkthrough you did on iPad.
-Most of what you flagged is now fixed; the new **Round 2** section at
-the top is a re-test list for those fixes only. The round-1 sections
-stay below as a record of what was tested and what was found.
+Round 1 (full iPad walkthrough) and Round 2 (retest after pass-1 fixes)
+are archived in git history (`git log -- QA-CHECKLIST.md`). What follows
+is what's actually open right now.
 
 Live URL: https://jshphysics.github.io/fantastic-flashcards/. Hard-refresh
-the first time you open it after a new deploy.
+the first time you open it after a deploy — the service worker can hold
+an older build.
 
 **Useful shortcuts**
 
-- Settings → Debug mode → "Generate sample decks". The demo set now
+- Settings → Debug mode → "Generate sample decks". The demo set
   pre-funds 300 coins and marks ~40% of cards as mature so the rank
-  card has something to show.
+  card lands somewhere real (Practitioner band).
 - Settings → Debug → **Gamification testbench**: directly award coins,
   set a balance, reset today's bucket, or force the rank-up popup at
   any tier. Avoids having to grind cards.
-- Codes tab: `LEHS2025` unlocks all themes + fonts. `COINMAX` works now
-  whenever Debug mode is on (previously dev builds only).
+- Codes tab: `LEHS2025` unlocks all themes + fonts. `COINMAX` works
+  whenever Debug mode is on.
 - Coin pill in the top-bar opens the shop from any page.
+- **Recovery URL**: `…/fantastic-flashcards/?reset-app=1` wipes service
+  workers, caches, IndexedDB, and localStorage. Use if the app is stuck
+  on a gray page or a broken cached build.
 
 ---
 
-## Round 2 — retest only the fixes from round 1
-
-Each item links back to the round-1 note that prompted it.
+## Round 3 retest — pending pass-2 / pass-3 fixes
 
 ### Layout + modals
-- [ ] **Modal goes off the bottom in iPad landscape with keyboard up** (s.2, s.13). CreateDeck / RenameDeck / Move dialogs should stay on-screen; header + footer pin, body scrolls. Heights use `dvh` so the iOS keyboard shrinks the dialog instead of pushing the footer down.
-- [x] **Tree expansion persists across reloads** (s.2). Collapse a few decks, reload — same nodes stay collapsed.
-- [x] **Bottom-most deck's actions menu opens upward** (s.2). The three-dots menu now flips above the button when there's no room below.
-- [ ] **iOS autofill bar suppressed** (s.2 / s.13). White password-manager strip should NOT appear when tapping deck names, card text, cloze text, MCQ options, tags input, or Quizlet paste box.
+- [ ] **Modal sits with breathing room on all sides** on phones (Android + iPhone) and iPad (portrait + landscape). No edge-to-edge dock, no off-frame.
+- [ ] **Wipe-all modal** renders correctly on Android phone (size + position).
+- [ ] **CreateDeck dialog** stays on-screen in iPad landscape with the keyboard up; Save button reachable.
+- [ ] **Bottom tab bar** stays fixed at the bottom while scrolling a long page or editing a form.
 
-NOTES
-- Modal still touches the bottom of screen, no clearance space like at the top, looks unprofessional with zero clearance space at bottom.
-- I can now edit the bottom most deck, however, when I scroll down the footer bar on the page scrolls up leaving a blank section on the screen. The footer banner should hold its position at the bottom of the page always, like the header does.
-- Unfortunately the password-manager strip does still appear when tapping editor front on basic, tags, back.  In fact, any textbox.
-- In phone interface on android, the modal for wipe everything still appears in the wrong location and too large.
-### Drawing card
-- [x] **Drawing card review has a working canvas** (s.7 / s.8). Pen, eraser, four colours, clear button.
-- [x] **Reveal modes work**: overlay = model on top of your strokes, side-by-side = mirror view, toggle = swap button.
-- [x] Self-rate after reveal → drawing discarded → next card.
+### Demo seed
+- [ ] After **Generate sample decks**, the Rank card on Stats reads **Practitioner** (or near it), not Recruit. Mastery ~38%.
+- [ ] Coin balance starts at **300**.
+- [ ] Showcase deck cards still have no review history (intentionally fresh).
 
-### Occlusion
-- [x] **Ellipse drag-to-draw grows from the touch-down point** (s.6). Previously it collapsed back to centre.
+### Heatmap
+- [ ] On iPad portrait, the year heatmap **fits the screen width without horizontal scroll**.
+- [ ] Cells are big enough to tap accurately on iPad and iPhone.
 
-### Stats
-- [x] **Heatmap cells big enough to tap on iPad** (s.10). Now 16×16 native pixels with 3px gaps.
-- [x] **Day drill-down shows deck names and top tag counts** (s.10).
-- [x] **Rank card is tappable** (s.10) — opens the rank ladder dialog showing every tier, your current rank highlighted, and "x% to next rank".
-- [x] **Demo data now produces a real rank** (s.10). The seed marks ~40% of cards mature so overall mastery lands in the Practitioner / Expert band.
-NOTES
-- Cells are big enough but they now feature scroll sideways, not ideal. Is there a layout where maxwidth is portrait screenwidth (with margins) but the squares are still big enough for tapping sensibly?
-- Seed only marks 11% as mature, but thats enough to test
-### TTS
-- [x] **Google online voices on by default** (s.5). New profiles + the seed both start with `useOnlineVoices: true`. Existing profiles keep whatever they had.
+### Theme + font pairing
+- [ ] Redeem `TEAMCS` → tap "CS Terminal Dark" theme → **Share Tech Mono font applies automatically**.
+- [ ] Same for `TEAMCHEM` → Rajdhani, `TEAMBIO` → Comfortaa, `TEAMCLASSICS` → Cinzel, `TEAMPHYSICS` → Share Tech Mono.
+- [ ] Override the auto-applied font from the Fonts tab and it sticks across theme switches.
 
-### Custom Study
-- [x] **Update spaced repetition defaults to on** (s.9). Toggle still there for "practice only" mode.
-- [x] **Session summary says whether the schedule was updated** (s.9). Look for the chip below "Session complete": green check "Schedule updated…" or "Practice only — your schedule wasn't changed".
+### Inputs
+- [ ] AutoFill chip strip (password / card / location icons) **does not appear** on basic editor front, back, tags, MCQ options, Quizlet paste, deck name. Note: iOS QuickType predictive bar above the keyboard is OS-level and not suppressable from web code.
+
+### Service worker recovery
+- [ ] Visit `?reset-app=1` → page shows "Resetting…" → reloads clean.
+- [ ] Force a JS error (e.g. tap something that throws): the boot-fallback paints with a "Reset the app and try again" button instead of staying gray.
+- [ ] Wait 8s after killing the bundle (rename `assets/index-*.js` in DevTools network tab to force failure): watchdog fires the recovery panel.
 
 ### Gamification
-- [x] **Demo profile starts with 300 coins and ~Practitioner-ish rank** (s.10 / s.11).
-- [x] **Coin pill in the top-bar opens the shop from any page** (s.17). Available on home, deck detail, card editor, stats, settings — anywhere except inside an active study session.
-- [x] **Theme switching from the shop applies immediately**.
-- [x] **Paid theme purchase with enough coins succeeds** (s.11). Try Ocean (100🪙) on the demo profile.
-- [x] **COINMAX code works when Debug mode is on** (s.11). Turn on Settings → Debug → "Enable debug mode", then Codes → `COINMAX` → balance → 9999.
-- [x] **Debug → Gamification testbench buttons all work** (s.11): `+1 review`, `+5 deck-complete`, "Set balance" input, "Reset today", "Show popup" at any rank.
-Starting rank on demo set appears to be Recruit, not Practitioner.
-- When setting a theme it should override a previous font settings, and vice-versa if a font is set. Whichever is set last should take priority.
-### Storage / persistence
-- [x] **Storage inspector visible in Debug panel** (s.4). Row counts for every Dexie table; "Orphaned media" reads 0 after the GC sweep on next launch.
-- [x] **"Ask now" persistent storage button gives clearer feedback** (s.15). Now shows granted / denied / unsupported, plus a hint to launch from the home-screen icon for the strongest engagement signal.
+- [ ] Same-card-twice-today dedup: review a card, then review it again. Balance increases by 1 the first time, stays flat the second.
+- [ ] Rank-up dialog overlays the session summary (not the active card view) and doesn't re-fire on re-entry to the same session.
 
-### Backup
-- [x] **Import picker is slightly more filtered on iPad** (s.14). Still not perfect — iPadOS Files often ignores `.flashcards` — but `.zip` and the zip MIME types are now in the accept list, and an on-screen hint tells the user to look for "flashcards-…".
+### Layout responsiveness (real device)
+- [ ] iPad portrait (~768px): content fits 4xl max-width; modals centred with breathing room.
+- [ ] iPad landscape (~1024px): main content at 4xl, modals comfortably centred.
+- [ ] Android phone (any width 360-430px): full-width main content; modals float with 12px gutters all round.
+- [ ] iPhone (any width 375-430px): same as Android phone.
+- [ ] Desktop ≥1280px: main content stretches to 5xl; top-bar + bottom tabs match width.
 
-### Themes
-- [x] **Physics now has a light variant** (s.11 note 1). "Physics Notebook Light" should appear in the Subject group after redeeming `TEAMPHYSICS`, alongside the renamed "Physics Oscilloscope Dark" and "Physics Signal Dark".
+### Accessibility (not yet tested)
+- [ ] Tab through every focusable control in: home, deck detail, card editor, study session, shop, settings — focus ring visible at every stop.
+- [ ] Esc closes every Dialog.
+- [ ] VoiceOver reads icon-only buttons sensibly (FAB, dialog close, expand/collapse, dismiss banner).
+- [ ] Each page has exactly one h1.
+- [ ] Reduced-motion preference: confetti instant or skipped.
+- [ ] Body-text contrast ≥ 4.5:1 against background in every theme (spot-check Neon + Volcanic with WebAIM).
+- [ ] Touch targets ≥ 44pt (spot-check Stats tab pills, theme/font shop rows).
 
-### Notes
-- Anything you find on retest that I missed:
+### Persistent storage
+- [ ] Settings → Storage → "Persistent: Yes" after a few days of use (or after tapping "Ask now" + a deferred grant).
+
+### Notes during retest
+-
 -
 -
 
 ---
 
-## Round 1 — full walkthrough (archived)
+## Deferred (logged but not blocking v1.0.0)
 
-The original checklist. Boxes left unchecked here typically map to items
-that are either (a) fixed and to be retested in Round 2 above, or (b)
-deferred (logged in `SESSION-LOG.md`).
+These need real-device investigation that I can't do without an iPad
++ Apple Pencil. Each surfaced during pass-1 QA.
 
-### 1. Install + first launch
-
-- [x] Add to Home Screen
-- [x] Standalone launch
-- [x] Offline after first load
-- [x] Safe-area insets
-- [x] Bottom tab bar above home indicator
-- [x] Status bar tint matches theme
-
-Notes: none.
-
-### 2. Deck management
-
-- [x] 3-level tree
-- [x] Move + recompute counts
-- [x] Depth warning at 5
-- [x] **Reload persistence** — fixed (localStorage). Retest in Round 2.
-- [x] Delete cascades
-
-Round-1 notes:
-- FAB collision with bottom-most deck's menu → **fixed** (menu now opens upward).
-- Tree expansion not persisting → **fixed** (localStorage).
-- Landscape modal off-screen → **fixed** (Dialog uses dvh + sticky footer).
-- iOS password-manager bar → **fixed** (autoComplete=off on text inputs).
-
-### 3. Card authoring
-All ticked. No notes.
-
-### 4. Media pipeline
-
-- [x] Paste image
-- [x] Upload image
-- [x] Take photo
-- [x] Record audio
-- [x] Save + reload media
-- [x] Accent pills
-- [x] **refCount cleanup verification** — Storage Inspector now in Debug panel; check "Orphaned media: 0" after delete + reload.
-
-### 5. TTS pronunciation
-All ticked. **Online voices on by default now.**
-
-### 6. Image occlusion
-
-- [x] Rectangle masks
-- [ ] **Ellipse masks** — fixed (anchor bug). Retest in Round 2.
-- [x] Drag + Transformer
-- [x] "Done drawing" releases scroll
-- [x] Tap-to-reveal in review
-
-Round-1 notes:
-- Ellipse drag broken → **fixed**.
-- Touch-and-hold ellipse scaling → **deferred** (logged in SESSION-LOG).
-- Large-image scroll for mask selection → **deferred**.
-
-### 7. Drawing card
-
-- [x] Pressure at pointerdown — per-spec v1, **per-point pressure deferred**.
-- [x] Eraser feel
-- [x] Palm rejection
-- [x] **Review prompt + canvas + reveal modes** — now shipped. Retest in Round 2.
-- [ ] **Self-rate + discard** — retest in Round 2.
-
-Round-1 notes:
-- Black camera preview in drawing-card background → **deferred** (real-device fix).
-- Crop / straighten / Lens-style → **deferred** (bigger feature).
-- Pencil tap selects all → **deferred** (Konva touch-action investigation).
-- "Clear all" registers as select with pen → **deferred**.
-- No pressure response → **per-spec v1 behaviour**.
-- Eraser reticule → **deferred**.
-
-### 8. Study session + scheduler
-
-- [x] Standard session
-- [x] FSRS schedule advances
-- [x] Auto-reverse no-adjacency
-- [x] Session timer
-- [x] Exit confirm logic
-- [x] Session summary
-
-Round-1 notes:
-- Draw-X cards had no drawing pane → **fixed**.
-
-### 9. Custom study
-
-- [x] Build session
-- [x] **Update FSRS off → state unchanged** — retest with the new "Practice only" chip on SessionSummary.
-- [x] **Update FSRS on → state updates** — retest with the new "Schedule updated" chip.
-- [x] Max-cards respected.
-
-Round-1 notes:
-- FSRS-updated visibility → **fixed** (SessionSummary chip).
-- Default = on → **fixed**.
-
-### 10. Stats
-
-- [x] All three tabs
-- [x] Week vs heatmap consistency
-- [x] Drill-down opens
-- [x] Streak chip
-- [x] Rank card visible
-- [x] Coin pill
-
-Round-1 notes:
-- Tap-bar topic breakdown → **fixed** (deck names + top tags).
-- Heatmap blip size → **fixed** (16px native pixels).
-- Rank card flat on demo → **fixed** (seed marks cards mature; card also tappable now).
-
-### 11. Gamification
-
-- [x] Coin balance increases on review
-- [ ] Same-card dedup
-- [x] +2 first-correct
-- [x] +5 deck-complete
-- [x] 25/day cap
-- [x] Rank-up popup
-- [ ] Popup overlays summary
-- [ ] No re-fire on re-entry
-- [x] Open shop from settings
-- [x] Tap free theme to apply
-- [x] Insufficient coin message
-- [x] **Buy a paid theme** — pre-funded seed gives 300 coins now.
-- [x] Fonts tab
-- [x] TH7X2Q redeem + dedup
-- [x] TEAMPHYSICS redeem
-- [x] THESTAFFROOM redeem
-- [x] LEHS2025 redeem
-- [ ] **COINMAX** — now works whenever Debug mode is on.
-- [x] Debug codes invalid in prod when Debug mode is off (we're moving to debugMode-gating; prod default behaviour unchanged).
-
-Round-1 notes:
-- Demo data 0 coins → **fixed** (300 coins).
-- Need a debug page to fire each test → **fixed** (Gamification testbench).
-- COINMAX failed on prod → **fixed** (Debug mode gates it, not just dev env).
-- Production-build prompt test → I'll verify in CI.
-
-### 12. Checkboxes + radios
-All ticked. No notes.
-
-### 13. Layout responsiveness
-
-- [ ] iPad portrait
-- [ ] iPad landscape
-- [ ] iPhone (no device)
-- [x] Desktop xl
-
-Round-1 notes:
-- Modals off bottom in both orientations → **fixed** (dvh, sticky footer).
-- iPhone not available.
-- 
-### 14. Backup round-trip
-All ticked.
-
-Round-1 notes:
-- iPad file picker shows all files → **partial fix** (added .zip + zip MIME types to accept, added a hint near the import button about looking for "flashcards-…"). iPadOS Files often ignores the accept hint entirely.
-
-### 15. Update banner + persistence
-
-- [x] SW update banner
-- [x] Refresh applies
-- [ ] Persistent yes
-
-Round-1 notes:
-- "Ask now" did nothing visible → **partly fixed** (clearer outcome messaging — granted / denied / unsupported, plus a hint to launch from the home-screen icon). Underlying Safari behaviour can't be changed: it grants based on engagement, not on user request.
-
-### 16. Accessibility
-All unchecked — not tested yet. Worth a dedicated pass in Round 3.
-
-### 17. Final-polish bugs
-
-- [x] No stale Google Fonts cache
-- [x] Console errors — needs DevTools (you noted you can't see them)
-- [x] No broken CSS var syntax
-- [x] Zoom-on-focus — N/A, you confirmed text doesn't zoom inappropriately
-- [x] Auto-rotate doesn't reset session
-
-Round-1 notes:
-- Want font shop from coin icon on main banner → **fixed** (CoinBalance in TopBar, tap opens shop, works on every page except active study).
-- Console errors → I'll do a code review pass.
-- Zoom-on-focus → resolved (your description of full-page zoom is expected behaviour, not the iOS zoom-on-input bug I was guarding against).
-
----
-
-## Cross-cutting notes
-
-Patterns or "by the way" notes that span multiple sections.
-
--
--
--
+- **Apple Pencil per-point pressure variation along a stroke.** v1 samples
+  pressure at pointerdown and uses it for the whole stroke. Per-point
+  variation needs the Konva `sceneFunc` approach.
+- **Eraser hit reticule.** A circle under the pencil showing what would
+  be erased. Confidence-boost on dense diagrams.
+- **Drawing-card background take-photo preview black on iPad.** Camera
+  capture works (the photo lands correctly), but the live preview
+  renders black for the drawing-card background flow specifically. The
+  basic-card paste/upload path shows preview fine.
+- **Microsoft Lens-style image crop / straighten.** Document mode crops
+  the frame but doesn't auto-detect paper edges or deskew. Worth
+  investigating opencv.js or a simpler edge-detector.
+- **Occlusion canvas scroll on tall images.** Selecting a mask on a large
+  image requires scrolling past the canvas first; the mask list at the
+  bottom is hard to reach without losing canvas position.
+- **Occlusion touch-and-hold ellipse mode.** Touch + hold to scale an
+  ellipse out from the touch point — easier than drag-to-corner on a
+  touch screen.
+- **Drawing-canvas accidental select-all on pencil tap.** Tapping
+  sometimes triggers a select-all instead of placing a stroke. Likely a
+  Konva touch-action or stage draggable interaction.
+- **"Clear all" tap registers as select with Apple Pencil.** The button
+  inside the drawing toolbar sometimes intercepts as a selection.

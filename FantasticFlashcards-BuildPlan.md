@@ -2,7 +2,14 @@
 
 Author: Joshua Stafford-Haworth (JSHPhysics)
 
-This document is the handoff brief for Claude Code. Each session is scoped to fit in one focused working pass, ending in a runnable, demonstrable state. Sessions build linearly; later sessions assume earlier ones are complete.
+> **Status (historical):** Sessions 1–14 are shipped. Sessions 15
+> (accessibility + iPad QA + final polish) and 16 (README + v1.0.0
+> tag) are in progress — see `SESSION-LOG.md` for current state and
+> next steps. This file is kept as the original brief for
+> architectural context; day-to-day work plans live in the
+> SESSION-LOG.
+
+This document was the handoff brief for Claude Code. Each session is scoped to fit in one focused working pass, ending in a runnable, demonstrable state. Sessions build linearly; later sessions assume earlier ones are complete.
 
 ## Project context for any fresh Claude Code session
 
