@@ -57,21 +57,62 @@
       </div>
     </div>
     <script>
-      // Surface any uncaught script error to the user so a blank page never lies.
-      // React mounts inside #root and replaces the fallback; if mount fails or
-      // the bundle errors out, this handler paints something visible.
-      window.addEventListener("error", function (e) {
+      // Surface any uncaught script error to the user so a blank page never
+      // lies. React mounts inside #root and replaces the fallback; if mount
+      // fails or the bundle errors out, this handler paints the error AND
+      // a "Reset the app" link that wipes service workers, caches, and
+      // IndexedDB so the user can recover from a stuck broken state without
+      // having to dig into iOS Settings.
+      function showBootError(msg) {
         var fb = document.getElementById("boot-fallback");
         if (!fb) return;
-        var msg = (e && (e.message || (e.error && e.error.message))) || "Unknown error";
+        // Strip an obvious leading path so the message doesn't read like
+        // a stack trace dumped into the page.
+        var safe = String(msg || "Unknown error").replace(/</g, "&lt;");
+        var resetHref =
+          window.location.pathname +
+          (window.location.search ? window.location.search + "&" : "?") +
+          "reset-app=1";
         fb.innerHTML =
           '<div style="text-align:center;max-width:32rem">' +
-          '<div style="font-weight:600;font-size:1.125rem;color:#C44545">App failed to start</div>' +
+          '<div style="font-weight:600;font-size:1.125rem;color:#C44545">' +
+          "App failed to start</div>" +
           '<pre style="margin-top:0.5rem;white-space:pre-wrap;font-size:0.75rem;color:#3A4357;background:#FFFFFF;padding:0.75rem;border-radius:0.5rem;text-align:left">' +
-          (msg.replace(/</g, "&lt;")) +
+          safe +
           "</pre>" +
-          "</div>";
+          '<a href="' +
+          resetHref +
+          '" style="display:inline-block;margin-top:1rem;padding:0.6rem 1rem;background:#1E3A5F;color:#FAF7F2;font-weight:600;border-radius:0.75rem;text-decoration:none">' +
+          "Reset the app and try again</a>" +
+          '<div style="margin-top:0.75rem;font-size:0.75rem;color:#6A7287">' +
+          "Resetting clears the offline cache + local data. Your decks " +
+          "stay safe in any backup .flashcards file you've exported." +
+          "</div></div>";
+      }
+      // Plain script errors (failed bundle load, syntax error, etc.).
+      window.addEventListener("error", function (e) {
+        showBootError((e && (e.message || (e.error && e.error.message))) || "");
       });
+      // Unhandled promise rejections — caught by React + our async boot.
+      window.addEventListener("unhandledrejection", function (e) {
+        showBootError(
+          (e && e.reason && (e.reason.message || String(e.reason))) ||
+            "Unhandled promise rejection",
+        );
+      });
+      // Watchdog: if React hasn't mounted within 8 seconds, something is
+      // probably wrong even if no error fired. Show the recovery link.
+      window.setTimeout(function () {
+        var root = document.getElementById("root");
+        // Once React mounts, the boot-fallback is unmounted with the root
+        // children. If it's still there after 8s, the bundle never ran.
+        if (root && document.getElementById("boot-fallback")) {
+          showBootError(
+            "The app didn't start after 8 seconds. The cached version may " +
+              "be broken — tap Reset below to fetch a clean copy.",
+          );
+        }
+      }, 8000);
     </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
