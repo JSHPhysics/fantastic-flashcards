@@ -2,13 +2,20 @@
 // is keyed on card.id so React unmounts the previous card cleanly when the
 // student advances - reset state, kill any in-progress TTS, etc.
 
+import { lazy, Suspense } from "react";
 import { useDeck, type Card, type Rating } from "../../db";
 import { BasicReview } from "./BasicReview";
 import { ClozeReview } from "./ClozeReview";
 import { McqReview } from "./McqReview";
 import { TypedReview } from "./TypedReview";
 import { OcclusionReview } from "./OcclusionReview";
-import { DrawingReview } from "./DrawingReview";
+
+// DrawingReview mounts a Konva canvas for the student to draw on. Konva is
+// ~290 KB and would balloon the main bundle if imported eagerly; lazy-load
+// it so only sessions that actually contain a drawing card pull it in.
+const DrawingReview = lazy(() =>
+  import("./DrawingReview").then((m) => ({ default: m.DrawingReview })),
+);
 
 interface CardReviewerProps {
   card: Card;
@@ -41,6 +48,16 @@ export function CardReviewer({ card, onRate }: CardReviewerProps) {
     case "occlusion":
       return <OcclusionReview key={card.id} content={c} onRate={onRate} />;
     case "drawing":
-      return <DrawingReview key={card.id} content={c} onRate={onRate} />;
+      return (
+        <Suspense
+          fallback={
+            <p className="mt-8 text-center text-sm text-ink-500">
+              Loading drawing canvas...
+            </p>
+          }
+        >
+          <DrawingReview key={card.id} content={c} onRate={onRate} />
+        </Suspense>
+      );
   }
 }

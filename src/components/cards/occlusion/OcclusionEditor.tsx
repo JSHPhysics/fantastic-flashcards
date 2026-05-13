@@ -89,6 +89,11 @@ function OcclusionEditor({ initialDeckId, cardId }: OcclusionEditorProps) {
   const [masks, setMasks] = useState<PixelMask[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [draftShape, setDraftShape] = useState<PixelGeom | null>(null);
+  // Anchor point (pointer-down position) for the in-progress ellipse drag.
+  // Without this the running cx/cy stored on draftShape gets re-averaged
+  // on every pointermove, which collapses toward the latest pointer and
+  // the ellipse never actually grows.
+  const draftAnchorRef = useRef<{ x: number; y: number } | null>(null);
   const [past, setPast] = useState<PixelMask[][]>([]);
   const [future, setFuture] = useState<PixelMask[][]>([]);
   const [saving, setSaving] = useState(false);
@@ -230,7 +235,11 @@ function OcclusionEditor({ initialDeckId, cardId }: OcclusionEditorProps) {
     if (e.target !== stage && e.target.getClassName() !== "Image") return;
     if (tool === "rect") {
       setDraftShape({ kind: "rect", x: pointer.x, y: pointer.y, w: 0, h: 0 });
+      draftAnchorRef.current = null;
     } else if (tool === "ellipse") {
+      // Stash the anchor so subsequent moves recompute the ellipse from a
+      // stable starting point.
+      draftAnchorRef.current = { x: pointer.x, y: pointer.y };
       setDraftShape({
         kind: "ellipse",
         cx: pointer.x,
@@ -254,10 +263,14 @@ function OcclusionEditor({ initialDeckId, cardId }: OcclusionEditorProps) {
         h: pointer.y - draftShape.y,
       });
     } else {
-      const cx = (draftShape.cx + pointer.x) / 2;
-      const cy = (draftShape.cy + pointer.y) / 2;
-      const rx = Math.abs(pointer.x - draftShape.cx) / 2;
-      const ry = Math.abs(pointer.y - draftShape.cy) / 2;
+      // Use the stored anchor (pointer-down position) — not draftShape.cx/cy,
+      // which drifts after the first move because we keep replacing it with
+      // the midpoint.
+      const anchor = draftAnchorRef.current ?? { x: draftShape.cx, y: draftShape.cy };
+      const cx = (anchor.x + pointer.x) / 2;
+      const cy = (anchor.y + pointer.y) / 2;
+      const rx = Math.abs(pointer.x - anchor.x) / 2;
+      const ry = Math.abs(pointer.y - anchor.y) / 2;
       setDraftShape({ kind: "ellipse", cx, cy, rx, ry });
     }
   };
@@ -276,6 +289,7 @@ function OcclusionEditor({ initialDeckId, cardId }: OcclusionEditorProps) {
       setTool("select");
     }
     setDraftShape(null);
+    draftAnchorRef.current = null;
   };
 
   // --- Image picker ---

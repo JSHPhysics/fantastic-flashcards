@@ -131,6 +131,10 @@ export function RichFieldEditor({
           placeholder={placeholder}
           autoFocus={autoFocus}
           className={`${commonInputClass} resize-y`}
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck={false}
         />
       ) : (
         <input
@@ -144,6 +148,10 @@ export function RichFieldEditor({
           placeholder={placeholder}
           autoFocus={autoFocus}
           className={commonInputClass}
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck={false}
         />
       )}
 

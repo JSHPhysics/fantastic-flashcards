@@ -1,6 +1,6 @@
 import { useRef } from "react";
 import type { ClozeContent } from "../../db";
-import { FormField, textareaClass } from "../FormField";
+import { FormField, textareaClass, noAutoFill } from "../FormField";
 import {
   clozeNumbersInOrder,
   renderClozePreview,
@@ -54,6 +54,7 @@ export function ClozeForm({ draft, onChange, readOnlyText }: Props) {
           readOnly={readOnlyText}
           className={textareaClass}
           autoFocus
+          {...noAutoFill}
         />
       </FormField>
       <div>

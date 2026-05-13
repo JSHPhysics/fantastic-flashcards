@@ -10,6 +10,7 @@ import { Dialog } from "./Dialog";
 import { Button } from "./Button";
 import { LanguagePicker } from "./LanguagePicker";
 import { labelForLanguage } from "../tts/languages";
+import { noAutoFill } from "./FormField";
 
 interface CreateDeckDialogProps {
   open: boolean;
@@ -122,6 +123,7 @@ export function CreateDeckDialog({
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. French vocabulary"
               className={inputClass}
+              {...noAutoFill}
             />
           </Field>
           <Field
@@ -133,6 +135,7 @@ export function CreateDeckDialog({
               onChange={(e) => setSubject(e.target.value)}
               placeholder="e.g. French"
               className={inputClass}
+              {...noAutoFill}
             />
           </Field>
           <Field label="Description" hint="Optional.">
@@ -141,6 +144,7 @@ export function CreateDeckDialog({
               onChange={(e) => setDescription(e.target.value)}
               rows={2}
               className={inputClass}
+              {...noAutoFill}
             />
           </Field>
           <Field label="Colour">

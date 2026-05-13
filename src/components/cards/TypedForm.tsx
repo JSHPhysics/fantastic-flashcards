@@ -1,5 +1,5 @@
 import type { RichField, TypedContent } from "../../db";
-import { FormField, inputClass } from "../FormField";
+import { FormField, inputClass, noAutoFill } from "../FormField";
 import { RichFieldEditor } from "../media/RichFieldEditor";
 import { RichFieldRender } from "../media/RichFieldPreview";
 
@@ -45,6 +45,7 @@ export function TypedForm({
           }
           placeholder="e.g. bonjour, salut"
           className={inputClass}
+          {...noAutoFill}
         />
       </FormField>
       <div className="space-y-2">

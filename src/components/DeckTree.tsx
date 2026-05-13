@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   collectDescendantIds,
@@ -17,10 +17,50 @@ import {
   type DeckPracticeStats,
 } from "../study/practiceStats";
 
+// localStorage key for which deck nodes are *collapsed*. We track collapses
+// rather than expansions so that newly-created decks default to expanded —
+// the more common preference, and the original v1 behaviour.
+const COLLAPSED_KEY = "ff_collapsed_decks";
+
+function loadCollapsed(): Set<string> {
+  if (typeof window === "undefined") return new Set();
+  try {
+    const raw = window.localStorage.getItem(COLLAPSED_KEY);
+    if (!raw) return new Set();
+    const ids = JSON.parse(raw);
+    if (!Array.isArray(ids)) return new Set();
+    return new Set(ids.filter((x): x is string => typeof x === "string"));
+  } catch {
+    return new Set();
+  }
+}
+
+function persistCollapsed(set: Set<string>): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(COLLAPSED_KEY, JSON.stringify([...set]));
+  } catch {
+    // Private mode may refuse writes; silently fall back to session-only.
+  }
+}
+
 export function DeckTree() {
   const decks = useDecks();
   const statsMap = useDeckPracticeStatsMap();
   const tree = useMemo(() => (decks ? buildDeckTree(decks) : []), [decks]);
+
+  // Lazy initialiser so we only read localStorage once on mount.
+  const [collapsed, setCollapsed] = useState<Set<string>>(() => loadCollapsed());
+
+  const toggle = useCallback((id: string) => {
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      persistCollapsed(next);
+      return next;
+    });
+  }, []);
 
   if (!decks) {
     return <p className="text-sm text-ink-500">Loading...</p>;
@@ -48,7 +88,13 @@ export function DeckTree() {
   return (
     <ul role="tree" className="card-surface divide-y divide-ink-100 dark:divide-dark-bg">
       {tree.map((node) => (
-        <DeckTreeBranch key={node.deck.id} node={node} statsMap={statsMap} />
+        <DeckTreeBranch
+          key={node.deck.id}
+          node={node}
+          statsMap={statsMap}
+          collapsed={collapsed}
+          onToggle={toggle}
+        />
       ))}
     </ul>
   );
@@ -57,11 +103,15 @@ export function DeckTree() {
 function DeckTreeBranch({
   node,
   statsMap,
+  collapsed,
+  onToggle,
 }: {
   node: DeckNode;
   statsMap: Map<string, DeckPracticeStats>;
+  collapsed: Set<string>;
+  onToggle: (id: string) => void;
 }) {
-  const [expanded, setExpanded] = useState(true);
+  const expanded = !collapsed.has(node.deck.id);
   const hasChildren = node.children.length > 0;
   return (
     <li role="treeitem" aria-expanded={hasChildren ? expanded : undefined}>
@@ -70,13 +120,19 @@ function DeckTreeBranch({
         depth={node.depth}
         expandable={hasChildren}
         expanded={expanded}
-        onToggle={() => setExpanded((v) => !v)}
+        onToggle={() => onToggle(node.deck.id)}
         stats={statsMap.get(node.deck.id)}
       />
       {hasChildren && expanded && (
         <ul role="group" className="divide-y divide-ink-100 dark:divide-dark-bg">
           {node.children.map((c) => (
-            <DeckTreeBranch key={c.deck.id} node={c} statsMap={statsMap} />
+            <DeckTreeBranch
+              key={c.deck.id}
+              node={c}
+              statsMap={statsMap}
+              collapsed={collapsed}
+              onToggle={onToggle}
+            />
           ))}
         </ul>
       )}

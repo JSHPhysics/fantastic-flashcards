@@ -12,7 +12,11 @@ const DEFAULT_SETTINGS: ProfileSettings = {
   defaultDailyNewLimit: 20,
   defaultDailyReviewLimit: 200,
   debugMode: false,
-  useOnlineVoices: false,
+  // Online voices on by default so the speaker icons read with authentic
+  // accents out of the box — most students have internet, and the local
+  // fallback kicks in cleanly when they don't. Students who prefer
+  // device-only can turn it off in Settings.
+  useOnlineVoices: true,
   // Gamification: zero coins, nothing unlocked beyond the free set.
   coins: 0,
   unlockedThemes: [],

@@ -347,7 +347,21 @@
   --color-ink-100: 50 40 32;
 }
 
-/* Physics Oscilloscope (light variant) */
+/* Physics Notebook — light variant for daytime study. Cream paper, navy
+ * ink, gold accents like a physics exercise book. */
+:root[data-theme="physics-notebook"] {
+  --color-cream: 248 244 232;
+  --color-surface: 255 252 245;
+  --color-navy: 30 60 110;
+  --color-gold: 190 130 60;
+  --color-ink-900: 28 40 60;
+  --color-ink-700: 60 75 100;
+  --color-ink-500: 115 130 160;
+  --color-ink-300: 200 200 215;
+  --color-ink-100: 230 226 215;
+}
+
+/* Physics Oscilloscope — green-on-black CRT vibe. */
 :root[data-theme="physics-oscilloscope"] {
   --color-cream: 4 18 16;
   --color-surface: 12 28 24;

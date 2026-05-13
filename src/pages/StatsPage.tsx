@@ -1,13 +1,17 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { useProfile } from "../db";
+import { useDecks, useProfile } from "../db";
+import { db } from "../db/schema";
 import { StreakChip } from "../components/StreakChip";
 import { CoinBalance } from "../components/gamification/CoinBalance";
 import {
   computeOverallMasteryPct,
   rankForPct,
+  RANKS,
   type RankInfo,
 } from "../gamification/ranks";
+import { Dialog } from "../components/Dialog";
+import { Button } from "../components/Button";
 import { AccuracyRing } from "../components/stats/AccuracyRing";
 import { WeekChart } from "../components/stats/WeekChart";
 import { YearHeatmap } from "../components/stats/YearHeatmap";
@@ -63,6 +67,7 @@ export function StatsPage() {
 function RankCard() {
   const [pct, setPct] = useState<number | null>(null);
   const [rank, setRank] = useState<RankInfo | null>(null);
+  const [ladderOpen, setLadderOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -77,25 +82,120 @@ function RankCard() {
   }, []);
 
   return (
-    <div className="card-surface flex flex-wrap items-center justify-between gap-4 p-5">
-      <div className="flex items-center gap-3">
-        <span className="text-4xl" aria-hidden>
-          {rank?.icon ?? "○"}
-        </span>
-        <div>
-          <p className="text-xs uppercase tracking-wider text-ink-500 dark:text-ink-300">
-            Your rank
-          </p>
-          <p className="text-lg font-semibold text-ink-900 dark:text-dark-ink">
-            {rank?.label ?? "..."}
-          </p>
-          <p className="text-xs text-ink-500 dark:text-ink-300">
-            {pct === null ? "Calculating..." : `${pct.toFixed(0)}% of cards mature`}
-          </p>
+    <>
+      <button
+        type="button"
+        onClick={() => setLadderOpen(true)}
+        aria-label="View rank ladder"
+        className="card-surface flex w-full flex-wrap items-center justify-between gap-4 p-5 text-left transition-colors hover:bg-ink-100/40 dark:hover:bg-dark-surface/70"
+      >
+        <div className="flex items-center gap-3">
+          <span className="text-4xl" aria-hidden>
+            {rank?.icon ?? "○"}
+          </span>
+          <div>
+            <p className="text-xs uppercase tracking-wider text-ink-500 dark:text-ink-300">
+              Your rank · tap to see the ladder
+            </p>
+            <p className="text-lg font-semibold text-ink-900 dark:text-dark-ink">
+              {rank?.label ?? "..."}
+            </p>
+            <p className="text-xs text-ink-500 dark:text-ink-300">
+              {pct === null ? "Calculating..." : `${pct.toFixed(0)}% of cards mature`}
+            </p>
+          </div>
         </div>
-      </div>
-      <CoinBalance showRemaining />
-    </div>
+        <CoinBalance showRemaining />
+      </button>
+      <RankLadderDialog
+        open={ladderOpen}
+        onClose={() => setLadderOpen(false)}
+        currentRankId={rank?.id}
+        currentPct={pct ?? 0}
+      />
+    </>
+  );
+}
+
+// Shows the full rank ladder so students know what they're working toward.
+// Highlights the current rank and the next one up.
+function RankLadderDialog({
+  open,
+  onClose,
+  currentRankId,
+  currentPct,
+}: {
+  open: boolean;
+  onClose: () => void;
+  currentRankId: string | undefined;
+  currentPct: number;
+}) {
+  const currentIdx = currentRankId
+    ? RANKS.findIndex((r) => r.id === currentRankId)
+    : 0;
+  const nextRank =
+    currentIdx >= 0 && currentIdx < RANKS.length - 1
+      ? RANKS[currentIdx + 1]
+      : null;
+  const pointsToNext = nextRank
+    ? Math.max(0, nextRank.minPct - currentPct)
+    : 0;
+
+  return (
+    <Dialog
+      open={open}
+      onClose={onClose}
+      title="Ranks you can earn"
+      description="Ranks are based on how many cards have reached the 'mature' stage — scheduled more than three weeks ahead. Keep practising and they all unlock."
+      footer={
+        <Button variant="ghost" onClick={onClose}>
+          Close
+        </Button>
+      }
+    >
+      <ul className="space-y-1">
+        {RANKS.map((r, idx) => {
+          const isCurrent = r.id === currentRankId;
+          const reached = idx <= currentIdx;
+          return (
+            <li
+              key={r.id}
+              className={`flex items-start gap-3 rounded-xl p-3 ${
+                isCurrent
+                  ? "bg-navy/10 dark:bg-gold/15"
+                  : reached
+                    ? ""
+                    : "opacity-70"
+              }`}
+            >
+              <span className="text-2xl" aria-hidden>
+                {r.icon}
+              </span>
+              <div className="flex-1">
+                <div className="flex items-baseline justify-between gap-2">
+                  <p className="text-sm font-semibold text-ink-900 dark:text-dark-ink">
+                    {r.label}
+                  </p>
+                  <p className="text-xs text-ink-500 dark:text-ink-300">
+                    From {r.minPct}%
+                  </p>
+                </div>
+                {r.message && (
+                  <p className="mt-0.5 text-xs text-ink-700 dark:text-ink-300">
+                    {r.message}
+                  </p>
+                )}
+                {isCurrent && nextRank && (
+                  <p className="mt-1 text-xs text-navy dark:text-gold">
+                    {pointsToNext.toFixed(1)}% to {nextRank.label}.
+                  </p>
+                )}
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </Dialog>
   );
 }
 
@@ -411,43 +511,106 @@ function DaySessionsList({
           session that started the day before.)
         </p>
       ) : (
-        <ul className="mt-3 space-y-2 text-sm">
-          {sessions.map((s) => {
-            const start = new Date(s.startedAt);
-            const end = new Date(s.endedAt);
-            const accuracy =
-              s.cardsReviewed === 0
-                ? 0
-                : Math.round((s.cardsCorrect / s.cardsReviewed) * 100);
-            const minutes = Math.floor(s.totalTimeMs / 60000);
-            return (
-              <li
-                key={s.id}
-                className="flex flex-wrap items-center gap-2 rounded-lg border border-ink-100 px-3 py-2 dark:border-dark-surface"
-              >
-                <span className="text-xs text-ink-500 dark:text-ink-300">
-                  {formatHumanTime(start)} - {formatHumanTime(end)}
-                </span>
-                {s.mode === "custom-study" && (
-                  <span className="inline-flex items-center rounded-full bg-gold/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-navy dark:text-gold">
-                    Custom
-                  </span>
-                )}
-                <span className="text-ink-900 dark:text-dark-ink">
-                  {s.cardsReviewed} card{s.cardsReviewed === 1 ? "" : "s"}
-                </span>
-                <span className="text-ink-500 dark:text-ink-300">
-                  · {accuracy}% accurate
-                </span>
-                <span className="text-ink-500 dark:text-ink-300">
-                  · {minutes}m
-                </span>
-              </li>
-            );
-          })}
+        <ul className="mt-3 space-y-3 text-sm">
+          {sessions.map((s) => (
+            <SessionRow key={s.id} session={s} />
+          ))}
         </ul>
       )}
     </div>
+  );
+}
+
+function SessionRow({ session }: { session: Session }) {
+  const decks = useDecks();
+  const [topTags, setTopTags] = useState<{ tag: string; count: number }[] | null>(
+    null,
+  );
+
+  // Pull this session's review events, then the cards behind them, to surface
+  // the most common tags. Gives the day drill-down some idea of *what* the
+  // student practised — not just how many cards.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const reviews = await db.reviews
+        .where("sessionId")
+        .equals(session.id)
+        .toArray();
+      const cardIds = Array.from(new Set(reviews.map((r) => r.cardId)));
+      if (cardIds.length === 0) {
+        if (!cancelled) setTopTags([]);
+        return;
+      }
+      const cards = await db.cards.bulkGet(cardIds);
+      const counts = new Map<string, number>();
+      for (const c of cards) {
+        if (!c) continue;
+        for (const t of c.tags) counts.set(t, (counts.get(t) ?? 0) + 1);
+      }
+      const sorted = [...counts.entries()]
+        .map(([tag, count]) => ({ tag, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 5);
+      if (!cancelled) setTopTags(sorted);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [session.id]);
+
+  const start = new Date(session.startedAt);
+  const end = new Date(session.endedAt);
+  const accuracy =
+    session.cardsReviewed === 0
+      ? 0
+      : Math.round((session.cardsCorrect / session.cardsReviewed) * 100);
+  const minutes = Math.floor(session.totalTimeMs / 60000);
+
+  const deckNames = decks
+    ? session.deckIds
+        .map((id) => decks.find((d) => d.id === id)?.name)
+        .filter((n): n is string => Boolean(n))
+    : [];
+
+  return (
+    <li className="rounded-lg border border-ink-100 px-3 py-2 dark:border-dark-surface">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs text-ink-500 dark:text-ink-300">
+          {formatHumanTime(start)} - {formatHumanTime(end)}
+        </span>
+        {session.mode === "custom-study" && (
+          <span className="inline-flex items-center rounded-full bg-gold/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-navy dark:text-gold">
+            Custom
+          </span>
+        )}
+        <span className="text-ink-900 dark:text-dark-ink">
+          {session.cardsReviewed} card{session.cardsReviewed === 1 ? "" : "s"}
+        </span>
+        <span className="text-ink-500 dark:text-ink-300">· {accuracy}% accurate</span>
+        <span className="text-ink-500 dark:text-ink-300">· {minutes}m</span>
+      </div>
+      {deckNames.length > 0 && (
+        <p className="mt-1 text-xs text-ink-700 dark:text-ink-300">
+          Decks:{" "}
+          <span className="text-ink-900 dark:text-dark-ink">
+            {deckNames.join(", ")}
+          </span>
+        </p>
+      )}
+      {topTags && topTags.length > 0 && (
+        <ul className="mt-1 flex flex-wrap gap-1">
+          {topTags.map((t) => (
+            <li
+              key={t.tag}
+              className="rounded-full bg-navy/10 px-2 py-0.5 text-[11px] text-navy dark:bg-gold/15 dark:text-gold"
+            >
+              {t.tag} · {t.count}
+            </li>
+          ))}
+        </ul>
+      )}
+    </li>
   );
 }
 

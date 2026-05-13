@@ -107,6 +107,36 @@ Items deferred to real-device QA:
   using the pressure at pointerdown; per-point pressure variation
   along the stroke (sceneFunc approach) is future polish.
 
+## Deferred (caught during iPad QA, logged for a later pass)
+
+Real-device QA on 2026-05-12 surfaced these. None are blocking v1; all
+are quality-of-life wins on the drawing + occlusion canvases.
+
+- **Apple Pencil pressure variation along a stroke.** Currently we sample
+  pressure at pointerdown and use it for the whole stroke. Smooth variation
+  needs the Konva sceneFunc approach to draw per-point thickness.
+- **Eraser hit reticule.** A circle indicator under the pencil showing
+  which area would be erased. Helps confidence on dense diagrams.
+- **Drawing-card background take-photo preview black on iPad.** The camera
+  preview renders black for the drawing-card background image picker
+  specifically (the basic-card paste/upload flow shows the preview fine).
+  Capture works — the photo lands correctly — but the user can't see
+  what they're framing.
+- **Microsoft Lens-style image crop / straighten.** Document-mode crops
+  the frame but doesn't auto-detect paper edges, deskew, or straighten.
+  Worth investigating opencv.js or a simpler edge-detector.
+- **Occlusion canvas scroll on tall images.** Selecting a mask on a large
+  image requires scrolling past the canvas first; the mask list at the
+  bottom is hard to reach without losing canvas position.
+- **Occlusion touch-and-hold ellipse mode.** Touch + hold scales an ellipse
+  out from the touch point — easier than drag-to-corner on a touch screen.
+- **Drawing-canvas accidental select-all on pencil tap.** Tapping on the
+  drawing area sometimes triggers a select-all gesture instead of placing
+  a stroke. Needs investigation — likely a Konva touch-action or stage
+  draggable interaction.
+- **"Clear all" tap registers as select with Apple Pencil.** The button
+  inside the drawing toolbar sometimes intercepts as a selection.
+
 ## Standing rules
 
 **Plain-English user copy** (Playbook section 11 "Voice and copy"). Every user-visible string is read by a student, not a developer. Avoid implementation jargon (chip, propagate, cascade, sibling, endpoint, idempotent, refcount), coding terms (kebab-case, schema), and internal scheduling (Session N). Describe results, not mechanisms. The Playbook has a swap table of patterns to match.

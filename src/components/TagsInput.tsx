@@ -108,6 +108,10 @@ export function TagsInput({ value, onChange }: TagsInputProps) {
           }}
           placeholder={value.length === 0 ? "Add tags..." : ""}
           className="flex-1 min-w-[6rem] bg-transparent px-1 py-1 text-sm text-ink-900 placeholder:text-ink-500 focus:outline-none dark:text-dark-ink"
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck={false}
         />
       </div>
       {focused && suggestions.length > 0 && (

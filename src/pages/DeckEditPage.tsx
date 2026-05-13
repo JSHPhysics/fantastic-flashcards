@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { DECK_COLOURS, updateDeck, useDeck } from "../db";
 import { Button } from "../components/Button";
-import { FormField, inputClass } from "../components/FormField";
+import { FormField, inputClass, noAutoFill } from "../components/FormField";
 import { LanguagePicker } from "../components/LanguagePicker";
 import { labelForLanguage } from "../tts/languages";
 
@@ -102,6 +102,7 @@ export function DeckEditPage() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             className={inputClass}
+            {...noAutoFill}
           />
         </FormField>
         <FormField
@@ -112,6 +113,7 @@ export function DeckEditPage() {
             value={subject}
             onChange={(e) => setSubject(e.target.value)}
             className={inputClass}
+            {...noAutoFill}
           />
         </FormField>
         <FormField label="Description" hint="Optional.">
@@ -120,6 +122,7 @@ export function DeckEditPage() {
             onChange={(e) => setDescription(e.target.value)}
             rows={3}
             className={`${inputClass} resize-y min-h-[5rem]`}
+            {...noAutoFill}
           />
         </FormField>
         <FormField label="Colour">

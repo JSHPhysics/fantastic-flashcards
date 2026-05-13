@@ -22,60 +22,61 @@ needs a follow-up commit.
 
 ## 1. Install + first launch
 
-- [ ] Safari → Share → **Add to Home Screen** picks up the icon correctly
-- [ ] Launched from the home-screen icon opens **standalone** (no Safari chrome)
-- [ ] Works **fully offline** after first load (Airplane Mode → force-quit → relaunch)
-- [ ] Safe-area insets respected top + bottom (no content under the notch or home indicator)
-- [ ] Bottom tab bar sits above the home indicator
-- [ ] Status bar tint matches the active theme
+- [x] Safari → Share → **Add to Home Screen** picks up the icon correctly
+- [x] Launched from the home-screen icon opens **standalone** (no Safari chrome)
+- [x] Works **fully offline** after first load (Airplane Mode → force-quit → relaunch)
+- [x] Safe-area insets respected top + bottom (no content under the notch or home indicator)
+- [x] Bottom tab bar sits above the home indicator
+- [x] Status bar tint matches the active theme
 
 ### Notes
--
+
+
 -
 
 ---
 
 ## 2. Deck management (Session 3 debt)
 
-- [ ] Create a 3-level deck tree (root → child → grandchild)
-- [ ] Move a sub-deck under a different parent — card counts on both ancestors update
-- [ ] Try to create a 5th-level sub-deck — depth warning fires, Continue still works
+- [x] Create a 3-level deck tree (root → child → grandchild)
+- [x] Move a sub-deck under a different parent — card counts on both ancestors update
+- [x] Try to create a 5th-level sub-deck — depth warning fires, Continue still works
 - [ ] Reload — tree state, expansion, names persist
-- [ ] Delete a sub-deck — children + cards go with it; media GC sweeps on next launch
+- [x] Delete a sub-deck — children + cards go with it; media GC sweeps on next launch
 
 ### Notes
--
--
+- When trying to move decks, the bottom most deck in the list cannot have its menu opened because in portrait orientation on the ipad it overlaps the + button.
+- On the home screen, the state of trees (expanded or hidden) does not persist across refreshes.
+- When creating a deck in landscape the modal goes off the bottom of the screen, and can't be saved because it is too difficult to click the button offscreen. This modal should either be smaller, or scrollable. I'd favor less-is-more here. Perhaps have a portrait and landscape layout of the modal? We should consider this for all pages and modals going forward.
+- Often when tapping textboxes a white bar appears in the middle, or bottom of screen. It has a password manager icon, card and location icons on the right. It seems to have z precedence over the app and prevents inputs, it is very annoying.
 
 ---
 
 ## 3. Card authoring (Session 4 + 5)
 
-- [ ] Create one of each card type: Basic, Cloze (`{{c1::...}}`), MCQ, Typed
-- [ ] On-screen keyboard doesn't cover the active input
-- [ ] Frozen-field locks: lock deck/tags/type, create three cards in a row, see them retained
-- [ ] Cloze with `{{c2::...}}` generates two separate review cards
-- [ ] Auto-reverse on Basic: creates exactly one reverse sibling; turning it off cascade-deletes the sibling
+- [x] Create one of each card type: Basic, Cloze (`{{c1::...}}`), MCQ, Typed
+- [x] On-screen keyboard doesn't cover the active input
+- [x] Frozen-field locks: lock deck/tags/type, create three cards in a row, see them retained
+- [x] Cloze with `{{c2::...}}` generates two separate review cards
+- [x] Auto-reverse on Basic: creates exactly one reverse sibling; turning it off cascade-deletes the sibling
 
 ### Notes
--
--
 
 ---
 
 ## 4. Media pipeline (Session 6 debt)
 
-- [ ] Add image via **paste** (Cmd-V / clipboard paste)
-- [ ] Add image via **upload** (file picker)
-- [ ] Add image via **take photo** (camera, document mode, white-balance)
-- [ ] Record audio — 15-second cap, countdown, mic permission first time
-- [ ] Save card, reload — image + audio still attached
-- [ ] Accent-letter pills appear when the card has a language set
+- [x] Add image via **paste** (Cmd-V / clipboard paste)
+- [x] Add image via **upload** (file picker)
+- [x] Add image via **take photo** (camera, document mode, white-balance)
+- [x] Record audio — 15-second cap, countdown, mic permission first time
+- [x] Save card, reload — image + audio still attached
+- [x] Accent-letter pills appear when the card has a language set
 - [ ] Delete a card with media → reload → in DevTools, `await db.media.toArray()` shows the orphaned rows are gone (refCount=0 cleanup)
 
 ### Notes
--
--
+- I can't see a devTools section to check, perhaps in the debug section you should include a display of anything like this that you wish for me to check.
+
 
 ---
 
@@ -84,69 +85,73 @@ needs a follow-up commit.
 Prep: iPad Settings → Accessibility → Spoken Content → Voices → download
 an Enhanced voice for French.
 
-- [ ] Speaker icon on the French side reads French; English side reads English (right voices, not the wrong-accent fallback)
-- [ ] Auto-speak on show / auto-speak on reveal toggles work independently
-- [ ] **Reverse-card test:** on a reversed card (English front), with deck `baseLanguage = en-GB` set, auto-speak still reads the **French** side
-- [ ] Settings → "Use Google online voices" on → speaker plays Google voice (needs network); off → falls back to device voice
+- [x] Speaker icon on the French side reads French; English side reads English (right voices, not the wrong-accent fallback)
+- [x] Auto-speak on show / auto-speak on reveal toggles work independently
+- [x] **Reverse-card test:** on a reversed card (English front), with deck `baseLanguage = en-GB` set, auto-speak still reads the **French** side
+- [x] Settings → "Use Google online voices" on → speaker plays Google voice (needs network); off → falls back to device voice
 
 ### Notes
--
--
-
+- Make the google voice the default without students having to choose it manually in the settings.
 ---
 
 ## 6. Image occlusion (Session 8)
 
-- [ ] Import an image, draw a few **rectangle** masks via drag
+- [x] Import an image, draw a few **rectangle** masks via drag
 - [ ] Draw a few **ellipse** masks
-- [ ] Drag a mask to move; use Transformer handles to resize
-- [ ] "Done drawing" releases the canvas — page below scrolls past normally
-- [ ] In review: tapping a hidden mask reveals it; rating buttons work
+- [x] Drag a mask to move; use Transformer handles to resize
+- [x] "Done drawing" releases the canvas — page below scrolls past normally
+- [x] In review: tapping a hidden mask reveals it; rating buttons work
 
 ### Notes
--
--
+4. When drawing an occlusion card, the ellipse doesn't grow when dragged, effectively it cannot be drawn. One input mode we might consider for uniform shapes is touch and hold with the pen (to scale the shape out from where the pen is touched).
+
+5. It is difficult to edit larger images using the interface, you have to scroll to find the bottom of the image which means you can't select the occlusion shape.
 
 ---
 
 ## 7. Drawing card (Session 9)
 
 - [ ] Apple Pencil stroke: width responds to **pressure at pointerdown** (v1 behaviour — per-point pressure is deferred)
-- [ ] Eraser feels responsive (no laggy jumps)
-- [ ] Palm rejection: strokes don't appear under a resting palm while Pencil is active
+- [x] Eraser feels responsive (no laggy jumps)
+- [x] Palm rejection: strokes don't appear under a resting palm while Pencil is active
 - [ ] In review: prompt + canvas show; "Show Answer" reveals model in chosen mode (overlay / side-by-side / toggle)
 - [ ] Self-rate → drawing discarded → next card
 
 ### Notes
--
--
+- When adding an image as background, take photo preview only shows a black screen even with camera permissions allowed. When you take the photo itself, it does do the correct photo, but the user can't actually see what photo they're taking. This error seems to be unique on the drawing cards creation page, the camera preview works on the basic cards.
+- The user needs to be able to crop the image, especially for document photos to be effective we need to be able to crop and align/straighten/angleadjust automatically, like how Microsoft Lens works.
+- When using the pencil to draw and tap in the drawing area, sometimes the entire drawing area becomes selected which is never the intention
+- When I try to tap clear all with the pen, it selects instead of registering a tap. This is a frustrating user experience.
+- Pencil doesn't seem to respond to pressure, it draws, but no thickness/angle recognition as far as I can tell.
+- Eraser feels smooth but its hard to see what you're going to erase, give a circle the size of the eraser under the pen when it it erasing, essentially a targeting reticule.
+
 
 ---
 
 ## 8. Study session + scheduler (Session 10)
 
-- [ ] Start a standard session on a deck with mixed new + due cards
-- [ ] FSRS rating buttons all fire; next-due dates advance visibly
-- [ ] Auto-reverse pairs **don't land adjacent** in the queue (shuffle-within-bucket fix)
-- [ ] Session timer counts up in the top bar when enabled
-- [ ] Exit confirm appears if ≥1 card rated; instant exit otherwise
-- [ ] Session summary: cards reviewed, accuracy %, time, rating breakdown chart
+- [x] Start a standard session on a deck with mixed new + due cards
+- [x] FSRS rating buttons all fire; next-due dates advance visibly
+- [x] Auto-reverse pairs **don't land adjacent** in the queue (shuffle-within-bucket fix)
+- [x] Session timer counts up in the top bar when enabled
+- [x] Exit confirm appears if ≥1 card rated; instant exit otherwise
+- [x] Session summary: cards reviewed, accuracy %, time, rating breakdown chart
 
 ### Notes
--
+-Draw X cards don't actually provide a drawing pane, and they don't seem to load the model answer when you tap to. This is weird, the question says "draw on paper or in your head", but when making the card there is an option for how to display the answer "switch back and forth, side by side or overlay" - We need a drawing pane in study window.
 -
 
 ---
 
 ## 9. Custom study (Session 11)
 
-- [ ] Open Custom Study, pick multiple decks + tag filter + type filter
+- [x] Open Custom Study, pick multiple decks + tag filter + type filter
 - [ ] "Update spaced repetition" off → FSRS state unchanged after session; ReviewEvents still recorded
 - [ ] "Update spaced repetition" on → FSRS state updates as normal
 - [ ] Max-cards limit is respected
 
 ### Notes
--
+- for the update FSRS you'll need to give me a display to show if it has or hasn't updated. Also we should have custom sessions update the fsrs schedule by default, practice is practice. Unless you have a source that shows why we shouldn't do that?
 -
 
 ---
@@ -155,16 +160,18 @@ an Enhanced voice for French.
 
 (With the demo seed installed.)
 
-- [ ] Today / This Week / All Time tabs each render
-- [ ] Week-chart bars match heatmap cells for the same dates
-- [ ] Tap a bar / heatmap cell → "Sessions on \<date\>" drill-down opens with correct sessions
-- [ ] Streak chip + rest-day indicator render correctly
-- [ ] **Rank card** at top shows icon + label + mastery %
-- [ ] **Coin balance pill** shows "(N left today)"
+- [x] Today / This Week / All Time tabs each render
+- [x] Week-chart bars match heatmap cells for the same dates
+- [x] Tap a bar / heatmap cell → "Sessions on \<date\>" drill-down opens with correct sessions
+- [x] Streak chip + rest-day indicator render correctly
+- [x] **Rank card** at top shows icon + label + mastery %
+- [x] **Coin balance pill** shows "(N left today)"
 
 ### Notes
--
--
+-Tap bar shows data, however, it would be good to show what topics were practice.
+- Heatmap blips are very small on ipad, hard to tap accurately.
+- Rank card shows but demo data doesn't have any mastered cards so it only shows unranked. Tapping it should show ranks students can earn.
+- Coin pill shows how many left, and current balance.
 
 ---
 
@@ -178,29 +185,31 @@ an Enhanced voice for French.
 - [ ] Cross a rank threshold → rank-up dialog appears with confetti, message, icon
 - [ ] Dialog overlays the session summary (not the active card view) — confetti visible against it
 - [ ] Dismissing dialog returns to summary; same session doesn't re-fire the dialog on re-entry
-- [ ] Settings → Look & feel → "Open theme & font shop"
-- [ ] **Themes tab:** tap a free theme — UI re-tints across all surfaces
-- [ ] Try to buy a paid theme with insufficient coins → friendly message, no purchase
+- [x] Settings → Look & feel → "Open theme & font shop"
+- [x] **Themes tab:** tap a free theme — UI re-tints across all surfaces
+- [x] Try to buy a paid theme with insufficient coins → friendly message, no purchase
 - [ ] With enough coins → buy confirms, balance drops, theme applies + shows Owned
-- [ ] **Fonts tab:** each font name renders in that font (Google Fonts loads on demand); tap one and body font changes
-- [ ] **Codes tab:** redeem `TH7X2Q` → Ocean appears as Owned; redeem again → silent "Already redeemed"
-- [ ] Redeem `TEAMPHYSICS` → both Physics themes + Share Tech Mono unlock; subject themes now appear in shop
-- [ ] Redeem `THESTAFFROOM` → reference panel lists every code
-- [ ] Redeem `LEHS2025` → every theme + font flips to Owned
+- [x] **Fonts tab:** each font name renders in that font (Google Fonts loads on demand); tap one and body font changes
+- [x] **Codes tab:** redeem `TH7X2Q` → Ocean appears as Owned; redeem again → silent "Already redeemed"
+- [x] Redeem `TEAMPHYSICS` → both Physics themes + Share Tech Mono unlock; subject themes now appear in shop
+- [x] Redeem `THESTAFFROOM` → reference panel lists every code
+- [x] Redeem `LEHS2025` → every theme + font flips to Owned
 - [ ] Redeem `COINMAX` (dev only) → balance jumps to 9999
-- [ ] In production build (`npm run build && npm run preview`), debug codes return "doesn't match anything"
+- [x] In production build (`npm run build && npm run preview`), debug codes return "doesn't match anything"
 
 ### Notes
--
--
+1. Can't check coins from demo data because demo data loads with no coin allocation left.
+2. Need demo data update to allow checks of some things. Have a debug page I can use to simply fire each of these tests.
+3. Coinmax code doesn't work so I can't test purchasing.
+4. No sure how to test this (npm run build && npm run preview), you can test that.
 
 ---
 
 ## 12. Checkboxes + radio inputs (recent fix)
 
-- [ ] **Dark mode:** every checkbox in the app (Settings toggles, MCQ "correct?", custom-study filters, camera document mode, Quizlet auto-reverse) is clearly visible unchecked AND has a high-contrast tick when checked
-- [ ] **Light mode:** same — navy box, cream tick
-- [ ] Radios (Quizlet target deck, native-language picker) have matching treatment with inner-dot
+- [x] **Dark mode:** every checkbox in the app (Settings toggles, MCQ "correct?", custom-study filters, camera document mode, Quizlet auto-reverse) is clearly visible unchecked AND has a high-contrast tick when checked
+- [x] **Light mode:** same — navy box, cream tick
+- [x] Radios (Quizlet target deck, native-language picker) have matching treatment with inner-dot
 
 ### Notes
 -
@@ -213,10 +222,11 @@ an Enhanced voice for French.
 - [ ] iPad portrait (~768px): content max-width 4xl fits comfortably; two-column shop tabs work
 - [ ] iPad landscape (~1024px): content at 4xl, plenty of side margin
 - [ ] iPhone portrait (~390px): headings 2xl (not 3xl); DeckRow chip cluster wraps; media-size pill hidden
-- [ ] Desktop ≥1280px (xl): main content stretches to 5xl; bottom tab bar matches width
+- [x] Desktop ≥1280px (xl): main content stretches to 5xl; bottom tab bar matches width
 
 ### Notes
--
+- In portrait, modals seem to go off the bottom of the screen. Top margin is large, same for side margins.
+- In landscape mode, modal is also off bottom of screen, when scrolling it stays so.
 -
 
 ---

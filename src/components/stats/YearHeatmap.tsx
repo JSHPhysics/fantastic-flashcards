@@ -29,21 +29,29 @@ const INTENSITY_FILL = [
 ];
 
 export function YearHeatmap({ data, onSelectDay }: YearHeatmapProps) {
-  const cell = 12; // square size in px
-  const gap = 2;
+  // 16px cells with 3px gaps render at a proper finger tap target on iPad
+  // (visible square ~16px wide instead of the ~8px we got at viewBox-scaled
+  // 12px). The chart scrolls horizontally if it overflows; that's preferable
+  // to micro-cells nobody can hit accurately.
+  const cell = 16;
+  const gap = 3;
   const cols = data.weeksShown;
   const monthLabels = computeMonthLabels(data);
 
   const labelHeight = 14;
-  const rowLabelWidth = 22;
+  const rowLabelWidth = 26;
   const width = rowLabelWidth + cols * (cell + gap);
   const height = labelHeight + 7 * (cell + gap);
 
   return (
     <div className="w-full overflow-x-auto">
       <svg
-        viewBox={`0 0 ${width} ${height}`}
-        className="block min-w-[640px] max-w-full"
+        // Native pixel sizing — no viewBox scaling — so each cell renders at
+        // its full px width regardless of how wide the container is. The
+        // outer div handles horizontal scroll on narrow viewports.
+        width={width}
+        height={height}
+        className="block"
         role="img"
         aria-label={`${data.totalReviews} reviews across ${data.daysActive} days in the last 53 weeks`}
       >

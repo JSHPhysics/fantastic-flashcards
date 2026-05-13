@@ -11,10 +11,14 @@ import { ConfirmDialog } from "./ConfirmDialog";
 
 export function DeckActionsMenu({ deck }: { deck: Deck }) {
   const [open, setOpen] = useState(false);
+  // "down" or "up" — flipped when the button is too close to the bottom of
+  // the viewport, so the menu doesn't slip under the FAB or off-screen.
+  const [direction, setDirection] = useState<"down" | "up">("down");
   const [renameOpen, setRenameOpen] = useState(false);
   const [moveOpen, setMoveOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -26,9 +30,25 @@ export function DeckActionsMenu({ deck }: { deck: Deck }) {
     return () => document.removeEventListener("mousedown", onDocClick);
   }, [open]);
 
+  // Decide which way the menu should open. We measure the button's position
+  // on every open so a scrolled page doesn't cache a stale choice. ~240px
+  // covers the five menu items + padding. If there's less than that below
+  // the button (e.g. the bottom-most deck row with the FAB nearby) the menu
+  // flips upward.
+  const handleOpen = () => {
+    const button = buttonRef.current;
+    if (button) {
+      const rect = button.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      setDirection(spaceBelow < 240 ? "up" : "down");
+    }
+    setOpen((v) => !v);
+  };
+
   return (
     <div ref={wrapperRef} className="relative">
       <button
+        ref={buttonRef}
         type="button"
         aria-label={`Actions for deck ${deck.name}`}
         aria-haspopup="menu"
@@ -36,7 +56,7 @@ export function DeckActionsMenu({ deck }: { deck: Deck }) {
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
-          setOpen((v) => !v);
+          handleOpen();
         }}
         className="tap-target inline-flex items-center justify-center rounded-full text-ink-500 hover:bg-ink-100 hover:text-ink-900 dark:text-ink-300 dark:hover:bg-dark-surface dark:hover:text-dark-ink"
       >
@@ -49,7 +69,9 @@ export function DeckActionsMenu({ deck }: { deck: Deck }) {
       {open && (
         <div
           role="menu"
-          className="absolute right-0 top-full z-30 mt-1 w-48 overflow-hidden rounded-xl border border-ink-100 bg-surface shadow-lg dark:border-dark-surface dark:bg-dark-surface"
+          className={`absolute right-0 z-30 w-48 overflow-hidden rounded-xl border border-ink-100 bg-surface shadow-lg dark:border-dark-surface dark:bg-dark-surface ${
+            direction === "up" ? "bottom-full mb-1" : "top-full mt-1"
+          }`}
         >
           <MenuItem
             onClick={() => {

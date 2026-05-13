@@ -17,6 +17,7 @@ import { Shop } from "../components/gamification/Shop";
 import { CoinBalance } from "../components/gamification/CoinBalance";
 import { getTheme } from "../themes/catalogue";
 import { getFont } from "../themes/fonts";
+import { db } from "../db/schema";
 
 export function SettingsPage() {
   return (
@@ -394,6 +395,8 @@ function DebugPanel() {
 
             <OnlineTtsDiagnostic />
 
+            <StorageInspector />
+
             <div className="rounded-xl border border-again/30 bg-again/5 p-3">
               <p className="text-sm font-medium text-again">Danger zone</p>
               <p className="mt-0.5 text-xs text-ink-500 dark:text-ink-300">
@@ -421,6 +424,120 @@ function DebugPanel() {
         destructive
       />
     </div>
+  );
+}
+
+// Read-only snapshot of every Dexie table's row count + any media that's
+// somehow lost its refCount (refCount <= 0 means the GC sweep should have
+// reclaimed it). Saves users having to open DevTools on iPad where it's
+// not really an option. Refresh button re-queries on demand.
+function StorageInspector() {
+  const [snapshot, setSnapshot] = useState<{
+    decks: number;
+    cards: number;
+    media: number;
+    reviews: number;
+    sessions: number;
+    orphanedMedia: number;
+    suspendedCards: number;
+  } | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const refresh = async () => {
+    setLoading(true);
+    try {
+      const [decks, cards, media, reviews, sessions, allMedia, allCards] =
+        await Promise.all([
+          db.decks.count(),
+          db.cards.count(),
+          db.media.count(),
+          db.reviews.count(),
+          db.sessions.count(),
+          db.media.toArray(),
+          db.cards.toArray(),
+        ]);
+      const orphanedMedia = allMedia.filter((m) => m.refCount <= 0).length;
+      const suspendedCards = allCards.filter((c) => c.suspended).length;
+      setSnapshot({
+        decks,
+        cards,
+        media,
+        reviews,
+        sessions,
+        orphanedMedia,
+        suspendedCards,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void refresh();
+  }, []);
+
+  return (
+    <div className="rounded-xl border border-ink-100 bg-cream/40 p-3 dark:border-dark-surface dark:bg-dark-bg/40">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-sm font-medium text-ink-900 dark:text-dark-ink">
+          Storage inspector
+        </p>
+        <button
+          type="button"
+          onClick={() => void refresh()}
+          disabled={loading}
+          className="text-xs text-navy underline dark:text-gold"
+        >
+          {loading ? "..." : "Refresh"}
+        </button>
+      </div>
+      <p className="mt-0.5 text-xs text-ink-500 dark:text-ink-300">
+        Row counts in each Dexie table on this device. Orphaned media is
+        anything with refCount {"<="} 0 — should always be 0 after a sweep
+        runs (next app launch).
+      </p>
+      {snapshot && (
+        <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+          <InspectorRow label="Decks" value={snapshot.decks} />
+          <InspectorRow label="Cards" value={snapshot.cards} />
+          <InspectorRow label="Media blobs" value={snapshot.media} />
+          <InspectorRow label="Review events" value={snapshot.reviews} />
+          <InspectorRow label="Sessions" value={snapshot.sessions} />
+          <InspectorRow
+            label="Suspended cards"
+            value={snapshot.suspendedCards}
+          />
+          <InspectorRow
+            label="Orphaned media"
+            value={snapshot.orphanedMedia}
+            danger={snapshot.orphanedMedia > 0}
+          />
+        </dl>
+      )}
+    </div>
+  );
+}
+
+function InspectorRow({
+  label,
+  value,
+  danger,
+}: {
+  label: string;
+  value: number;
+  danger?: boolean;
+}) {
+  return (
+    <>
+      <dt className="text-ink-700 dark:text-ink-300">{label}</dt>
+      <dd
+        className={`text-right font-medium ${
+          danger ? "text-again" : "text-ink-900 dark:text-dark-ink"
+        }`}
+      >
+        {value}
+      </dd>
+    </>
   );
 }
 

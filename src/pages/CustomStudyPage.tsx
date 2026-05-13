@@ -46,7 +46,10 @@ export function CustomStudyPage() {
 
   const [maxCards, setMaxCards] = useState(20);
   const [shuffle, setShuffle] = useState(true);
-  const [updateSpacedRepetition, setUpdateSpacedRepetition] = useState(false);
+  // Practice is practice — by default a custom session should still move
+  // the FSRS schedule along. The toggle is still there for the "I just
+  // want to drill these cards without messing up my schedule" case.
+  const [updateSpacedRepetition, setUpdateSpacedRepetition] = useState(true);
 
   const [lastConfig, setLastConfig] = useState<CustomStudyConfig | null>(null);
 

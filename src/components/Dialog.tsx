@@ -64,10 +64,15 @@ export function Dialog({
 
   if (!open) return null;
 
+  // Container holds the dialog at a known max-height with a flex column
+  // layout. Header pinned at top, body fills + scrolls, footer pinned at
+  // bottom — that's what makes the action buttons reachable even when the
+  // body content overflows (e.g. CreateDeck in iPad landscape with the
+  // keyboard up).
   const containerClass =
     variant === "sheet"
       ? "fixed inset-x-0 bottom-0 w-full sm:inset-0 sm:m-auto sm:max-w-md sm:rounded-2xl"
-      : "fixed inset-x-4 top-[10vh] mx-auto w-auto max-w-md rounded-2xl sm:inset-x-0";
+      : "fixed inset-x-4 top-[5vh] mx-auto w-auto max-w-md rounded-2xl sm:inset-x-0 sm:top-[10vh]";
 
   return createPortal(
     <div
@@ -84,9 +89,9 @@ export function Dialog({
       />
       <div
         ref={dialogRef}
-        className={`${containerClass} relative z-10 max-h-[85vh] overflow-y-auto rounded-t-2xl bg-surface p-5 shadow-xl pb-[max(env(safe-area-inset-bottom),1.25rem)] dark:bg-dark-surface`}
+        className={`${containerClass} relative z-10 flex max-h-[90vh] flex-col rounded-t-2xl bg-surface shadow-xl dark:bg-dark-surface`}
       >
-        <header className="mb-4 flex items-start justify-between gap-4">
+        <header className="flex shrink-0 items-start justify-between gap-4 px-5 pt-5">
           <div>
             <h2 id="dialog-title" className="text-lg font-semibold text-ink-900 dark:text-dark-ink">
               {title}
@@ -116,9 +121,15 @@ export function Dialog({
             </svg>
           </button>
         </header>
-        <div>{children}</div>
+        {/* Body is the only scrolling region so the header + footer stay
+            pinned. Important on short viewports (iPad landscape with
+            keyboard up) where the form would otherwise push the action
+            buttons off-screen. */}
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+          {children}
+        </div>
         {footer && (
-          <footer className="mt-6 flex flex-wrap justify-end gap-2">
+          <footer className="flex shrink-0 flex-wrap justify-end gap-2 border-t border-ink-100 px-5 py-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] dark:border-dark-bg">
             {footer}
           </footer>
         )}

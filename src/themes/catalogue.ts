@@ -237,8 +237,16 @@ export const SUBJECT_THEMES: ThemeDefinition[] = [
     swatches: ["#16100C", "#DCA064", "#F5C382"],
   },
   {
+    id: "physics-notebook",
+    name: "Physics Notebook Light",
+    kind: "light",
+    category: "subject",
+    cost: 0,
+    swatches: ["#F8F4E8", "#1E3C6E", "#BE823C"],
+  },
+  {
     id: "physics-oscilloscope",
-    name: "Physics Oscilloscope",
+    name: "Physics Oscilloscope Dark",
     kind: "dark",
     category: "subject",
     cost: 0,
@@ -246,7 +254,7 @@ export const SUBJECT_THEMES: ThemeDefinition[] = [
   },
   {
     id: "physics-signal",
-    name: "Physics Signal",
+    name: "Physics Signal Dark",
     kind: "dark",
     category: "subject",
     cost: 0,

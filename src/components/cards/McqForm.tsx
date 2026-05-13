@@ -1,5 +1,5 @@
 import type { McqContent, McqOption, RichField } from "../../db";
-import { FormField, inputClass } from "../FormField";
+import { FormField, inputClass, noAutoFill } from "../FormField";
 import { newId } from "../../db/ids";
 import { RichFieldEditor } from "../media/RichFieldEditor";
 import { RichFieldRender } from "../media/RichFieldPreview";
@@ -88,6 +88,7 @@ export function McqForm({ draft, onChange, deckPronunciationLanguage }: Props) {
                 onChange={(e) => setOption(opt.id, { text: e.target.value })}
                 placeholder={`Option ${idx + 1}`}
                 className={`${inputClass} flex-1`}
+                {...noAutoFill}
               />
               <div className="flex items-center">
                 <IconButton

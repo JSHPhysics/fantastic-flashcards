@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { DECK_COLOURS, createDeck, useDecks } from "../db";
 import { createBasicCard } from "../cards/service";
 import { Button } from "../components/Button";
-import { FormField, inputClass, textareaClass } from "../components/FormField";
+import { FormField, inputClass, textareaClass, noAutoFill } from "../components/FormField";
 import { TagsInput } from "../components/TagsInput";
 import { LanguagePicker } from "../components/LanguagePicker";
 import { labelForLanguage } from "../tts/languages";
@@ -188,7 +188,7 @@ export function ImportQuizletPage() {
           rows={8}
           placeholder={`bonjour\thello\nmerci\tthank you\n...`}
           className={textareaClass}
-          spellCheck={false}
+          {...noAutoFill}
         />
       </FormField>
 
@@ -315,6 +315,7 @@ export function ImportQuizletPage() {
                 onChange={(e) => setNewDeckName(e.target.value)}
                 placeholder="New deck name"
                 className={inputClass}
+                {...noAutoFill}
               />
               <div className="flex flex-wrap gap-2">
                 {DECK_COLOURS.map((c) => (

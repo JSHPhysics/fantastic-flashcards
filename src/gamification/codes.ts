@@ -122,8 +122,9 @@ export const CODES: Record<string, CodeDef> = {
   },
   TEAMPHYSICS: {
     category: "team",
-    description: "Physics Oscilloscope + Signal themes + Share Tech Mono font",
-    themeIds: ["physics-oscilloscope", "physics-signal"],
+    description:
+      "Physics Notebook + Oscilloscope + Signal themes + Share Tech Mono font",
+    themeIds: ["physics-notebook", "physics-oscilloscope", "physics-signal"],
     fontIds: ["share-tech-mono"],
   },
 
