@@ -13,7 +13,18 @@
     -->
     <meta name="referrer" content="no-referrer" />
     <link rel="icon" type="image/svg+xml" href="/fantastic-flashcards/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <!--
+      `interactive-widget=resizes-content` is a Chrome-specific viewport
+      hint (Chrome 108+, Android Chrome) that resizes the layout viewport
+      when the on-screen keyboard is up, instead of just the visual
+      viewport. Combined with `dvh` units in dialogs, that means the
+      keyboard doesn't push modal footers off-screen on Android phones.
+      Other browsers ignore the unknown directive — no-op for iOS / desktop.
+    -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content"
+    />
     <meta name="theme-color" content="#1E3A5F" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />

@@ -45,6 +45,7 @@ export function Shop({ open, onClose, initialTab = "themes" }: ShopProps) {
       onClose={onClose}
       title="Theme & font shop"
       description="Pick a look you'll enjoy revising in. Some themes and fonts cost coins; others unlock with a code from your teacher."
+      size="lg"
       footer={
         <Button variant="ghost" onClick={onClose}>
           Done

@@ -28,9 +28,12 @@ Each item links back to the round-1 note that prompted it.
 
 ### Layout + modals
 - [ ] **Modal goes off the bottom in iPad landscape with keyboard up** (s.2, s.13). CreateDeck / RenameDeck / Move dialogs should stay on-screen; header + footer pin, body scrolls. Heights use `dvh` so the iOS keyboard shrinks the dialog instead of pushing the footer down.
-- [ ] **Tree expansion persists across reloads** (s.2). Collapse a few decks, reload — same nodes stay collapsed.
+- [x] **Tree expansion persists across reloads** (s.2). Collapse a few decks, reload — same nodes stay collapsed.
 - [ ] **Bottom-most deck's actions menu opens upward** (s.2). The three-dots menu now flips above the button when there's no room below.
 - [ ] **iOS autofill bar suppressed** (s.2 / s.13). White password-manager strip should NOT appear when tapping deck names, card text, cloze text, MCQ options, tags input, or Quizlet paste box.
+
+NOTES
+Modal still touches the bottom of screen, no clearance space like at the top, looks unprofessional with zero clearance space at bottom.
 
 ### Drawing card
 - [ ] **Drawing card review has a working canvas** (s.7 / s.8). Pen, eraser, four colours, clear button.
@@ -100,7 +103,7 @@ Notes: none.
 - [x] 3-level tree
 - [x] Move + recompute counts
 - [x] Depth warning at 5
-- [ ] **Reload persistence** — fixed (localStorage). Retest in Round 2.
+- [x] **Reload persistence** — fixed (localStorage). Retest in Round 2.
 - [x] Delete cascades
 
 Round-1 notes:
@@ -193,18 +196,18 @@ Round-1 notes:
 
 ### 11. Gamification
 
-- [ ] Coin balance increases on review
+- [x] Coin balance increases on review
 - [ ] Same-card dedup
-- [ ] +2 first-correct
-- [ ] +5 deck-complete
-- [ ] 25/day cap
-- [ ] Rank-up popup
+- [x] +2 first-correct
+- [x] +5 deck-complete
+- [x] 25/day cap
+- [x] Rank-up popup
 - [ ] Popup overlays summary
 - [ ] No re-fire on re-entry
 - [x] Open shop from settings
 - [x] Tap free theme to apply
 - [x] Insufficient coin message
-- [ ] **Buy a paid theme** — pre-funded seed gives 300 coins now.
+- [x] **Buy a paid theme** — pre-funded seed gives 300 coins now.
 - [x] Fonts tab
 - [x] TH7X2Q redeem + dedup
 - [x] TEAMPHYSICS redeem
@@ -254,9 +257,9 @@ All unchecked — not tested yet. Worth a dedicated pass in Round 3.
 ### 17. Final-polish bugs
 
 - [x] No stale Google Fonts cache
-- [ ] Console errors — needs DevTools (you noted you can't see them)
+- [x] Console errors — needs DevTools (you noted you can't see them)
 - [x] No broken CSS var syntax
-- [ ] Zoom-on-focus — N/A, you confirmed text doesn't zoom inappropriately
+- [x] Zoom-on-focus — N/A, you confirmed text doesn't zoom inappropriately
 - [x] Auto-rotate doesn't reset session
 
 Round-1 notes:

@@ -55,7 +55,11 @@ export function LanguagePicker({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search languages..."
-          className="w-full rounded-xl border border-ink-300 bg-surface px-3 py-2 text-sm text-ink-900 placeholder:text-ink-500 focus:border-navy focus:outline-none focus:ring-2 focus:ring-navy/30 dark:border-dark-surface dark:bg-dark-bg dark:text-dark-ink"
+          className="w-full rounded-xl border border-ink-300 bg-surface px-3 py-2 text-base text-ink-900 placeholder:text-ink-500 focus:border-navy focus:outline-none focus:ring-2 focus:ring-navy/30 dark:border-dark-surface dark:bg-dark-bg dark:text-dark-ink"
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck={false}
         />
         <ul className="max-h-72 overflow-y-auto rounded-xl border border-ink-100 dark:border-dark-surface">
           {deckDefault !== undefined && (

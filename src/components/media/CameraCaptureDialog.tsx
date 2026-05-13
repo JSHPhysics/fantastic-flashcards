@@ -145,6 +145,7 @@ export function CameraCaptureDialog({
           ? "Check the result, then save it or retake."
           : "Frame what you want to capture and tap Take photo."
       }
+      size="md"
       footer={
         rawCanvas ? (
           <>

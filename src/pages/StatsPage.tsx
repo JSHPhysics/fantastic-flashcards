@@ -147,6 +147,7 @@ function RankLadderDialog({
       onClose={onClose}
       title="Ranks you can earn"
       description="Ranks are based on how many cards have reached the 'mature' stage — scheduled more than three weeks ahead. Keep practising and they all unlock."
+      size="md"
       footer={
         <Button variant="ghost" onClick={onClose}>
           Close

@@ -202,6 +202,7 @@ function ImportConfirmDialog({
       onClose={onCancel}
       title={title}
       description="Importing replaces everything on this device. You can't undo it - export a backup first if you have anything to keep."
+      size="md"
       footer={
         <>
           <Button variant="ghost" onClick={onCancel} disabled={importing}>
