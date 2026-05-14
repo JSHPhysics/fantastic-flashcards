@@ -10,6 +10,7 @@ import { useDecks, type Deck, type SurvivorDifficulty, type SurvivorInputMode } 
 import { db } from "../../../db/schema";
 import { useMastery } from "../persistence/survivorStore";
 import { Button } from "../../../components/Button";
+import { HowToPlayModal } from "./HowToPlayModal";
 
 interface DeckSelectScreenProps {
   onStart: (cfg: {
@@ -33,6 +34,10 @@ export function DeckSelectScreen({ onStart, onOpenMastery, onClose }: DeckSelect
   const [noticeDismissed, setNoticeDismissed] = useState<boolean>(
     () => sessionStorage.getItem(NOTICE_KEY) === "1",
   );
+  // Locally-owned how-to-play modal. The same component is used by the
+  // session as the first-run gate; here it's just a casual re-read, so
+  // we pass isPreRun=false and treat onStart and onClose identically.
+  const [helpOpen, setHelpOpen] = useState(false);
 
   // Count basic cards per deck for the "% basic" badge.
   useEffect(() => {
@@ -206,13 +211,23 @@ export function DeckSelectScreen({ onStart, onOpenMastery, onClose }: DeckSelect
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <button
-          type="button"
-          onClick={onOpenMastery}
-          className="rounded-xl border border-ink-300 bg-surface px-4 py-2 text-sm font-semibold text-navy hover:bg-ink-100 dark:border-dark-surface dark:bg-dark-surface dark:text-gold"
-        >
-          Mastery Tree
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={onOpenMastery}
+            className="rounded-xl border border-ink-300 bg-surface px-4 py-2 text-sm font-semibold text-navy hover:bg-ink-100 dark:border-dark-surface dark:bg-dark-surface dark:text-gold"
+          >
+            Mastery Tree
+          </button>
+          <button
+            type="button"
+            onClick={() => setHelpOpen(true)}
+            className="rounded-xl border border-ink-300 bg-surface px-4 py-2 text-sm font-semibold text-navy hover:bg-ink-100 dark:border-dark-surface dark:bg-dark-surface dark:text-gold"
+            aria-label="How to play"
+          >
+            How to play
+          </button>
+        </div>
         <Button
           onClick={() =>
             onStart({ deckIds: [...selected], difficulty, inputMode })
@@ -222,6 +237,15 @@ export function DeckSelectScreen({ onStart, onOpenMastery, onClose }: DeckSelect
           {canStart ? "Start run" : "Pick at least one deck"}
         </Button>
       </div>
+
+      {helpOpen && (
+        <HowToPlayModal
+          inputMode={inputMode}
+          isPreRun={false}
+          onStart={() => setHelpOpen(false)}
+          onClose={() => setHelpOpen(false)}
+        />
+      )}
     </section>
   );
 }

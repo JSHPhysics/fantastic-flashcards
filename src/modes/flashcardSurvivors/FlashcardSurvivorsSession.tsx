@@ -19,6 +19,7 @@ import { MasteryTreeScreen } from "./ui/MasteryTreeScreen";
 import { TypingInput } from "./ui/TypingInput";
 import { TapChoiceTray } from "./ui/TapChoiceTray";
 import { PauseScreen } from "./ui/PauseScreen";
+import { HowToPlayModal } from "./ui/HowToPlayModal";
 import { recordRun, useMastery } from "./persistence/survivorStore";
 import type { EnemyView, OwnedWeapon, PlayerStats, RunSummary } from "./engine/types";
 import type { UpgradeChoice } from "./upgrades/pool";
@@ -51,6 +52,15 @@ export default function FlashcardSurvivorsSession() {
   const [paused, setPaused] = useState(false);
   const [latestPlayer, setLatestPlayer] = useState<PlayerStats | null>(null);
   const [latestWeapons, setLatestWeapons] = useState<OwnedWeapon[]>([]);
+  // How-to-play modal — auto-opens before the first run, and is the
+  // explicit gate between the deck-select Start button and the engine
+  // actually beginning to spawn enemies. Returning players who tick
+  // "Got it" persist that to localStorage and skip the auto-open.
+  // The Help button on DeckSelect can re-open it any time.
+  const [introOpen, setIntroOpen] = useState(false);
+  // Tracks whether the intro is showing as the *pre-run* gate (must
+  // dismiss to begin the engine) versus a casual re-read (just close).
+  const [introIsPreRun, setIntroIsPreRun] = useState(false);
 
   // ---- Start a run ----
   const start = (cfg: {
@@ -62,7 +72,30 @@ export default function FlashcardSurvivorsSession() {
     setLevelUp(null);
     setGameOver(null);
     setEnemies([]);
+    // Auto-open the how-to-play intro the first time a student starts
+    // a run. The flag persists across sessions; pressing "Start
+    // playing" inside the modal sets it. Subsequent runs skip the
+    // gate but Help on DeckSelect can re-open it.
+    const seen =
+      typeof window !== "undefined" &&
+      window.localStorage.getItem("ff_survivors_intro_seen") === "1";
+    setIntroOpen(!seen);
+    setIntroIsPreRun(!seen);
     setScreen("playing");
+  };
+
+  const dismissIntro = () => {
+    try {
+      window.localStorage.setItem("ff_survivors_intro_seen", "1");
+    } catch {
+      // Private mode etc. — losing the persistence is fine; the worst
+      // case is the student sees the intro again next time.
+    }
+    setIntroOpen(false);
+    // If this was the pre-run gate, the engine was paused on boot —
+    // resume it now so the field starts ticking.
+    if (introIsPreRun) engineRef.current?.resume();
+    setIntroIsPreRun(false);
   };
 
   // Mount the engine after the canvas exists.
@@ -111,6 +144,17 @@ export default function FlashcardSurvivorsSession() {
       });
 
       await engine.start();
+      // If the how-to-play modal is gating the run (first-time
+      // students, or anyone whose localStorage flag is unset),
+      // freeze the engine until they dismiss the intro. We re-read
+      // localStorage rather than depending on the React state so
+      // the effect's deps stay stable — no need to remount the
+      // engine when the modal closes.
+      if (cancelled) return;
+      const seen =
+        typeof window !== "undefined" &&
+        window.localStorage.getItem("ff_survivors_intro_seen") === "1";
+      if (!seen) engine.pause();
     };
     void init();
 
@@ -143,8 +187,11 @@ export default function FlashcardSurvivorsSession() {
       if (e.key === "Escape" || e.key.toLowerCase() === "p") {
         // Don't intercept Esc while the level-up modal is open — it
         // has its own number-key handler and the modal isn't dismissible
-        // by Esc per spec (player must pick an upgrade).
-        if (levelUp || gameOver) return;
+        // by Esc per spec (player must pick an upgrade). Likewise when
+        // the how-to-play intro is open: its own handler treats Esc
+        // as "start playing" (pre-run) or "close" (re-read), so we
+        // mustn't also pause underneath it.
+        if (levelUp || gameOver || introOpen) return;
         e.preventDefault();
         if (paused) closePause();
         else openPause();
@@ -153,7 +200,7 @@ export default function FlashcardSurvivorsSession() {
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [screen, levelUp, gameOver, paused]);
+  }, [screen, levelUp, gameOver, paused, introOpen]);
 
   // Canvas tap → engine.pickEnemyAt (Tap Mode only).
   const onCanvasTap = (e: React.PointerEvent<HTMLCanvasElement>) => {
@@ -230,6 +277,15 @@ export default function FlashcardSurvivorsSession() {
         />
       )}
 
+      {introOpen && runConfig && (
+        <HowToPlayModal
+          inputMode={runConfig.inputMode}
+          isPreRun={introIsPreRun}
+          onStart={dismissIntro}
+          onClose={dismissIntro}
+        />
+      )}
+
       {paused && engineRef.current && latestPlayer && (
         <PauseScreen
           engine={engineRef.current}
@@ -249,10 +305,15 @@ export default function FlashcardSurvivorsSession() {
           keyboard up the moment a Tap-mode run started — the exact
           behaviour Tap mode exists to avoid. The user picks input mode
           on the menu; we honour it strictly. */}
-      {runConfig?.inputMode === "keyboard" && engineRef.current && (
+      {/* While the intro modal is the pre-run gate, don't mount the
+          input UIs — TypingInput autofocuses on mount, which would
+          steal keystrokes the student means for the modal's Enter
+          shortcut, and on iPadOS would pop up the on-screen keyboard
+          before they've even started. */}
+      {runConfig?.inputMode === "keyboard" && engineRef.current && !introOpen && (
         <TypingInput engine={engineRef.current} />
       )}
-      {runConfig?.inputMode === "tap" && inputRef.current?.id === "tap" && engineRef.current && (
+      {runConfig?.inputMode === "tap" && inputRef.current?.id === "tap" && engineRef.current && !introOpen && (
         <TapChoiceTray engine={engineRef.current} input={inputRef.current as TapInput} />
       )}
 
