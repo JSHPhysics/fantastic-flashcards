@@ -10,6 +10,9 @@ import type {
   Profile,
   ReviewEvent,
   Session,
+  SurvivorMastery,
+  SurvivorRun,
+  SurvivorStats,
 } from "../db";
 import { BACKUP_SCHEMA_VERSION, type BackupManifest } from "./format";
 
@@ -67,6 +70,16 @@ export async function applyBackup(file: Blob): Promise<ImportArtifacts> {
   const cards = parseJson<Card[]>(entries, "cards.json", []);
   const reviews = parseJson<ReviewEvent[]>(entries, "reviews.json", []);
   const sessions = parseJson<Session[]>(entries, "sessions.json", []);
+  // Flashcard Survivors persistence. These files are absent from older
+  // backups made before schema v2; parseJson's fallback returns an empty
+  // value so the import still works.
+  const survivorRuns = parseJson<SurvivorRun[]>(entries, "survivor-runs.json", []);
+  const survivorStats = parseJson<SurvivorStats | null>(entries, "survivor-stats.json", null);
+  const survivorMastery = parseJson<SurvivorMastery | null>(
+    entries,
+    "survivor-mastery.json",
+    null,
+  );
 
   const media = new Map<string, { mimeType: string; bytes: number; bytes_: Uint8Array }>();
   for (const m of manifest.media) {
@@ -84,7 +97,17 @@ export async function applyBackup(file: Blob): Promise<ImportArtifacts> {
   // leave the database in a half-applied state.
   await db.transaction(
     "rw",
-    [db.profile, db.decks, db.cards, db.reviews, db.sessions, db.media],
+    [
+      db.profile,
+      db.decks,
+      db.cards,
+      db.reviews,
+      db.sessions,
+      db.media,
+      db.survivorRuns,
+      db.survivorStats,
+      db.survivorMastery,
+    ],
     async () => {
       await db.profile.clear();
       await db.decks.clear();
@@ -92,12 +115,18 @@ export async function applyBackup(file: Blob): Promise<ImportArtifacts> {
       await db.reviews.clear();
       await db.sessions.clear();
       await db.media.clear();
+      await db.survivorRuns.clear();
+      await db.survivorStats.clear();
+      await db.survivorMastery.clear();
 
       if (profile) await db.profile.put(profile);
       if (decks.length) await db.decks.bulkAdd(decks);
       if (cards.length) await db.cards.bulkAdd(cards);
       if (reviews.length) await db.reviews.bulkAdd(reviews);
       if (sessions.length) await db.sessions.bulkAdd(sessions);
+      if (survivorRuns.length) await db.survivorRuns.bulkAdd(survivorRuns);
+      if (survivorStats) await db.survivorStats.put(survivorStats);
+      if (survivorMastery) await db.survivorMastery.put(survivorMastery);
 
       const mediaRows: MediaBlob[] = [];
       for (const [hash, m] of media) {

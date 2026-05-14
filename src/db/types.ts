@@ -276,3 +276,43 @@ export interface Session {
   mode: "standard" | "custom-study";
   customStudyConfig?: CustomStudyConfig;
 }
+
+// ---- Flashcard Survivors (Survivors-Spec §2.13) ----
+
+export type SurvivorDifficulty = "easy" | "normal" | "hard" | "insane";
+export type SurvivorInputMode = "keyboard" | "tap";
+
+export interface SurvivorRun {
+  id: string;
+  startedAt: number;
+  endedAt: number;
+  durationMs: number;
+  difficulty: SurvivorDifficulty;
+  inputMode: SurvivorInputMode;
+  cardsKilled: number;
+  bossesKilled: number;
+  finalLevel: number;
+  weapons: { id: string; level: number }[];
+  decksPlayed: string[];
+  bestStreak: number;
+  insightEarned: number;
+  cause: "death" | "quit";
+}
+
+export interface SurvivorStats {
+  id: "self";
+  // Best run per (difficulty, input mode) bucket. Missing buckets default
+  // to 0 when the stats screen reads them.
+  bestDurationMs: Partial<Record<SurvivorDifficulty, Partial<Record<SurvivorInputMode, number>>>>;
+  bestCardsKilled: Partial<Record<SurvivorDifficulty, Partial<Record<SurvivorInputMode, number>>>>;
+  bestStreak: number;
+  totalRuns: number;
+  weaponUseCounts: Record<string, number>;
+}
+
+export interface SurvivorMastery {
+  id: "self";
+  insightBalance: number;
+  insightLifetime: number;
+  unlockedNodes: string[];
+}

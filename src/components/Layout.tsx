@@ -34,8 +34,10 @@ const tabs: { to: string; label: string; icon: ReactNode }[] = [
 
 export function Layout({ children }: { children?: ReactNode }) {
   const { pathname } = useLocation();
-  // Hide tab nav while studying to keep the surface uncluttered
-  const hideTabs = pathname.startsWith("/study");
+  // Hide tab nav while studying or playing Flashcard Survivors — both
+  // are full-bleed surfaces where the bottom tabs would clutter the view.
+  const hideTabs =
+    pathname.startsWith("/study") || pathname.startsWith("/survivors");
   // Apply the user's theme + font choice every render. Hook is idempotent.
   useThemeManager();
 
@@ -49,7 +51,12 @@ export function Layout({ children }: { children?: ReactNode }) {
   return (
     <ShopContext.Provider value={shopCtx}>
       <div className="flex min-h-full flex-col bg-cream text-ink-900 dark:bg-dark-bg dark:text-dark-ink">
-        <TopBar onOpenShop={shopCtx.open} hideShop={pathname.startsWith("/study")} />
+        <TopBar
+          onOpenShop={shopCtx.open}
+          hideShop={
+            pathname.startsWith("/study") || pathname.startsWith("/survivors")
+          }
+        />
         <main
           className="mx-auto w-full max-w-4xl flex-1 px-4 pb-24 pt-4 sm:px-6 xl:max-w-5xl"
           id="main-content"

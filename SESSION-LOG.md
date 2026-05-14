@@ -17,6 +17,13 @@ unlock codes, shop) landed on top of that. Three rounds of iPad QA
 have run; pass-1 and pass-2 fixes are in production. Live at
 https://jshphysics.github.io/fantastic-flashcards/.
 
+**Flashcard Survivors** (alt review mode, full spec in
+`FantasticFlashcards-FlashcardSurvivors-Spec.md`) is in. Engine + 12
+weapons + 12 Mastery Tree nodes + 3 difficulties + Keyboard and Tap
+input modes + deck-select + run persistence all shipped. Lazy-loaded
+as a 53 KB chunk so non-players don't pay for it. Needs QA — see
+`QA-CHECKLIST.md`.
+
 **What's left for a v1.0.0 tag:**
 
 1. Round 3 retest on real devices (iPad + Android phone). See

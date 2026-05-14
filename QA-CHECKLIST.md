@@ -78,6 +78,22 @@ an older build.
 ### Persistent storage
 - [ ] Settings → Storage → "Persistent: Yes" after a few days of use (or after tapping "Ask now" + a deferred grant).
 
+### Flashcard Survivors
+- [ ] Home → "Flashcard Survivors →" link opens the deck-select screen with the recommended-basic-cards notice.
+- [ ] Decks below 50% basic show a "Mostly non-basic" chip.
+- [ ] Tap mode is disabled (with tooltip) when fewer than 4 basic cards are selected; otherwise both Keyboard and Tap are available.
+- [ ] Insane difficulty is disabled until the **Forgotten Mastery** node is purchased.
+- [ ] Run starts: canvas renders, enemies spawn on a curve, drift to centre, can be killed.
+- [ ] Keyboard mode: typing an exact answer locks + kills the matching enemy + clears the input. Enter without a match resets streak (or burns Persistent Recall once per run).
+- [ ] Tap mode: tap an enemy → 4-choice tray appears → tap correct → enemy killed + streak +1. Wrong choice clears tray, deselect by tapping empty canvas.
+- [ ] XP fills, level-up modal pauses the game, 1/2/3 picks an upgrade, R rerolls when the Reroll Insight mastery is unlocked.
+- [ ] All 12 weapons reachable across a few runs (new-weapon roll until cap reached, then weapon-upgrade rolls).
+- [ ] Tag upgrades (e.g. "+10% kinetic damage") stack on multi-tag weapons (engine picks the best applicable tag mult).
+- [ ] Game over screen shows Insight earned with difficulty multiplier; "Play again" returns to a fresh run, "Back to menu" returns to deck-select.
+- [ ] Insight credits to Mastery Tree balance after the run; balance survives reload.
+- [ ] Mastery Tree: tier 2 nodes are locked until 2 tier-1 nodes owned; tier 3 needs 2 tier-2 owned. Costs subtract from balance atomically.
+- [ ] Backup round-trip: export, wipe, import — survivor runs / mastery / stats all restore.
+
 ### Notes during retest
 -
 -

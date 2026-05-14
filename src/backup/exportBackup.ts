@@ -29,14 +29,18 @@ export async function exportBackup(
 ): Promise<Blob> {
   const now = options.now ?? new Date();
 
-  const [profile, decks, cards, reviews, sessions, media] = await Promise.all([
-    db.profile.get("self"),
-    db.decks.toArray(),
-    db.cards.toArray(),
-    db.reviews.toArray(),
-    db.sessions.toArray(),
-    db.media.toArray(),
-  ]);
+  const [profile, decks, cards, reviews, sessions, media, survivorRuns, survivorStats, survivorMastery] =
+    await Promise.all([
+      db.profile.get("self"),
+      db.decks.toArray(),
+      db.cards.toArray(),
+      db.reviews.toArray(),
+      db.sessions.toArray(),
+      db.media.toArray(),
+      db.survivorRuns.toArray(),
+      db.survivorStats.get("self"),
+      db.survivorMastery.get("self"),
+    ]);
 
   const manifest: BackupManifest = {
     schemaVersion: BACKUP_SCHEMA_VERSION,
@@ -67,6 +71,12 @@ export async function exportBackup(
     "cards.json": jsonEntry(cards),
     "reviews.json": jsonEntry(reviews),
     "sessions.json": jsonEntry(sessions),
+    // Flashcard Survivors persistence rides along inside the same .flashcards
+    // backup file so a student who restores on a new device keeps their
+    // mastery unlocks + insight balance + recent runs.
+    "survivor-runs.json": jsonEntry(survivorRuns),
+    "survivor-stats.json": jsonEntry(survivorStats ?? null),
+    "survivor-mastery.json": jsonEntry(survivorMastery ?? null),
   };
 
   // Stream the blobs into the zip. arrayBuffer() is synchronous-ish (returns

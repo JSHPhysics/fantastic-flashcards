@@ -38,6 +38,12 @@ export function HomePage() {
         </header>
         <div className="mb-3 flex flex-wrap justify-end gap-4 text-sm">
           <Link
+            to="/survivors"
+            className="text-navy underline dark:text-gold"
+          >
+            Flashcard Survivors →
+          </Link>
+          <Link
             to="/import/quizlet"
             className="text-navy underline dark:text-gold"
           >
