@@ -47,32 +47,36 @@ export function LevelUpModal({ engine, choices: initial, onClose }: LevelUpModal
   }, [choices, rerolls]);
 
   return (
-    <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/60 backdrop-blur">
-      <div className="w-full max-w-3xl px-3">
-        <h2 className="text-center text-2xl font-semibold text-cream drop-shadow-lg dark:text-dark-ink">
+    // Scrim is fixed inset-0 of the survivors viewport. Inner panel
+    // gets max-h-[90dvh] + overflow-y-auto so three stacked upgrade
+    // cards stay reachable on a phone in landscape, and the body
+    // scrolls under the sticky header instead of pushing the reroll
+    // button below the fold.
+    <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/60 px-2 py-3 backdrop-blur sm:px-4">
+      <div className="flex max-h-[90dvh] w-full max-w-3xl flex-col overflow-y-auto px-1">
+        <h2 className="text-center text-xl font-semibold text-cream drop-shadow-lg sm:text-2xl dark:text-dark-ink">
           Level up — pick one
         </h2>
-        <p className="mt-1 text-center text-xs text-cream/80 dark:text-dark-ink/80">
-          Keyboard: 1 / 2 / 3 to pick{rerolls > 0 ? ` · R to reroll (${rerolls} left)` : ""}.
+        <p className="mt-1 text-center text-[11px] text-cream/80 sm:text-xs dark:text-dark-ink/80">
+          {rerolls > 0
+            ? `Tap a card. Keyboard 1 / 2 / 3 picks · R rerolls (${rerolls} left).`
+            : "Tap a card."}
         </p>
-        <div className="mt-4 grid gap-3 sm:grid-cols-3">
+        <div className="mt-3 grid gap-2 sm:mt-4 sm:gap-3 sm:grid-cols-3">
           {choices.map((c, i) => (
             <button
               key={c.id}
               type="button"
               onClick={() => pick(c)}
-              className="flex h-full flex-col rounded-2xl border-2 border-ink-100 bg-surface p-4 text-left text-ink-900 shadow-xl transition-colors hover:border-gold dark:border-dark-surface dark:text-dark-ink"
+              className="flex h-full flex-col rounded-2xl border-2 border-ink-100 bg-surface p-3 text-left text-ink-900 shadow-xl transition-colors hover:border-gold sm:p-4 dark:border-dark-surface dark:text-dark-ink"
             >
               <span className="text-xs text-gold">
                 {c.category.replace("-", " ").toUpperCase()} · {i + 1}
               </span>
               <span className="mt-1 text-base font-semibold">{c.title}</span>
               {c.tags && c.tags.length > 0 && (
-                // Tag chips on weapon cards. Pairing these with any
-                // `+10% <tag> damage` upgrade picked on later level-ups
-                // is the synergy the player can plan around — surfacing
-                // them as a separate row makes that planning visible
-                // instead of buried in the description.
+                // Tag chips on weapon cards — pair these with later
+                // `+10% <tag> damage` upgrades for synergy.
                 <ul className="mt-1.5 flex flex-wrap gap-1">
                   {c.tags.map((t) => (
                     <li
@@ -95,7 +99,7 @@ export function LevelUpModal({ engine, choices: initial, onClose }: LevelUpModal
             <button
               type="button"
               onClick={reroll}
-              className="rounded-md bg-surface/85 px-3 py-1 text-xs text-ink-900 shadow-md hover:bg-surface dark:text-dark-ink"
+              className="tap-target rounded-md bg-surface/85 px-3 text-xs text-ink-900 shadow-md hover:bg-surface dark:text-dark-ink"
             >
               Reroll ({rerolls})
             </button>

@@ -48,8 +48,10 @@ export function HUD({ engine, weaponCap, onExit }: HUDProps) {
 
   return (
     <div className="pointer-events-none absolute inset-0 z-10 select-none">
-      {/* Top-left: HP + XP + level */}
-      <div className="pointer-events-auto absolute left-3 top-3 w-56 rounded-xl bg-surface/85 p-2 text-ink-900 shadow-md backdrop-blur dark:text-dark-ink">
+      {/* Top-left: HP + XP + level. Narrower on phones (w-40 = 160px =
+          44% of a 360px screen) so the timer in the middle isn't
+          squashed; full w-56 from sm up. */}
+      <div className="pointer-events-auto absolute left-2 top-2 w-40 rounded-xl bg-surface/85 p-2 text-ink-900 shadow-md backdrop-blur sm:left-3 sm:top-3 sm:w-56 dark:text-dark-ink">
         <div className="flex items-center gap-2 text-xs">
           <span className="font-semibold">L{player.level}</span>
           <span className="flex-1 truncate text-ink-700 dark:text-ink-300">
@@ -70,8 +72,8 @@ export function HUD({ engine, weaponCap, onExit }: HUDProps) {
         </div>
       </div>
 
-      {/* Top-centre: streak + timer */}
-      <div className="absolute left-1/2 top-3 -translate-x-1/2 rounded-xl bg-surface/85 px-3 py-1 text-center text-xs text-ink-900 shadow-md backdrop-blur dark:text-dark-ink">
+      {/* Top-centre: streak + timer. */}
+      <div className="absolute left-1/2 top-2 -translate-x-1/2 rounded-xl bg-surface/85 px-3 py-1 text-center text-xs text-ink-900 shadow-md backdrop-blur sm:top-3 dark:text-dark-ink">
         <div className="font-mono text-base">
           {minutes}:{seconds.toString().padStart(2, "0")}
         </div>
@@ -82,8 +84,10 @@ export function HUD({ engine, weaponCap, onExit }: HUDProps) {
         )}
       </div>
 
-      {/* Top-right: weapon slots + exit */}
-      <div className="pointer-events-auto absolute right-3 top-3 flex flex-col items-end gap-2">
+      {/* Top-right: weapon slots + exit. Slot tiles drop to h-7 w-7 on
+          phones so 8 of them + the Quit button fit alongside the
+          timer; full h-8 w-8 from sm up. */}
+      <div className="pointer-events-auto absolute right-2 top-2 flex flex-col items-end gap-1.5 sm:right-3 sm:top-3 sm:gap-2">
         <div className="flex gap-1">
           {Array.from({ length: weaponCap }).map((_, i) => {
             const w = weapons[i];
@@ -92,7 +96,7 @@ export function HUD({ engine, weaponCap, onExit }: HUDProps) {
               <div
                 key={i}
                 title={def ? `${def.name} L${w?.level}` : "Empty slot"}
-                className={`flex h-8 w-8 items-center justify-center rounded-md text-[10px] font-bold shadow-sm ${
+                className={`flex h-7 w-7 items-center justify-center rounded-md text-[10px] font-bold shadow-sm sm:h-8 sm:w-8 ${
                   w
                     ? "bg-navy text-cream dark:text-dark-ink"
                     : "bg-surface/60 text-ink-500"
@@ -106,7 +110,7 @@ export function HUD({ engine, weaponCap, onExit }: HUDProps) {
         <button
           type="button"
           onClick={onExit}
-          className="rounded-md bg-surface/85 px-2 py-1 text-xs font-semibold text-ink-900 shadow-md hover:bg-surface dark:text-dark-ink"
+          className="tap-target rounded-md bg-surface/85 px-3 text-xs font-semibold text-ink-900 shadow-md hover:bg-surface dark:text-dark-ink"
         >
           Quit
         </button>

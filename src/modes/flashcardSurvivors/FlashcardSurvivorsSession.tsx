@@ -159,16 +159,16 @@ export default function FlashcardSurvivorsSession() {
             key={e.id}
             // Position is set inline because it changes every frame; the
             // visual styling sits in className so the label adopts the
-            // theme palette. Wider 240px cap with word-wrap so a 30-char
-            // French phrase fits on 2-3 lines rather than being clipped
-            // — students need to see the whole prompt to know what to
-            // type.
+            // theme palette. maxWidth uses `min()` so on phones the
+            // label can't exceed 55% of viewport (avoids two adjacent
+            // labels overlapping into illegible chaos), while on iPad /
+            // desktop it stretches to a comfortable 240px.
             style={{
               position: "absolute",
               left: e.pos.x,
               top: e.pos.y + e.size * 0.5 + 6,
               transform: "translate(-50%, 0)",
-              maxWidth: 240,
+              maxWidth: "min(240px, 55vw)",
             }}
             className="pointer-events-none whitespace-normal break-words rounded px-1.5 py-0.5 text-center text-[11px] leading-tight bg-surface/85 text-ink-900 shadow-sm dark:text-dark-ink"
           >
