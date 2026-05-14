@@ -93,16 +93,22 @@ export class GameEngine {
   // loop. 100ms feels live without spamming React.
   private nextStatsBroadcastAt = 0;
   // Cached theme colours read from CSS variables once at start(). The
-  // canvas backdrop + the player turret + enemy outlines all use these
-  // so the game adopts whichever theme is active. A theme change during
-  // a run only takes effect on the next run — acceptable trade-off
-  // since theme changes mid-game are vanishingly rare.
+  // canvas backdrop + the player turret + enemy outlines + projectile
+  // bodies all use these so the game adopts whichever theme is active.
+  // A theme change during a run only takes effect on the next run —
+  // acceptable trade-off since theme changes mid-game are vanishingly
+  // rare.
   private colours = {
     backdrop: "#0b1320",
     ink: "rgb(255 255 255)",
     inkMuted: "rgba(255,255,255,0.6)",
     innerZoneRing: "rgba(255,255,255,0.06)",
   };
+  // Transient on-screen effects (hit flashes, kill bursts). Each lives
+  // ~300-500ms then fades out. Pruned every tick. Strictly visual — no
+  // gameplay consequence — so we can render them confidently without
+  // worrying about determinism.
+  private hitPulses: { pos: Vec2; bornAt: number; kind: "hit" | "kill" }[] = [];
 
   // Active input strategy.
   private input: InputMode | null = null;
@@ -393,6 +399,7 @@ export class GameEngine {
     this.resolveProjectileHits();
     this.resolveContactHits();
     this.pruneDead();
+    this.prunePulses();
     this.broadcastEnemyView();
     // Live HUD updates — tick-loop damage (contact, DoT clouds, beam
     // ramp) was previously invisible to the React HUD because we only
@@ -420,25 +427,47 @@ export class GameEngine {
     ctx.beginPath();
     ctx.arc(0, 0, INNER_ZONE_RADIUS, 0, Math.PI * 2);
     ctx.stroke();
-    // Clouds (DoT).
-    for (const c of this.clouds) {
-      ctx.fillStyle = "rgba(200,255,200,0.18)";
-      ctx.beginPath();
-      ctx.arc(c.pos.x, c.pos.y, c.radius, 0, Math.PI * 2);
-      ctx.fill();
+    // Clouds (DoT) — saturated greenish-yellow with a dashed outline so
+    // the boundary is visible even on pastel themes. Bumped fill alpha
+    // from 0.18 → 0.30 because the original was washed out against
+    // cream / lavender backdrops.
+    if (this.clouds.length > 0) {
+      ctx.save();
+      for (const c of this.clouds) {
+        ctx.fillStyle = "rgba(150, 215, 90, 0.30)";
+        ctx.beginPath();
+        ctx.arc(c.pos.x, c.pos.y, c.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.setLineDash([6, 4]);
+        ctx.strokeStyle = "rgba(100, 170, 60, 0.75)";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(c.pos.x, c.pos.y, c.radius, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.restore();
     }
-    // Echo Orbital — draw orbs.
+    // Echo Orbital — orbs use theme ink with a saturated blue halo so
+    // the player can track them whether on Midnight or Cherry Blossom.
     const echo = this.weapons.find((w) => w.id === "echo-orbital");
     if (echo) {
       const lvl = echo.level - 1;
       const orbs = [2, 2, 3, 3, 4][lvl];
-      const radius = [100, 120, 120, 140, 140][lvl];
+      const orbRadius = [100, 120, 120, 140, 140][lvl];
       const theta = (echo.state.theta ?? 0) as number;
-      ctx.fillStyle = "rgba(130,200,255,0.85)";
       for (let i = 0; i < orbs; i += 1) {
         const a = theta + (i / orbs) * Math.PI * 2;
+        const x = Math.cos(a) * orbRadius;
+        const y = Math.sin(a) * orbRadius;
+        // Halo (additive-ish via low alpha).
+        ctx.fillStyle = "rgba(90, 170, 255, 0.55)";
         ctx.beginPath();
-        ctx.arc(Math.cos(a) * radius, Math.sin(a) * radius, 9, 0, Math.PI * 2);
+        ctx.arc(x, y, 14, 0, Math.PI * 2);
+        ctx.fill();
+        // Body — theme ink so it's always visible.
+        ctx.fillStyle = this.colours.ink;
+        ctx.beginPath();
+        ctx.arc(x, y, 7, 0, Math.PI * 2);
         ctx.fill();
       }
     }
@@ -446,17 +475,61 @@ export class GameEngine {
     for (const e of this.enemies) {
       this.drawEnemy(e);
     }
-    // Projectiles.
+    // Projectiles — bigger + ink body + kind-tinted halo + 2 trailing
+    // ghosts based on velocity for motion feedback. The body uses the
+    // theme ink so it pops against any backdrop; the halo carries the
+    // weapon type (kinetic gold / energy green / summon purple).
     for (const p of this.projectiles) {
-      ctx.fillStyle =
-        p.kind === "kinetic"
-          ? "#FFF"
-          : p.kind === "energy"
-            ? "rgba(160,255,180,0.95)"
-            : "rgba(220,200,255,0.95)";
+      const r = p.radius * 1.5;
+      const dt = 0.018; // ~one frame back
+      // Motion smear — two fading ghosts behind.
+      ctx.fillStyle = projectileTint(p.kind, 0.35);
       ctx.beginPath();
-      ctx.arc(p.pos.x, p.pos.y, p.radius, 0, Math.PI * 2);
+      ctx.arc(p.pos.x - p.vel.x * dt, p.pos.y - p.vel.y * dt, r * 0.95, 0, Math.PI * 2);
       ctx.fill();
+      ctx.fillStyle = projectileTint(p.kind, 0.18);
+      ctx.beginPath();
+      ctx.arc(p.pos.x - p.vel.x * dt * 2, p.pos.y - p.vel.y * dt * 2, r * 0.85, 0, Math.PI * 2);
+      ctx.fill();
+      // Halo around the body.
+      ctx.fillStyle = projectileTint(p.kind, 0.55);
+      ctx.beginPath();
+      ctx.arc(p.pos.x, p.pos.y, r * 1.6, 0, Math.PI * 2);
+      ctx.fill();
+      // Body — theme ink.
+      ctx.fillStyle = this.colours.ink;
+      ctx.beginPath();
+      ctx.arc(p.pos.x, p.pos.y, r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // Hit + kill pulses — expanding rings that fade out so the player
+    // gets clear visual feedback every time a weapon connects.
+    for (const pulse of this.hitPulses) {
+      const age = this.now - pulse.bornAt;
+      const duration = pulse.kind === "kill" ? 500 : 300;
+      if (age > duration) continue;
+      const t = age / duration; // 0..1
+      const radius = pulse.kind === "kill"
+        ? 8 + t * 38
+        : 4 + t * 22;
+      const alpha = 1 - t;
+      ctx.lineWidth = pulse.kind === "kill" ? 3 : 2;
+      ctx.strokeStyle = pulse.kind === "kill"
+        ? `rgba(255, 200, 90, ${alpha.toFixed(3)})`
+        : withAlpha(this.colours.ink, alpha);
+      ctx.beginPath();
+      ctx.arc(pulse.pos.x, pulse.pos.y, radius, 0, Math.PI * 2);
+      ctx.stroke();
+      // Kill pulses get a second, slightly delayed inner ring for a
+      // double-flash that reads as "down" rather than "hit".
+      if (pulse.kind === "kill" && t > 0.25) {
+        const innerT = (t - 0.25) / 0.75;
+        ctx.strokeStyle = `rgba(255, 230, 150, ${(1 - innerT).toFixed(3)})`;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(pulse.pos.x, pulse.pos.y, 4 + innerT * 22, 0, Math.PI * 2);
+        ctx.stroke();
+      }
     }
     // Player (turret) at centre — uses theme ink so it pops against any
     // background. The outer ring is a faded variant of the same.
@@ -623,6 +696,7 @@ export class GameEngine {
         if (enemy.killed) return;
         const inInner = Math.hypot(enemy.pos.x, enemy.pos.y) < INNER_ZONE_RADIUS;
         enemy.hp -= amount * (inInner ? this.innerZoneDamageMult : 1);
+        this.pushHitPulse(enemy.pos, enemy.hp <= 0 ? "kill" : "hit");
         if (enemy.hp <= 0) this.killEnemy(enemy);
         // Discrete direct-damage hit — swap the question if it survived.
         else this.swapEnemyCard(enemy);
@@ -676,6 +750,7 @@ export class GameEngine {
             this.spawnSplits(p, e);
             p.splitOnHit = 0; // only split once per projectile
           }
+          this.pushHitPulse(p.pos, e.hp <= 0 ? "kill" : "hit");
           if (e.hp <= 0) this.killEnemy(e);
           // Survived a discrete projectile hit — swap to a different
           // card. (DoT clouds don't go through this path so they don't
@@ -836,6 +911,19 @@ export class GameEngine {
     this.clouds = this.clouds.filter((c) => c.expiresAt > this.now);
   }
 
+  // Push a transient hit / kill pulse for the renderer to draw an
+  // expanding ring at the given position. Kill pulses are bigger and
+  // gold-tinted so the player can pick a kill out of a busy field.
+  private pushHitPulse(pos: Vec2, kind: "hit" | "kill"): void {
+    this.hitPulses.push({ pos: { x: pos.x, y: pos.y }, bornAt: this.now, kind });
+  }
+
+  private prunePulses(): void {
+    if (this.hitPulses.length === 0) return;
+    const cutoff = this.now - 600; // longest pulse lives ~500ms; 600 = buffer
+    this.hitPulses = this.hitPulses.filter((p) => p.bornAt > cutoff);
+  }
+
   private onMiss(): void {
     if (!this.player.persistentRecallUsed) {
       // Persistent Recall mastery active — burn the once-per-run save.
@@ -918,6 +1006,34 @@ function drawShape(ctx: CanvasRenderingContext2D, shape: Enemy["shape"], r: numb
     else ctx.lineTo(x, y);
   }
   ctx.closePath();
+}
+
+// Saturated kind-specific tints used for projectile halos / trails.
+// Brighter than the original muted palette so projectiles read clearly
+// against any theme backdrop — kinetic = warm gold, energy = bright
+// green, summon = vivid purple. Alpha is per-caller so we can build
+// halos (low alpha) and motion ghosts (lower alpha) from the same base.
+function projectileTint(kind: "kinetic" | "energy" | "summon", alpha = 1): string {
+  const a = alpha.toFixed(3);
+  switch (kind) {
+    case "kinetic":
+      return `rgba(255, 200, 90, ${a})`;
+    case "energy":
+      return `rgba(80, 220, 140, ${a})`;
+    case "summon":
+      return `rgba(190, 130, 255, ${a})`;
+  }
+}
+
+// Re-emit a `rgb(r g b)` string with an alpha component. We can't use a
+// dumb string replace because `rgb(...) / 0.5)` doesn't parse in every
+// canvas implementation; building a real rgba() with the parsed channels
+// is reliable everywhere.
+function withAlpha(rgbStr: string, alpha: number): string {
+  const m = rgbStr.match(/rgba?\(([^)]+)\)/);
+  if (!m) return rgbStr;
+  const parts = m[1].split(/[\s,/]+/).filter(Boolean).slice(0, 3);
+  return `rgba(${parts.join(", ")}, ${alpha.toFixed(3)})`;
 }
 
 // Distance-based speed curve. Three zones:
