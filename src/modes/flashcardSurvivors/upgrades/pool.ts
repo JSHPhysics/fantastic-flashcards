@@ -20,6 +20,12 @@ export interface UpgradeChoice {
   category: UpgradeCategory;
   title: string;
   description: string;
+  // For weapon-related choices (new-weapon, weapon-upgrade): the
+  // weapon's tag list, surfaced as chips on the upgrade card so the
+  // player can see "Recall Cannon — kinetic, synergy" and pair it
+  // with kinetic / synergy tag upgrades on later level-ups.
+  // Undefined for non-weapon categories.
+  tags?: Tag[];
   // Apply mutates the player + weapon state in place. The engine
   // freezes time during the modal, so a synchronous mutation is fine.
   apply: (ctx: UpgradeContext) => void;
@@ -212,7 +218,10 @@ export function rollUpgradeChoices(
           id: `new-${pick.id}`,
           category: "new-weapon",
           title: `NEW · ${pick.name}`,
-          description: `${pick.description} (${pick.tags.join(", ")})`,
+          // Tags are surfaced as dedicated chips on the card now, so
+          // we no longer pack them into the description's free-text.
+          description: pick.description,
+          tags: [...pick.tags],
           apply: (ctx) => ctx.addWeapon(pick.id),
         };
         break;
@@ -227,6 +236,7 @@ export function rollUpgradeChoices(
           category: "weapon-upgrade",
           title: `${pick.name} → L${nextLevel}`,
           description: pick.perLevel[nextLevel - 1] ?? pick.description,
+          tags: [...pick.tags],
           apply: (ctx) => {
             const w = ctx.weapons.find((x) => x.id === pick.id);
             if (w && w.level < 5) w.level += 1;

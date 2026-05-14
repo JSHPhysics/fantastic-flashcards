@@ -67,6 +67,23 @@ export function LevelUpModal({ engine, choices: initial, onClose }: LevelUpModal
                 {c.category.replace("-", " ").toUpperCase()} · {i + 1}
               </span>
               <span className="mt-1 text-base font-semibold">{c.title}</span>
+              {c.tags && c.tags.length > 0 && (
+                // Tag chips on weapon cards. Pairing these with any
+                // `+10% <tag> damage` upgrade picked on later level-ups
+                // is the synergy the player can plan around — surfacing
+                // them as a separate row makes that planning visible
+                // instead of buried in the description.
+                <ul className="mt-1.5 flex flex-wrap gap-1">
+                  {c.tags.map((t) => (
+                    <li
+                      key={t}
+                      className="rounded-full bg-navy/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-navy dark:bg-gold/15 dark:text-gold"
+                    >
+                      {t}
+                    </li>
+                  ))}
+                </ul>
+              )}
               <span className="mt-2 flex-1 text-xs leading-snug text-ink-700 dark:text-ink-300">
                 {c.description}
               </span>

@@ -252,6 +252,39 @@ export class GameEngine {
     this.emit({ type: "tapCleared" });
   }
 
+  // High-HP enemies got dull: the student would just retype the same
+  // answer twice. After a non-fatal *discrete* hit (projectile / direct-
+  // damage weapon / streak chain), swap the enemy's card to a different
+  // one from the pool. Visual stats (size, colour, shape) stay the
+  // same — it's the same enemy, just harder, asking a new question.
+  // DoT clouds intentionally don't trigger a swap (per user spec) so a
+  // single Elaboration Cloud doesn't shuffle every enemy it touches.
+  //
+  // Side effects:
+  //  - Tap mode: if the swapped enemy was the selected target, clear
+  //    the tray; the choices were built around the old card and are
+  //    now stale. Player re-taps to get fresh choices for the new card.
+  //  - Enemy view is re-broadcast so the front label updates this tick.
+  private swapEnemyCard(enemy: Enemy): void {
+    if (this.cardPool.length < 2) return; // nothing meaningful to swap to
+    // Pick a different card. Up to 8 attempts then accept whatever.
+    let next = enemy.card;
+    for (let i = 0; i < 8; i += 1) {
+      const candidate =
+        this.cardPool[Math.floor(Math.random() * this.cardPool.length)];
+      if (candidate.id !== enemy.card.id) {
+        next = candidate;
+        break;
+      }
+    }
+    if (next.id === enemy.card.id) return;
+    enemy.card = next;
+    if (this.selectedEnemyId === enemy.id) this.broadcastTapCleared();
+    // Force a fresh enemy-view broadcast so the React layer's label
+    // catches the new front before the next tick's natural broadcast.
+    this.broadcastEnemyView();
+  }
+
   // For Tap mode: try to find an enemy under a canvas-space point.
   pickEnemyAt(canvasX: number, canvasY: number): Enemy | null {
     // canvas coords -> centre coords
@@ -587,9 +620,12 @@ export class GameEngine {
       dealDamage: (enemyId, amount) => {
         const enemy = this.enemies.find((e) => e.id === enemyId);
         if (!enemy) return;
+        if (enemy.killed) return;
         const inInner = Math.hypot(enemy.pos.x, enemy.pos.y) < INNER_ZONE_RADIUS;
         enemy.hp -= amount * (inInner ? this.innerZoneDamageMult : 1);
         if (enemy.hp <= 0) this.killEnemy(enemy);
+        // Discrete direct-damage hit — swap the question if it survived.
+        else this.swapEnemyCard(enemy);
       },
     };
   }
@@ -632,7 +668,7 @@ export class GameEngine {
     for (const p of this.projectiles) {
       if (p.pierce < -1) continue;
       for (const e of this.enemies) {
-        if (e.hp <= 0) continue;
+        if (e.hp <= 0 || e.killed) continue;
         if (Math.hypot(e.pos.x - p.pos.x, e.pos.y - p.pos.y) <= e.size * 0.5 + p.radius) {
           const inInner = Math.hypot(e.pos.x, e.pos.y) < INNER_ZONE_RADIUS;
           e.hp -= p.damage * (inInner ? this.innerZoneDamageMult : 1);
@@ -641,6 +677,10 @@ export class GameEngine {
             p.splitOnHit = 0; // only split once per projectile
           }
           if (e.hp <= 0) this.killEnemy(e);
+          // Survived a discrete projectile hit — swap to a different
+          // card. (DoT clouds don't go through this path so they don't
+          // trigger swaps, which is the intended behaviour.)
+          else this.swapEnemyCard(e);
           if (p.pierce > 0) {
             p.pierce -= 1;
             continue;
