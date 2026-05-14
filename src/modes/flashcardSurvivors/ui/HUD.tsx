@@ -17,9 +17,10 @@ interface HUDProps {
   engine: GameEngine;
   weaponCap: number;
   onExit: () => void;
+  onPause: () => void;
 }
 
-export function HUD({ engine, weaponCap, onExit }: HUDProps) {
+export function HUD({ engine, weaponCap, onExit, onPause }: HUDProps) {
   const [player, setPlayer] = useState<PlayerStats | null>(null);
   const [weapons, setWeapons] = useState<OwnedWeapon[]>([]);
   const [elapsedMs, setElapsedMs] = useState(0);
@@ -107,13 +108,23 @@ export function HUD({ engine, weaponCap, onExit }: HUDProps) {
             );
           })}
         </div>
-        <button
-          type="button"
-          onClick={onExit}
-          className="tap-target rounded-md bg-surface/85 px-3 text-xs font-semibold text-ink-900 shadow-md hover:bg-surface dark:text-dark-ink"
-        >
-          Quit
-        </button>
+        <div className="flex gap-1.5">
+          <button
+            type="button"
+            onClick={onPause}
+            aria-label="Pause (Esc or P)"
+            className="tap-target rounded-md bg-surface/85 px-3 text-xs font-semibold text-ink-900 shadow-md hover:bg-surface dark:text-dark-ink"
+          >
+            ⏸ Pause
+          </button>
+          <button
+            type="button"
+            onClick={onExit}
+            className="tap-target rounded-md bg-surface/85 px-3 text-xs font-semibold text-ink-900 shadow-md hover:bg-surface dark:text-dark-ink"
+          >
+            Quit
+          </button>
+        </div>
       </div>
     </div>
   );

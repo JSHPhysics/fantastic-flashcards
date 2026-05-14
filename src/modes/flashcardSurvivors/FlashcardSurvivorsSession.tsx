@@ -18,8 +18,9 @@ import { GameOverScreen } from "./ui/GameOverScreen";
 import { MasteryTreeScreen } from "./ui/MasteryTreeScreen";
 import { TypingInput } from "./ui/TypingInput";
 import { TapChoiceTray } from "./ui/TapChoiceTray";
+import { PauseScreen } from "./ui/PauseScreen";
 import { recordRun, useMastery } from "./persistence/survivorStore";
-import type { EnemyView, RunSummary } from "./engine/types";
+import type { EnemyView, OwnedWeapon, PlayerStats, RunSummary } from "./engine/types";
 import type { UpgradeChoice } from "./upgrades/pool";
 import { applyMasteryEffects } from "./mastery/effects";
 
@@ -43,6 +44,13 @@ export default function FlashcardSurvivorsSession() {
   const [enemies, setEnemies] = useState<EnemyView[]>([]);
   const [levelUp, setLevelUp] = useState<UpgradeChoice[] | null>(null);
   const [gameOver, setGameOver] = useState<RunSummary | null>(null);
+  // Manual pause overlay: separate from levelUp (engine pauses itself
+  // automatically for level-up), and dismissable from a button + Esc/P.
+  // We also keep the latest stats/weapons snapshot here so the pause
+  // screen can show numbers without re-subscribing to the engine.
+  const [paused, setPaused] = useState(false);
+  const [latestPlayer, setLatestPlayer] = useState<PlayerStats | null>(null);
+  const [latestWeapons, setLatestWeapons] = useState<OwnedWeapon[]>([]);
 
   // ---- Start a run ----
   const start = (cfg: {
@@ -87,6 +95,13 @@ export default function FlashcardSurvivorsSession() {
       engine.addEventListener((event) => {
         if (cancelled) return;
         if (event.type === "enemiesChanged") setEnemies(event.visible);
+        else if (event.type === "stats") {
+          // Cache the latest snapshot so the pause screen has live
+          // numbers when it opens, even though it doesn't subscribe
+          // directly.
+          setLatestPlayer(event.player);
+          setLatestWeapons(event.weapons);
+        }
         else if (event.type === "levelUp") setLevelUp(event.choices);
         else if (event.type === "gameOver") {
           setGameOver(event.summary);
@@ -110,6 +125,35 @@ export default function FlashcardSurvivorsSession() {
       inputRef.current = null;
     };
   }, [screen, runConfig, mastery?.unlockedNodes]);
+
+  // Pause / resume helpers + Esc/P keyboard shortcut.
+  const openPause = () => {
+    if (!engineRef.current || levelUp || gameOver) return;
+    engineRef.current.pause();
+    setPaused(true);
+  };
+  const closePause = () => {
+    if (!engineRef.current) return;
+    engineRef.current.resume();
+    setPaused(false);
+  };
+  useEffect(() => {
+    if (screen !== "playing") return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" || e.key.toLowerCase() === "p") {
+        // Don't intercept Esc while the level-up modal is open — it
+        // has its own number-key handler and the modal isn't dismissible
+        // by Esc per spec (player must pick an upgrade).
+        if (levelUp || gameOver) return;
+        e.preventDefault();
+        if (paused) closePause();
+        else openPause();
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [screen, levelUp, gameOver, paused]);
 
   // Canvas tap → engine.pickEnemyAt (Tap Mode only).
   const onCanvasTap = (e: React.PointerEvent<HTMLCanvasElement>) => {
@@ -182,6 +226,20 @@ export default function FlashcardSurvivorsSession() {
           engine={engineRef.current}
           weaponCap={weaponCap}
           onExit={() => engineRef.current?.quit()}
+          onPause={openPause}
+        />
+      )}
+
+      {paused && engineRef.current && latestPlayer && (
+        <PauseScreen
+          engine={engineRef.current}
+          player={latestPlayer}
+          weapons={latestWeapons}
+          onResume={closePause}
+          onQuit={() => {
+            closePause();
+            engineRef.current?.quit();
+          }}
         />
       )}
 

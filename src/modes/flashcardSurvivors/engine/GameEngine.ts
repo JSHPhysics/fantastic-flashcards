@@ -196,6 +196,25 @@ export class GameEngine {
   resume(): void {
     this.paused = false;
     this.lastFrameTs = performance.now();
+    // Reset focus into the run on resume from the pause screen — the
+    // Resume button took DOM focus when tapped, same dance as the
+    // level-up modal flow.
+    this.emit({ type: "resume" });
+  }
+  isPaused(): boolean {
+    return this.paused;
+  }
+  // Read-only accessors used by the manual pause screen so it can show
+  // the run's accumulated tag bonuses and the player's mastery nodes
+  // without us having to thread the engine instance through React state.
+  getTagBonus(): TagBonus {
+    return this.tagBonus;
+  }
+  getMasteryNodes(): string[] {
+    return this.cfg.masteryNodes.slice();
+  }
+  getRunConfig(): { difficulty: RunConfig["difficulty"]; inputMode: RunConfig["inputMode"] } {
+    return { difficulty: this.cfg.difficulty, inputMode: this.cfg.inputMode };
   }
   handleResize(): void {
     const dpr = window.devicePixelRatio || 1;
