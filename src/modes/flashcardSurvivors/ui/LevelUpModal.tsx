@@ -1,6 +1,8 @@
 // Level-up modal (Survivors-Spec §2.10).
 // Three upgrade choices, keyboard-pickable (1/2/3 + R to reroll if the
 // "Reroll Insight" mastery is unlocked).
+//
+// Fixed colour palette — see HUD.tsx for the rationale.
 
 import { useEffect, useState } from "react";
 import type { UpgradeChoice } from "../upgrades/pool";
@@ -44,8 +46,8 @@ export function LevelUpModal({ engine, choices: initial, onClose }: LevelUpModal
   return (
     <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/70 backdrop-blur">
       <div className="w-full max-w-3xl px-3">
-        <h2 className="text-center text-2xl font-semibold text-cream">Level up — pick one</h2>
-        <p className="mt-1 text-center text-xs text-ink-300">
+        <h2 className="text-center text-2xl font-semibold text-white">Level up — pick one</h2>
+        <p className="mt-1 text-center text-xs text-slate-300">
           Keyboard: 1 / 2 / 3 to pick{rerolls > 0 ? ` · R to reroll (${rerolls} left)` : ""}.
         </p>
         <div className="mt-4 grid gap-3 sm:grid-cols-3">
@@ -54,13 +56,13 @@ export function LevelUpModal({ engine, choices: initial, onClose }: LevelUpModal
               key={c.id}
               type="button"
               onClick={() => pick(c)}
-              className="flex h-full flex-col rounded-2xl border-2 border-white/20 bg-navy/80 p-4 text-left text-cream transition-colors hover:border-gold hover:bg-navy"
+              className="flex h-full flex-col rounded-2xl border-2 border-white/20 bg-[#1E3A5F]/90 p-4 text-left text-white transition-colors hover:border-amber-400 hover:bg-[#1E3A5F]"
             >
-              <span className="text-xs text-gold">
+              <span className="text-xs text-amber-300">
                 {c.category.replace("-", " ").toUpperCase()} · {i + 1}
               </span>
               <span className="mt-1 text-base font-semibold">{c.title}</span>
-              <span className="mt-2 flex-1 text-xs leading-snug text-ink-300">{c.description}</span>
+              <span className="mt-2 flex-1 text-xs leading-snug text-slate-300">{c.description}</span>
             </button>
           ))}
         </div>
@@ -69,7 +71,7 @@ export function LevelUpModal({ engine, choices: initial, onClose }: LevelUpModal
             <button
               type="button"
               onClick={reroll}
-              className="rounded-md bg-white/15 px-3 py-1 text-xs text-cream hover:bg-white/25"
+              className="rounded-md bg-white/15 px-3 py-1 text-xs text-white hover:bg-white/25"
             >
               Reroll ({rerolls})
             </button>

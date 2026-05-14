@@ -185,8 +185,14 @@ export default function FlashcardSurvivorsSession() {
         />
       )}
 
-      {runConfig?.inputMode === "keyboard" && inputRef.current?.id === "keyboard" && (
-        <TypingInput input={inputRef.current as KeyboardInput} />
+      {/* Typing is always available — even in Tap mode, a desk player
+          with a keyboard can just type the answer and bypass the
+          tray. Compact placement above the tray when Tap is active. */}
+      {engineRef.current && (
+        <TypingInput
+          engine={engineRef.current}
+          compact={runConfig?.inputMode === "tap"}
+        />
       )}
       {runConfig?.inputMode === "tap" && inputRef.current?.id === "tap" && engineRef.current && (
         <TapChoiceTray engine={engineRef.current} input={inputRef.current as TapInput} />

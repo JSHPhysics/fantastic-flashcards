@@ -11,7 +11,7 @@
 
 import { newId } from "../../../db/ids";
 import type { Card } from "../../../db";
-import { buildSurvivorPool, cardBack, cardFront, statsForCard } from "./cardPool";
+import { buildSurvivorPool, cardBack, cardFront, normaliseAnswer, statsForCard } from "./cardPool";
 import {
   DIFFICULTIES,
   maxConcurrentAt,
@@ -87,6 +87,11 @@ export class GameEngine {
   private spawnedSelectedSet = new Set<string>(); // card ids seen in run
   // Selected-target visual ring (Tap Mode).
   private selectedEnemyId: string | null = null;
+  // Throttled HUD broadcast — we don't want to re-render the React HUD
+  // at 60Hz, but we also can't only emit on correct-answer / level-up
+  // because contact damage + DoT / beam damage happen inside the tick
+  // loop. 100ms feels live without spamming React.
+  private nextStatsBroadcastAt = 0;
 
   // Active input strategy.
   private input: InputMode | null = null;
@@ -196,6 +201,30 @@ export class GameEngine {
 
   visibleEnemies(): Enemy[] {
     return this.enemies;
+  }
+
+  // Try to interpret raw typed text as an answer against any on-screen
+  // enemy. Used by the keyboard input strategy AND by the typing input
+  // that's always mounted alongside the tap tray, so tap-mode players
+  // with a keyboard can also just type instead of tap-selecting. Returns
+  // true when a match was found and fired.
+  tryAnswerByText(text: string): boolean {
+    if (this.gameOver) return false;
+    const target = normaliseAnswer(text);
+    if (target.length === 0) return false;
+    const enemy = this.enemies.find(
+      (e) => normaliseAnswer(cardBack(e.card)) === target,
+    );
+    if (!enemy) return false;
+    this.recordCorrectAnswer(enemy.id);
+    return true;
+  }
+
+  // Explicit "I gave up on this attempt" — resets streak the same way
+  // KeyboardInput's submitWithNoMatch does, used when the user hits
+  // Enter with text that doesn't match anything.
+  recordMiss(): void {
+    this.onMiss();
   }
   findEnemy(id: string): Enemy | null {
     return this.enemies.find((e) => e.id === id) ?? null;
@@ -318,6 +347,14 @@ export class GameEngine {
     this.resolveContactHits();
     this.pruneDead();
     this.broadcastEnemyView();
+    // Live HUD updates — tick-loop damage (contact, DoT clouds, beam
+    // ramp) was previously invisible to the React HUD because we only
+    // broadcast stats on correct-answer / upgrade / miss. Throttle to
+    // ~10Hz so React doesn't re-render 60×/sec.
+    if (this.now >= this.nextStatsBroadcastAt) {
+      this.broadcastStats();
+      this.nextStatsBroadcastAt = this.now + 100;
+    }
   }
 
   private render(): void {
