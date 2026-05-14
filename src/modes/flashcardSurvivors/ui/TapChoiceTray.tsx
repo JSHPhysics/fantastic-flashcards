@@ -41,8 +41,7 @@ export function TapChoiceTray({ engine, input }: TapChoiceTrayProps) {
           </div>
         ) : (
           <div className="rounded-2xl border border-dashed border-ink-300 bg-surface/70 p-4 text-center text-sm text-ink-700 shadow-md backdrop-blur dark:border-dark-surface dark:bg-dark-surface/70 dark:text-ink-300">
-            Tap an enemy to select it, then pick the correct answer here —
-            or just type the answer.
+            Tap an enemy to select it, then pick the correct answer here.
           </div>
         )}
       </div>

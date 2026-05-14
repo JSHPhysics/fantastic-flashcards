@@ -185,14 +185,14 @@ export default function FlashcardSurvivorsSession() {
         />
       )}
 
-      {/* Typing is always available — even in Tap mode, a desk player
-          with a keyboard can just type the answer and bypass the
-          tray. Compact placement above the tray when Tap is active. */}
-      {engineRef.current && (
-        <TypingInput
-          engine={engineRef.current}
-          compact={runConfig?.inputMode === "tap"}
-        />
+      {/* Typing input is Keyboard-mode-only. An earlier version mounted
+          it in Tap mode too so a desk player with a Bluetooth keyboard
+          could type, but that meant iPadOS popped the on-screen
+          keyboard up the moment a Tap-mode run started — the exact
+          behaviour Tap mode exists to avoid. The user picks input mode
+          on the menu; we honour it strictly. */}
+      {runConfig?.inputMode === "keyboard" && engineRef.current && (
+        <TypingInput engine={engineRef.current} />
       )}
       {runConfig?.inputMode === "tap" && inputRef.current?.id === "tap" && engineRef.current && (
         <TapChoiceTray engine={engineRef.current} input={inputRef.current as TapInput} />

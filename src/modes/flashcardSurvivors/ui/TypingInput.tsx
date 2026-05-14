@@ -1,5 +1,6 @@
-// Always-on typed answer input (Survivors-Spec §2.6.1, plus §2.6.2 for
-// Tap-mode players who have a keyboard).
+// Typed answer input (Survivors-Spec §2.6.1). Keyboard-mode only — Tap
+// mode mounts the 4-choice tray instead, so iPadOS doesn't pop up the
+// on-screen keyboard during a touch-driven run.
 //
 // Uses theme tokens (`bg-surface/85` + `text-ink-900`) so the input is
 // always readable against whichever palette is active.
@@ -9,10 +10,9 @@ import type { GameEngine } from "../engine/GameEngine";
 
 interface TypingInputProps {
   engine: GameEngine;
-  compact?: boolean;
 }
 
-export function TypingInput({ engine, compact = false }: TypingInputProps) {
+export function TypingInput({ engine }: TypingInputProps) {
   const ref = useRef<HTMLInputElement>(null);
   const [value, setValue] = useState("");
 
@@ -44,11 +44,7 @@ export function TypingInput({ engine, compact = false }: TypingInputProps) {
   }, [engine]);
 
   return (
-    <div
-      className={`pointer-events-auto absolute left-1/2 z-20 w-full -translate-x-1/2 px-3 ${
-        compact ? "bottom-44 max-w-sm" : "bottom-3 max-w-md"
-      }`}
-    >
+    <div className="pointer-events-auto absolute bottom-3 left-1/2 z-20 w-full max-w-md -translate-x-1/2 px-3">
       <input
         ref={ref}
         type="text"
@@ -70,7 +66,7 @@ export function TypingInput({ engine, compact = false }: TypingInputProps) {
             setValue("");
           }
         }}
-        placeholder={compact ? "or just type the answer…" : "Type the answer…"}
+        placeholder="Type the answer…"
         className="w-full rounded-2xl border border-ink-300 bg-surface/85 px-4 py-3 text-center text-base text-ink-900 placeholder:text-ink-500 shadow-md backdrop-blur focus:border-gold focus:outline-none dark:border-dark-surface dark:text-dark-ink"
       />
       <p className="mt-1 text-center text-[10px] text-cream/80 drop-shadow dark:text-dark-ink/80">
