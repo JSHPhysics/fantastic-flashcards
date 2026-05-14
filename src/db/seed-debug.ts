@@ -235,13 +235,31 @@ export async function seedDebugData(): Promise<SeedDebugResult> {
   decks += 1;
   cards += await addShowcaseCards(showcase.id);
 
+  // ---- Root: Physics rapid-fire (purpose-built for Flashcard Survivors) ----
+  //
+  // The language decks have multi-word backs ("to be", "to do / make")
+  // which are awkward to type during a Survivors run, and the Physics
+  // A-level deck mixes cloze + MCQ + typed cards that get silently
+  // skipped by Survivors. This deck is exclusively basic-front/back
+  // cards with one-word answers — drop a stakeholder straight into
+  // Survivors on this deck and the demo plays cleanly.
+  const rapidFire = await createDeck({
+    name: `${DEBUG_PREFIX} Physics rapid-fire`,
+    description:
+      "Short physics-fact prompts with one-word answers. Built for Flashcard Survivors but works as a regular deck too.",
+    subject: "Physics",
+    colour: "#3D7AB8",
+  });
+  decks += 1;
+  cards += await addPhysicsRapidFireCards(rapidFire.id);
+
   // ---- Review history + sessions ----
   //
-  // Pass the showcase deck id so its cards are EXCLUDED from the review
-  // history + mature-state seeding. The showcase deck is meant to remain
-  // pristine so a stakeholder can see what a fresh card looks like in
-  // every editor.
-  await seedReviewHistory({ excludeDeckId: showcase.id });
+  // The showcase and rapid-fire decks are excluded so their cards stay
+  // fresh: the showcase is meant to demo the editor on pristine cards,
+  // and rapid-fire's whole point is that every card is due and ready
+  // for a Flashcard Survivors run.
+  await seedReviewHistory({ excludeDeckIds: [showcase.id, rapidFire.id] });
 
   return { decksCreated: decks, cardsCreated: cards, alreadySeeded: false };
 }
@@ -527,6 +545,186 @@ async function addBiologyGeneticsCards(deckId: string): Promise<number> {
   return n;
 }
 
+// Survivors-friendly deck. Every card is basic, every answer is a single
+// word, every front is short enough to read on a moving shape. Cards stay
+// out of the review-history seed (see seedDebugData) so they're all due
+// from the moment the deck lands in the demo.
+async function addPhysicsRapidFireCards(deckId: string): Promise<number> {
+  const cards: { front: string; back: string; tags: string[] }[] = [
+    // Atomic structure ------------------------------------------------
+    {
+      front: "What negative particle orbits the nucleus of an atom?",
+      back: "Electron",
+      tags: ["physics", "particles", "atomic-structure"],
+    },
+    {
+      front: "What positively charged particle is found in the nucleus?",
+      back: "Proton",
+      tags: ["physics", "particles", "atomic-structure"],
+    },
+    {
+      front: "What neutral particle is found in the nucleus?",
+      back: "Neutron",
+      tags: ["physics", "particles", "atomic-structure"],
+    },
+    {
+      front: "What is the central part of an atom called?",
+      back: "Nucleus",
+      tags: ["physics", "atomic-structure"],
+    },
+    {
+      front: "What collective name is given to protons and neutrons?",
+      back: "Nucleons",
+      tags: ["physics", "particles", "atomic-structure"],
+    },
+    // SI units ---------------------------------------------------------
+    {
+      front: "What is the SI unit of force?",
+      back: "Newton",
+      tags: ["physics", "units"],
+    },
+    {
+      front: "What is the SI unit of energy?",
+      back: "Joule",
+      tags: ["physics", "units"],
+    },
+    {
+      front: "What is the SI unit of power?",
+      back: "Watt",
+      tags: ["physics", "units"],
+    },
+    {
+      front: "What is the SI unit of frequency?",
+      back: "Hertz",
+      tags: ["physics", "units", "waves"],
+    },
+    {
+      front: "What is the SI unit of electric current?",
+      back: "Ampere",
+      tags: ["physics", "units", "electricity"],
+    },
+    {
+      front: "What is the SI unit of voltage?",
+      back: "Volt",
+      tags: ["physics", "units", "electricity"],
+    },
+    {
+      front: "What is the SI unit of electrical resistance?",
+      back: "Ohm",
+      tags: ["physics", "units", "electricity"],
+    },
+    {
+      front: "What is the SI unit of pressure?",
+      back: "Pascal",
+      tags: ["physics", "units"],
+    },
+    {
+      front: "What is the SI unit of charge?",
+      back: "Coulomb",
+      tags: ["physics", "units", "electricity"],
+    },
+    {
+      front: "What is the SI unit of temperature?",
+      back: "Kelvin",
+      tags: ["physics", "units"],
+    },
+    // Mechanics --------------------------------------------------------
+    {
+      front: "What name describes the pull between two masses?",
+      back: "Gravity",
+      tags: ["physics", "mechanics", "forces"],
+    },
+    {
+      front: "What name describes the resistance opposing motion?",
+      back: "Friction",
+      tags: ["physics", "mechanics", "forces"],
+    },
+    {
+      front: "What quantity equals mass times velocity?",
+      back: "Momentum",
+      tags: ["physics", "mechanics"],
+    },
+    {
+      front: "What is the rate of change of velocity called?",
+      back: "Acceleration",
+      tags: ["physics", "mechanics"],
+    },
+    {
+      front: "What is force per unit area called?",
+      back: "Pressure",
+      tags: ["physics", "mechanics"],
+    },
+    // Waves ------------------------------------------------------------
+    {
+      front: "What is the distance between two wave peaks called?",
+      back: "Wavelength",
+      tags: ["physics", "waves"],
+    },
+    {
+      front: "What is the maximum displacement of a wave called?",
+      back: "Amplitude",
+      tags: ["physics", "waves"],
+    },
+    {
+      front: "What process bends light entering a denser medium?",
+      back: "Refraction",
+      tags: ["physics", "waves", "optics"],
+    },
+    {
+      front: "What process bounces light off a mirror?",
+      back: "Reflection",
+      tags: ["physics", "waves", "optics"],
+    },
+    {
+      front: "What process spreads waves around an obstacle's edge?",
+      back: "Diffraction",
+      tags: ["physics", "waves"],
+    },
+    // Scientists -------------------------------------------------------
+    {
+      front: "Who proposed the three laws of motion?",
+      back: "Newton",
+      tags: ["physics", "scientists"],
+    },
+    {
+      front: "Who developed the theory of general relativity?",
+      back: "Einstein",
+      tags: ["physics", "scientists"],
+    },
+    {
+      front: "Who discovered the electron?",
+      back: "Thomson",
+      tags: ["physics", "scientists", "atomic-structure"],
+    },
+    {
+      front: "Whose gold-foil experiment revealed the atomic nucleus?",
+      back: "Rutherford",
+      tags: ["physics", "scientists", "atomic-structure"],
+    },
+    {
+      front: "Who proposed the planetary model of the atom?",
+      back: "Bohr",
+      tags: ["physics", "scientists", "atomic-structure"],
+    },
+  ];
+
+  let n = 0;
+  for (const c of cards) {
+    await createBasicCard({
+      deckId,
+      tags: c.tags,
+      front: { text: c.front },
+      back: { text: c.back },
+      // Reverse cards would ask "Electron" -> "What negative particle…",
+      // which works grammatically but loses the question-style framing
+      // that makes this deck snappy. One-direction only.
+      autoReverse: false,
+    });
+    n += 1;
+  }
+  return n;
+}
+
 async function addShowcaseCards(deckId: string): Promise<number> {
   let n = 0;
   await createBasicCard({
@@ -573,9 +771,10 @@ async function addShowcaseCards(deckId: string): Promise<number> {
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 interface ReviewSeedConfig {
-  // Cards in this deck (and only this deck) are NOT given any review
-  // history. The showcase deck is excluded so its cards stay fresh.
-  excludeDeckId: string;
+  // Cards in these decks are NOT given any review history. Showcase
+  // (pristine demo of every editor) and rapid-fire (Survivors-friendly,
+  // every card should start due) both opt out.
+  excludeDeckIds: string[];
 }
 
 // Daily review counts for the last 14 days (oldest -> today). Designed to
@@ -600,14 +799,13 @@ const DAILY_PATTERN: { count: number; mix: Rating[] }[] = [
 ];
 
 async function seedReviewHistory(config: ReviewSeedConfig): Promise<void> {
-  // Grab every card in the demo set minus the showcase deck. The previous
+  // Grab every card in the demo set minus the opt-out decks. The previous
   // version queried by parent-deck id and missed every sub-deck card,
   // which is where almost every demo card actually lives — so the mature-
   // state pass only touched ~10% of cards. Querying flat-everything fixes
   // the mastery percentage.
-  const allCards = await db.cards
-    .filter((c) => c.deckId !== config.excludeDeckId)
-    .toArray();
+  const exclude = new Set(config.excludeDeckIds);
+  const allCards = await db.cards.filter((c) => !exclude.has(c.deckId)).toArray();
   if (allCards.length === 0) return;
 
   const todayAfternoon = new Date();
