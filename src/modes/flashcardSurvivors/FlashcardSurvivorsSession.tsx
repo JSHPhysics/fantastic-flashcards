@@ -138,11 +138,14 @@ export default function FlashcardSurvivorsSession() {
     return <MasteryTreeScreen onClose={() => setScreen("menu")} />;
   }
 
-  // Playing or gameover — the canvas stays mounted underneath.
+  // Playing or gameover — the canvas stays mounted underneath. The
+  // canvas itself paints the theme's body colour each frame (see
+  // GameEngine.render), so the wrapper just needs to sit black-bg-free
+  // and let it through.
   const weaponCap =
     applyMasteryEffects(mastery?.unlockedNodes ?? []).weaponCap;
   return (
-    <div className="fixed inset-0 z-40 bg-[#0b1320] text-cream">
+    <div className="fixed inset-0 z-40 bg-cream text-ink-900 dark:text-dark-ink">
       <canvas
         ref={canvasRef}
         onPointerDown={onCanvasTap}
@@ -154,23 +157,20 @@ export default function FlashcardSurvivorsSession() {
         {enemies.map((e) => (
           <div
             key={e.id}
+            // Position is set inline because it changes every frame; the
+            // visual styling sits in className so the label adopts the
+            // theme palette. Wider 240px cap with word-wrap so a 30-char
+            // French phrase fits on 2-3 lines rather than being clipped
+            // — students need to see the whole prompt to know what to
+            // type.
             style={{
               position: "absolute",
               left: e.pos.x,
               top: e.pos.y + e.size * 0.5 + 6,
               transform: "translate(-50%, 0)",
-              maxWidth: Math.max(140, e.size * 3),
-              textAlign: "center",
-              padding: "2px 6px",
-              fontSize: 11,
-              borderRadius: 4,
-              background: "rgba(0,0,0,0.45)",
-              color: "white",
-              pointerEvents: "none",
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
+              maxWidth: 240,
             }}
+            className="pointer-events-none whitespace-normal break-words rounded px-1.5 py-0.5 text-center text-[11px] leading-tight bg-surface/85 text-ink-900 shadow-sm dark:text-dark-ink"
           >
             {e.front}
           </div>

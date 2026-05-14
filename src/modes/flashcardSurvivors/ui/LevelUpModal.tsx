@@ -2,7 +2,10 @@
 // Three upgrade choices, keyboard-pickable (1/2/3 + R to reroll if the
 // "Reroll Insight" mastery is unlocked).
 //
-// Fixed colour palette — see HUD.tsx for the rationale.
+// Uses theme tokens — `bg-surface` modal on a `bg-black/60` scrim that
+// reads correctly against every theme. Body text is `text-ink-900` so
+// dark themes (Midnight, Volcanic) and light themes (Cherry Blossom,
+// Slate) both render readable text.
 
 import { useEffect, useState } from "react";
 import type { UpgradeChoice } from "../upgrades/pool";
@@ -44,10 +47,12 @@ export function LevelUpModal({ engine, choices: initial, onClose }: LevelUpModal
   }, [choices, rerolls]);
 
   return (
-    <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/70 backdrop-blur">
+    <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/60 backdrop-blur">
       <div className="w-full max-w-3xl px-3">
-        <h2 className="text-center text-2xl font-semibold text-white">Level up — pick one</h2>
-        <p className="mt-1 text-center text-xs text-slate-300">
+        <h2 className="text-center text-2xl font-semibold text-cream drop-shadow-lg dark:text-dark-ink">
+          Level up — pick one
+        </h2>
+        <p className="mt-1 text-center text-xs text-cream/80 dark:text-dark-ink/80">
           Keyboard: 1 / 2 / 3 to pick{rerolls > 0 ? ` · R to reroll (${rerolls} left)` : ""}.
         </p>
         <div className="mt-4 grid gap-3 sm:grid-cols-3">
@@ -56,13 +61,15 @@ export function LevelUpModal({ engine, choices: initial, onClose }: LevelUpModal
               key={c.id}
               type="button"
               onClick={() => pick(c)}
-              className="flex h-full flex-col rounded-2xl border-2 border-white/20 bg-[#1E3A5F]/90 p-4 text-left text-white transition-colors hover:border-amber-400 hover:bg-[#1E3A5F]"
+              className="flex h-full flex-col rounded-2xl border-2 border-ink-100 bg-surface p-4 text-left text-ink-900 shadow-xl transition-colors hover:border-gold dark:border-dark-surface dark:text-dark-ink"
             >
-              <span className="text-xs text-amber-300">
+              <span className="text-xs text-gold">
                 {c.category.replace("-", " ").toUpperCase()} · {i + 1}
               </span>
               <span className="mt-1 text-base font-semibold">{c.title}</span>
-              <span className="mt-2 flex-1 text-xs leading-snug text-slate-300">{c.description}</span>
+              <span className="mt-2 flex-1 text-xs leading-snug text-ink-700 dark:text-ink-300">
+                {c.description}
+              </span>
             </button>
           ))}
         </div>
@@ -71,7 +78,7 @@ export function LevelUpModal({ engine, choices: initial, onClose }: LevelUpModal
             <button
               type="button"
               onClick={reroll}
-              className="rounded-md bg-white/15 px-3 py-1 text-xs text-white hover:bg-white/25"
+              className="rounded-md bg-surface/85 px-3 py-1 text-xs text-ink-900 shadow-md hover:bg-surface dark:text-dark-ink"
             >
               Reroll ({rerolls})
             </button>

@@ -18,6 +18,10 @@ export interface DifficultyConfig {
   contactDamageMult: number;
   xpGainMult: number;
   insightMult: number;
+  // Multiplier applied on top of the reading-time-aware base speed in
+  // statsForCard(). 0.7 (easy) gives students a generous buffer; 1.4
+  // (insane) shaves the buffer significantly.
+  enemySpeedMult: number;
 }
 
 const FIVE_MIN_MS = 5 * 60 * 1000;
@@ -34,6 +38,7 @@ export const DIFFICULTIES: Record<SurvivorDifficulty, DifficultyConfig> = {
     contactDamageMult: 0.7,
     xpGainMult: 1.0,
     insightMult: 1.0,
+    enemySpeedMult: 0.7,
   },
   normal: {
     id: "normal",
@@ -46,6 +51,7 @@ export const DIFFICULTIES: Record<SurvivorDifficulty, DifficultyConfig> = {
     contactDamageMult: 1.0,
     xpGainMult: 1.0,
     insightMult: 1.5,
+    enemySpeedMult: 1.0,
   },
   hard: {
     id: "hard",
@@ -58,6 +64,7 @@ export const DIFFICULTIES: Record<SurvivorDifficulty, DifficultyConfig> = {
     contactDamageMult: 1.3,
     xpGainMult: 1.15,
     insightMult: 2.0,
+    enemySpeedMult: 1.2,
   },
   insane: {
     // Unlocked via "Forgotten Mastery" mastery node. Tuned tougher and
@@ -72,6 +79,7 @@ export const DIFFICULTIES: Record<SurvivorDifficulty, DifficultyConfig> = {
     contactDamageMult: 1.6,
     xpGainMult: 1.25,
     insightMult: 3.0,
+    enemySpeedMult: 1.4,
   },
 };
 

@@ -2,10 +2,11 @@
 // Top-left: HP bar + XP + level. Top-right: weapon slots. Top-centre:
 // streak + run timer.
 //
-// Uses *fixed* colour literals (text-white, text-amber-400, etc.) rather
-// than theme tokens. The game has its own dark visual identity that
-// shouldn't mutate per theme — e.g. text-cream resolves to dark on
-// Midnight, which would render invisible on the near-black HUD plate.
+// Uses theme tokens — `bg-surface` for plates and `text-ink-900` /
+// `text-ink-700` for text. These are always-readable by the theme's
+// definition (every theme defines an ink colour that contrasts with
+// its surface), so the HUD adapts to Midnight, Cherry Blossom,
+// Forest, etc. without invisible-text bugs.
 
 import { useEffect, useState } from "react";
 import type { GameEngine } from "../engine/GameEngine";
@@ -48,34 +49,34 @@ export function HUD({ engine, weaponCap, onExit }: HUDProps) {
   return (
     <div className="pointer-events-none absolute inset-0 z-10 select-none">
       {/* Top-left: HP + XP + level */}
-      <div className="pointer-events-auto absolute left-3 top-3 w-56 rounded-xl bg-black/55 p-2 text-white backdrop-blur">
+      <div className="pointer-events-auto absolute left-3 top-3 w-56 rounded-xl bg-surface/85 p-2 text-ink-900 shadow-md backdrop-blur dark:text-dark-ink">
         <div className="flex items-center gap-2 text-xs">
           <span className="font-semibold">L{player.level}</span>
-          <span className="flex-1 truncate text-slate-300">
+          <span className="flex-1 truncate text-ink-700 dark:text-ink-300">
             HP {Math.max(0, Math.ceil(player.hp))} / {player.maxHp}
           </span>
         </div>
-        <div className="mt-1 h-2 overflow-hidden rounded-full bg-white/15">
+        <div className="mt-1 h-2 overflow-hidden rounded-full bg-ink-100 dark:bg-dark-bg">
           <div
-            className="h-full bg-emerald-400 transition-[width] duration-100"
+            className="h-full bg-good transition-[width] duration-100"
             style={{ width: `${hpPct}%` }}
           />
         </div>
-        <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-white/10">
+        <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-ink-100 dark:bg-dark-bg">
           <div
-            className="h-full bg-amber-400 transition-[width] duration-100"
+            className="h-full bg-gold transition-[width] duration-100"
             style={{ width: `${xpPct}%` }}
           />
         </div>
       </div>
 
       {/* Top-centre: streak + timer */}
-      <div className="absolute left-1/2 top-3 -translate-x-1/2 rounded-xl bg-black/55 px-3 py-1 text-center text-xs text-white backdrop-blur">
+      <div className="absolute left-1/2 top-3 -translate-x-1/2 rounded-xl bg-surface/85 px-3 py-1 text-center text-xs text-ink-900 shadow-md backdrop-blur dark:text-dark-ink">
         <div className="font-mono text-base">
           {minutes}:{seconds.toString().padStart(2, "0")}
         </div>
         {player.streak > 0 && (
-          <div className="mt-0.5 text-[11px] text-amber-300">
+          <div className="mt-0.5 text-[11px] text-gold">
             Streak {player.streak}{player.streak >= 5 ? " 🔥" : ""}
           </div>
         )}
@@ -91,10 +92,10 @@ export function HUD({ engine, weaponCap, onExit }: HUDProps) {
               <div
                 key={i}
                 title={def ? `${def.name} L${w?.level}` : "Empty slot"}
-                className={`flex h-8 w-8 items-center justify-center rounded-md text-[10px] font-bold ${
+                className={`flex h-8 w-8 items-center justify-center rounded-md text-[10px] font-bold shadow-sm ${
                   w
-                    ? "bg-[#1E3A5F] text-white"
-                    : "bg-white/10 text-white/40"
+                    ? "bg-navy text-cream dark:text-dark-ink"
+                    : "bg-surface/60 text-ink-500"
                 }`}
               >
                 {def ? def.name[0] + (w?.level ?? 1) : "·"}
@@ -105,7 +106,7 @@ export function HUD({ engine, weaponCap, onExit }: HUDProps) {
         <button
           type="button"
           onClick={onExit}
-          className="rounded-md bg-white/15 px-2 py-1 text-xs font-semibold text-white hover:bg-white/25"
+          className="rounded-md bg-surface/85 px-2 py-1 text-xs font-semibold text-ink-900 shadow-md hover:bg-surface dark:text-dark-ink"
         >
           Quit
         </button>

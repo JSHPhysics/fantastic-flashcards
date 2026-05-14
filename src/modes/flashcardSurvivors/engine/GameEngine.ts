@@ -92,6 +92,17 @@ export class GameEngine {
   // because contact damage + DoT / beam damage happen inside the tick
   // loop. 100ms feels live without spamming React.
   private nextStatsBroadcastAt = 0;
+  // Cached theme colours read from CSS variables once at start(). The
+  // canvas backdrop + the player turret + enemy outlines all use these
+  // so the game adopts whichever theme is active. A theme change during
+  // a run only takes effect on the next run — acceptable trade-off
+  // since theme changes mid-game are vanishingly rare.
+  private colours = {
+    backdrop: "#0b1320",
+    ink: "rgb(255 255 255)",
+    inkMuted: "rgba(255,255,255,0.6)",
+    innerZoneRing: "rgba(255,255,255,0.06)",
+  };
 
   // Active input strategy.
   private input: InputMode | null = null;
@@ -158,6 +169,9 @@ export class GameEngine {
     const { db } = await import("../../../db/schema");
     const decks = await db.decks.where("id").anyOf(this.cfg.decks).toArray();
     for (const d of decks) this.deckColours.set(d.id, d.colour);
+    // Pick up the active theme's palette via CSS variables. These flow
+    // into the canvas backdrop + player + enemy outlines.
+    this.colours = readThemeColours();
     this.lastFrameTs = performance.now();
     this.broadcastStats();
     this.loop();
@@ -359,11 +373,16 @@ export class GameEngine {
 
   private render(): void {
     const ctx = this.ctx;
-    ctx.clearRect(0, 0, this.width, this.height);
+    // Fill backdrop with the theme's body colour (--color-cream) instead
+    // of clearing to transparent. That way the game viewport matches the
+    // active theme — Midnight gives a near-black field, Cherry Blossom
+    // gives a soft pink, etc.
+    ctx.fillStyle = this.colours.backdrop;
+    ctx.fillRect(0, 0, this.width, this.height);
     ctx.save();
     ctx.translate(this.centreX, this.centreY);
-    // Inner-zone ring (subtle).
-    ctx.strokeStyle = "rgba(255,255,255,0.06)";
+    // Inner-zone ring (subtle, theme-tinted).
+    ctx.strokeStyle = this.colours.innerZoneRing;
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.arc(0, 0, INNER_ZONE_RADIUS, 0, Math.PI * 2);
@@ -406,12 +425,13 @@ export class GameEngine {
       ctx.arc(p.pos.x, p.pos.y, p.radius, 0, Math.PI * 2);
       ctx.fill();
     }
-    // Player (turret) at centre.
-    ctx.fillStyle = "rgba(255,255,255,0.95)";
+    // Player (turret) at centre — uses theme ink so it pops against any
+    // background. The outer ring is a faded variant of the same.
+    ctx.fillStyle = this.colours.ink;
     ctx.beginPath();
     ctx.arc(0, 0, 14, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = "rgba(255,255,255,0.4)";
+    ctx.strokeStyle = this.colours.inkMuted;
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.arc(0, 0, 22, 0, Math.PI * 2);
@@ -424,15 +444,17 @@ export class GameEngine {
     ctx.save();
     ctx.translate(e.pos.x, e.pos.y);
     ctx.fillStyle = e.colour;
-    ctx.strokeStyle = e.elite ? "#FFD580" : "rgba(255,255,255,0.55)";
+    // Outline uses the theme's ink colour for non-elites; elites still
+    // get a gold ring so they're immediately distinguishable.
+    ctx.strokeStyle = e.elite ? "#FFD580" : this.colours.inkMuted;
     ctx.lineWidth = e.elite ? 3 : 1.5;
     const r = e.size * 0.5;
     drawShape(ctx, e.shape, r);
     ctx.fill();
     ctx.stroke();
-    // Selected indicator (Tap Mode).
+    // Selected indicator (Tap Mode) — high-contrast theme ink.
     if (this.selectedEnemyId === e.id) {
-      ctx.strokeStyle = "rgba(255,255,255,0.95)";
+      ctx.strokeStyle = this.colours.ink;
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.arc(0, 0, r + 8, 0, Math.PI * 2);
@@ -469,7 +491,11 @@ export class GameEngine {
     const angle = Math.random() * Math.PI * 2;
     const radius = Math.max(this.width, this.height) * 0.55;
     const pos: Vec2 = { x: Math.cos(angle) * radius, y: Math.sin(angle) * radius };
-    const speed = stats.speed;
+    // Final speed = card-derived base × difficulty multiplier. The card
+    // pool already factored in reading time + retrievability; difficulty
+    // adds the global "how merciful is this run" knob (easy 0.7,
+    // normal 1.0, hard 1.2, insane 1.4).
+    const speed = stats.speed * this.difficulty.enemySpeedMult;
     const vel: Vec2 = {
       x: -Math.cos(angle) * speed,
       y: -Math.sin(angle) * speed,
@@ -833,4 +859,30 @@ function drawShape(ctx: CanvasRenderingContext2D, shape: Enemy["shape"], r: numb
     else ctx.lineTo(x, y);
   }
   ctx.closePath();
+}
+
+// Reads the theme palette out of CSS variables defined in index.css.
+// The values are space-separated r g b channels (e.g. "250 247 242") so
+// we wrap them in rgb() to get a valid canvas fill / stroke string. Falls
+// back to readable defaults if the variable isn't set (shouldn't happen
+// in practice, but keeps the engine safe if it loads before the theme
+// stylesheet is parsed).
+function readThemeColours(): GameEngine["colours"] {
+  if (typeof window === "undefined" || typeof document === "undefined") {
+    return {
+      backdrop: "#0b1320",
+      ink: "rgb(255 255 255)",
+      inkMuted: "rgba(255,255,255,0.6)",
+      innerZoneRing: "rgba(255,255,255,0.06)",
+    };
+  }
+  const style = getComputedStyle(document.documentElement);
+  const cream = style.getPropertyValue("--color-cream").trim() || "11 19 32";
+  const ink900 = style.getPropertyValue("--color-ink-900").trim() || "240 240 240";
+  return {
+    backdrop: `rgb(${cream})`,
+    ink: `rgb(${ink900})`,
+    inkMuted: `rgb(${ink900} / 0.55)`,
+    innerZoneRing: `rgb(${ink900} / 0.08)`,
+  };
 }

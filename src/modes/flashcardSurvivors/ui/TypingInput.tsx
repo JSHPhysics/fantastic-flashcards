@@ -1,15 +1,8 @@
-// Always-on typed answer input (Survivors-Spec §2.6.1, plus a §2.6.2
-// affordance for Tap-mode players who do have a keyboard).
+// Always-on typed answer input (Survivors-Spec §2.6.1, plus §2.6.2 for
+// Tap-mode players who have a keyboard).
 //
-// Single component that talks to the engine directly via
-// `engine.tryAnswerByText` — no need to wire through a per-mode input
-// strategy. Mounted in both modes:
-//   - Keyboard mode: prominent at the bottom, autofocused.
-//   - Tap mode: compact and slightly above the tray, also autofocused.
-//
-// Live-matches the buffer against on-screen enemy backs on every
-// keystroke. First exact match (case + whitespace normalised) locks
-// the enemy and clears the input. Enter with no match resets streak.
+// Uses theme tokens (`bg-surface/85` + `text-ink-900`) so the input is
+// always readable against whichever palette is active.
 
 import { useEffect, useRef, useState } from "react";
 import type { GameEngine } from "../engine/GameEngine";
@@ -58,16 +51,17 @@ export function TypingInput({ engine, compact = false }: TypingInputProps) {
         }}
         onKeyDown={(e) => {
           if (e.key === "Enter" && value.length > 0) {
-            // Enter without a live match counts as a deliberate "give up
-            // on this attempt" — resets streak (modulo the Persistent
-            // Recall mastery's once-per-run grace).
             engine.recordMiss();
             setValue("");
           }
         }}
         placeholder={compact ? "or just type the answer…" : "Type the answer…"}
-        className="w-full rounded-2xl border border-white/20 bg-black/55 px-4 py-3 text-center text-base text-white placeholder:text-slate-400 backdrop-blur focus:border-amber-400 focus:outline-none"
+        className="w-full rounded-2xl border border-ink-300 bg-surface/85 px-4 py-3 text-center text-base text-ink-900 placeholder:text-ink-500 shadow-md backdrop-blur focus:border-gold focus:outline-none dark:border-dark-surface dark:text-dark-ink"
       />
+      <p className="mt-1 text-center text-[10px] text-cream/80 drop-shadow dark:text-dark-ink/80">
+        Accents are optional — type <span className="font-mono">etre</span>{" "}
+        and it'll match <span className="font-mono">être</span>.
+      </p>
     </div>
   );
 }

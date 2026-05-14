@@ -31,11 +31,32 @@ const SHAPES: CardPoolStats["shape"][] = [
   "pentagon",
 ];
 
-// Card → enemy mapping (Survivors-Spec §2.4).
+// Card → enemy mapping (Survivors-Spec §2.4) — extended.
+//
+// Speed is now reading-time-aware: the longer the card's front (to read)
+// and back (to type), the slower the enemy. Without this, language vocab
+// with 30+ char fronts was unplayably fast — the original flat speed
+// curve gave students 4-6 seconds to read AND type, which is hopeless.
+//
+// Formula:
+//   1. Estimate reading time = max(2s, (frontChars + backChars*1.5) / 8)
+//      (8 chars/sec is leisurely reading; back is weighted 1.5x because
+//      typing it takes longer than scanning the front).
+//   2. Pick a base speed that gives the student that reading time + a
+//      40% buffer before the enemy reaches the centre, assuming a ~500px
+//      edge-to-centre distance. baseSpeed = 500 / (readingTime * 1.4).
+//   3. Modulate by retrievability — forgotten cards (low R) rush 1.4x.
+//   4. Apply difficulty's enemySpeedMult on top in the engine.
 //
 // Difficulty / retrievability / lapses are read out of the FSRS state.
 // ts-fsrs stores these on the card's fsrs blob. The accesses below tolerate
 // undefined fields so brand-new cards still produce sensible enemies.
+
+const EDGE_TO_CENTRE_PX = 500; // canvas-edge-ish distance the enemy traverses
+const READING_BUFFER = 1.4; // 40% extra time on top of reading-time estimate
+const MIN_SPEED = 18; // hard floor — even on tiny cards, slow enough to type
+const MAX_SPEED = 110; // hard ceiling — even on tiny cards, never bullet-speed
+
 export function statsForCard(card: Card, deckColour: string): CardPoolStats {
   const fsrs = card.fsrs as {
     difficulty?: number;
@@ -47,22 +68,33 @@ export function statsForCard(card: Card, deckColour: string): CardPoolStats {
   const stability = fsrs.stability ?? 1;
   const elapsed = fsrs.elapsed_days ?? 0;
   const lapses = fsrs.lapses ?? 0;
-  // Retrievability = exp(-elapsed / stability) clamped — fresh new cards
-  // get treated as R = 0.5 baseline so they're not full-speed.
   const retrievability =
     stability > 0 ? Math.max(0, Math.min(1, Math.exp(-elapsed / stability))) : 0.5;
-  // Back text drives card size — longer answers = bigger, more telegraphed.
-  const backText =
-    card.content.type === "basic" ? card.content.back.text : "";
+
+  const frontText = cardFront(card);
+  const backText = cardBack(card);
   const sizeBase = 28 + Math.min(20, backText.length * 0.6);
-  // Hash card id to a stable shape so the same card always renders the same.
   const shapeIdx =
     [...card.id].reduce((s, c) => (s + c.charCodeAt(0)) % SHAPES.length, 0) %
     SHAPES.length;
+
+  // Reading-time estimate. Floor at 2s so a one-letter answer still gives
+  // a beat to react.
+  const readingTimeSec = Math.max(
+    2,
+    (frontText.length + backText.length * 1.5) / 8,
+  );
+  // Speed that delivers the enemy to the centre right when the reading
+  // buffer expires.
+  const reactionSpeed = EDGE_TO_CENTRE_PX / (readingTimeSec * READING_BUFFER);
+  // Forgotten cards rush in faster (low R), well-known ones drift in
+  // slowly. retrievability of 0 -> 1.4x, retrievability of 1 -> 0.7x.
+  const rMult = 0.7 + (1 - retrievability) * 0.7;
+  const speed = Math.max(MIN_SPEED, Math.min(MAX_SPEED, reactionSpeed * rMult));
+
   return {
     hp: Math.round(10 + difficulty * 8),
-    // Speed: low R = faster. 60..160 px/s range at the engine layer.
-    speed: 60 + (1 - retrievability) * 100,
+    speed,
     contactDamage: 8 + lapses * 3,
     size: sizeBase,
     colour: deckColour,
@@ -108,9 +140,47 @@ function shuffle<T>(arr: T[]): T[] {
 }
 
 // Normalised version of a card's back text for comparison against typed
-// input. Matches whitespace-and-case-insensitive equality per spec §2.6.1.
+// input. Spec §2.6.1 calls for case + whitespace normalisation; we
+// additionally strip diacritics so language-deck students can type
+// `etre` for `être`, `manana` for `mañana`, `schon` for `schön`.
+// Otherwise the mode is unplayable on any deck whose answers contain
+// accents — students on a Bluetooth keyboard can't easily produce the
+// combining marks.
+//
+// Mechanism:
+//   1. Lowercase + trim + collapse multi-whitespace.
+//   2. Unicode NFD decomposition: each precomposed accented character
+//      becomes a base letter + a combining mark (e.g. é -> e + U+0301).
+//      We then strip everything in the combining-marks range. This
+//      covers French, Spanish, Portuguese, Italian, Vietnamese, etc.
+//   3. Manual mappings for characters NFD doesn't decompose — German
+//      ß -> ss, Scandinavian ø/Ø -> o, Polish ł -> l, ligatures
+//      æ/œ -> ae/oe, Icelandic þ/ð -> th/d. These are the standard
+//      romanisation rules students would expect.
+//
+// The same normalisation is used on both sides of every comparison
+// (typed input + stored card back), so equality checks remain symmetric.
+const ROMANISATION_MAP: Record<string, string> = {
+  ß: "ss",
+  ø: "o",
+  æ: "ae",
+  œ: "oe",
+  ł: "l",
+  þ: "th",
+  ð: "d",
+};
+
 export function normaliseAnswer(s: string): string {
-  return s.trim().toLowerCase().replace(/\s+/g, " ");
+  let out = s.trim().toLowerCase().replace(/\s+/g, " ");
+  // NFD splits accented forms into base + combining mark; strip marks
+  // (Unicode block U+0300–U+036F: combining diacritical marks).
+  out = out.normalize("NFD").replace(/[̀-ͯ]/g, "");
+  // Manual single-character mappings for non-decomposing characters.
+  let rebuilt = "";
+  for (const ch of out) {
+    rebuilt += ROMANISATION_MAP[ch] ?? ch;
+  }
+  return rebuilt;
 }
 
 export function cardBack(card: Card): string {

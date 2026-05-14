@@ -1,10 +1,6 @@
-// Tap-mode answer tray (Survivors-Spec §2.6.2). Bottom 25% of screen,
-// 2×2 grid of large (≥ 64pt) buttons. Empty until the player taps an
-// enemy to select a target.
-//
-// Fixed colour palette (text-white on near-black) so options stay
-// readable on every theme — earlier `text-cream` resolved to dark on
-// Midnight / Graphite / etc., rendering the buttons unreadable.
+// Tap-mode answer tray (Survivors-Spec §2.6.2).
+// Uses theme tokens — surface plate with ink text — so the buttons stay
+// readable on every theme.
 
 import { useEffect, useState } from "react";
 import type { GameEngine } from "../engine/GameEngine";
@@ -37,14 +33,14 @@ export function TapChoiceTray({ engine, input }: TapChoiceTrayProps) {
                 key={`${i}-${c}`}
                 type="button"
                 onClick={() => input.submitChoice(c)}
-                className="min-h-[64px] rounded-2xl border border-white/20 bg-black/65 px-3 py-3 text-base text-white backdrop-blur transition-colors hover:bg-black/80"
+                className="min-h-[64px] rounded-2xl border border-ink-200 bg-surface px-3 py-3 text-base text-ink-900 shadow-md transition-colors hover:bg-ink-100 dark:border-dark-surface dark:bg-dark-surface dark:text-dark-ink dark:hover:bg-dark-bg"
               >
                 {c}
               </button>
             ))}
           </div>
         ) : (
-          <div className="rounded-2xl border border-dashed border-white/20 bg-black/40 p-4 text-center text-sm text-slate-300 backdrop-blur">
+          <div className="rounded-2xl border border-dashed border-ink-300 bg-surface/70 p-4 text-center text-sm text-ink-700 shadow-md backdrop-blur dark:border-dark-surface dark:bg-dark-surface/70 dark:text-ink-300">
             Tap an enemy to select it, then pick the correct answer here —
             or just type the answer.
           </div>
