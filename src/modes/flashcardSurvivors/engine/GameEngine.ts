@@ -706,6 +706,16 @@ export class GameEngine {
   }
 
   private killEnemy(enemy: Enemy): void {
+    // Idempotency guard. Without this, an Elaboration Cloud spawned by
+    // killEnemy lands on the corpse, the next iteration of updateClouds
+    // damages the (still-in-list) dead enemy again, killEnemy fires
+    // again, spawns another cloud at the same spot, and the loop
+    // cascades — XP compounds, level-ups stack, and eventually the run
+    // crashes. Mark the enemy killed on first call; subsequent calls in
+    // the same tick are no-ops. pruneDead() removes the enemy at
+    // end-of-tick.
+    if (enemy.killed) return;
+    enemy.killed = true;
     // Award XP scaled by max HP.
     const xpGained = Math.round(enemy.maxHp * 0.5 * this.player.xpGainMult);
     this.player.xp += xpGained;
@@ -758,6 +768,9 @@ export class GameEngine {
     });
     this.broadcastStats();
     this.paused = false;
+    // Tell subscribers (TypingInput) the run is live again so they can
+    // restore focus that the upgrade-button stole.
+    this.emit({ type: "resume" });
   }
 
   rerollLevelUp(): UpgradeChoice[] {

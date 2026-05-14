@@ -44,6 +44,12 @@ export interface Enemy {
   // and reused across re-selections so the player can't reshuffle. Keyed
   // by run + card id (set on the engine, not here).
   tapChoices?: string[];
+  // Set true the first time killEnemy() runs for this enemy in a tick.
+  // Subsequent damage / killEnemy calls in the same frame become no-ops,
+  // which stops a cascade when an onKill-spawned AoE (e.g. Elaboration
+  // Cloud) lands on the corpse and re-kills it. Cleared with the enemy
+  // when pruneDead() runs at end-of-tick.
+  killed?: boolean;
 }
 
 export type ProjectileKind = "kinetic" | "energy" | "summon";
@@ -152,7 +158,12 @@ export type EngineEvent =
   | { type: "gameOver"; summary: RunSummary }
   | { type: "enemiesChanged"; visible: EnemyView[] }
   | { type: "tapChoices"; targetId: string; choices: string[] }
-  | { type: "tapCleared" };
+  | { type: "tapCleared" }
+  // Fired when the engine resumes from a paused state (level-up modal
+  // closed). The typing input listens for this and refocuses — picking
+  // an upgrade button leaves DOM focus on the unmounted button so a
+  // signal-driven refocus is the cleanest way to restore typing flow.
+  | { type: "resume" };
 
 // Lightweight per-enemy snapshot for the UI overlay — the engine pushes
 // these via the enemiesChanged event so React can render labels (front

@@ -25,8 +25,23 @@ export function TypingInput({ engine, compact = false }: TypingInputProps) {
       focus();
     };
     document.addEventListener("click", onClick);
-    return () => document.removeEventListener("click", onClick);
-  }, []);
+    // Re-focus when the engine signals it has resumed (level-up modal
+    // dismissed). Without this, picking an upgrade leaves focus on the
+    // (now-unmounted) upgrade button so subsequent keystrokes go nowhere
+    // until the player clicks the canvas.
+    const onEngineEvent = (event: import("../engine/types").EngineEvent) => {
+      if (event.type === "resume") {
+        // Defer one frame so the modal teardown completes first; without
+        // this, focus snaps back to the button just as it unmounts.
+        requestAnimationFrame(focus);
+      }
+    };
+    engine.addEventListener(onEngineEvent);
+    return () => {
+      document.removeEventListener("click", onClick);
+      engine.removeEventListener(onEngineEvent);
+    };
+  }, [engine]);
 
   return (
     <div
