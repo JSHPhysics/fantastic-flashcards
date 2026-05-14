@@ -491,15 +491,14 @@ export class GameEngine {
     const angle = Math.random() * Math.PI * 2;
     const radius = Math.max(this.width, this.height) * 0.55;
     const pos: Vec2 = { x: Math.cos(angle) * radius, y: Math.sin(angle) * radius };
-    // Final speed = card-derived base × difficulty multiplier. The card
+    // Final BASE speed = card-derived × difficulty multiplier. The card
     // pool already factored in reading time + retrievability; difficulty
     // adds the global "how merciful is this run" knob (easy 0.7,
-    // normal 1.0, hard 1.2, insane 1.4).
+    // normal 1.0, hard 1.2, insane 1.4). The engine multiplies this base
+    // by a distance-based curve every frame in updateEnemies(): faster
+    // approach from the edge, slower in the reading zone near the
+    // player.
     const speed = stats.speed * this.difficulty.enemySpeedMult;
-    const vel: Vec2 = {
-      x: -Math.cos(angle) * speed,
-      y: -Math.sin(angle) * speed,
-    };
     const isElite =
       this.player.streak >= 5 &&
       Math.random() < 0.12 * (1 + this.player.eliteSpawnRateBoost);
@@ -507,7 +506,6 @@ export class GameEngine {
       id: newId(),
       card,
       pos,
-      vel,
       hp: isElite ? stats.hp * 1.5 : stats.hp,
       maxHp: isElite ? stats.hp * 1.5 : stats.hp,
       shape: stats.shape,
@@ -534,9 +532,17 @@ export class GameEngine {
   private updateEnemies(dtMs: number): void {
     const sec = dtMs / 1000;
     for (const e of this.enemies) {
-      // Constant drift toward centre (vel set at spawn).
-      e.pos.x += e.vel.x * sec;
-      e.pos.y += e.vel.y * sec;
+      const dist = Math.hypot(e.pos.x, e.pos.y);
+      if (dist <= 1) continue; // already at centre, contact step will deal with it
+      // Per-frame speed = base × distance multiplier. Far from centre
+      // (off-screen approach) → fast: students don't have to watch a
+      // shape crawl in. In the reading zone (close to player) → slow:
+      // they get time to actually read, think, and type. Linear lerp
+      // between the two for a smooth deceleration.
+      const distMult = speedMultiplierAtDistance(dist);
+      const v = e.speed * distMult;
+      e.pos.x -= (e.pos.x / dist) * v * sec;
+      e.pos.y -= (e.pos.y / dist) * v * sec;
     }
     // Sort enemies by distance to centre ascending — weapon behaviours
     // depend on this order (closestToCentre etc.).
@@ -859,6 +865,25 @@ function drawShape(ctx: CanvasRenderingContext2D, shape: Enemy["shape"], r: numb
     else ctx.lineTo(x, y);
   }
   ctx.closePath();
+}
+
+// Distance-based speed curve. Three zones:
+//   1. d >= FAST_ZONE_R   — off-screen rush, 1.7× base speed. Players
+//      don't have to wait for the shape to appear.
+//   2. SLOW_ZONE_R < d < FAST_ZONE_R — smooth lerp from 1.7× down to
+//      0.55× as the shape crosses the visible field.
+//   3. d <= SLOW_ZONE_R   — reading zone, 0.55× base. Slow enough to
+//      read the front, think, and type the answer comfortably.
+const FAST_ZONE_R = 450;
+const SLOW_ZONE_R = 220;
+const FAST_MULT = 1.7;
+const SLOW_MULT = 0.55;
+
+function speedMultiplierAtDistance(d: number): number {
+  if (d >= FAST_ZONE_R) return FAST_MULT;
+  if (d <= SLOW_ZONE_R) return SLOW_MULT;
+  const t = (d - SLOW_ZONE_R) / (FAST_ZONE_R - SLOW_ZONE_R);
+  return SLOW_MULT + (FAST_MULT - SLOW_MULT) * t;
 }
 
 // Reads the theme palette out of CSS variables defined in index.css.

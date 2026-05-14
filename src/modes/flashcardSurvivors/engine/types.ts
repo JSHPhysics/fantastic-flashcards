@@ -15,9 +15,11 @@ export interface Vec2 {
 export interface Enemy {
   id: string;
   card: Card;
-  // Position + velocity in canvas coords (centre of canvas = 0,0).
+  // Position in canvas coords (centre of canvas = 0,0). Velocity is no
+  // longer stored: the engine derives it each frame from `speed` + the
+  // current distance to centre, so the enemy can rush in fast then slow
+  // down in the reading zone. See GameEngine.updateEnemies().
   pos: Vec2;
-  vel: Vec2;
   hp: number;
   maxHp: number;
   // Geometry — rendered as a polygon/circle. Shape index chosen by

@@ -54,8 +54,14 @@ const SHAPES: CardPoolStats["shape"][] = [
 
 const EDGE_TO_CENTRE_PX = 500; // canvas-edge-ish distance the enemy traverses
 const READING_BUFFER = 1.4; // 40% extra time on top of reading-time estimate
-const MIN_SPEED = 18; // hard floor — even on tiny cards, slow enough to type
-const MAX_SPEED = 110; // hard ceiling — even on tiny cards, never bullet-speed
+const MIN_SPEED = 12; // hard floor — even on tiny cards, slow enough to type
+const MAX_SPEED = 70; // hard ceiling — even on tiny cards, never bullet-speed
+// Global "this is the slow / readable era" knob. Multiplies the final
+// speed out of the formula below. Tightening this dial is the right
+// place to make every difficulty + every card-length slower / faster
+// at the same time. The engine then layers a distance-based curve on
+// top so the *arrival* phase still feels snappy.
+const GLOBAL_SPEED_SCALE = 0.5;
 
 export function statsForCard(card: Card, deckColour: string): CardPoolStats {
   const fsrs = card.fsrs as {
@@ -90,7 +96,10 @@ export function statsForCard(card: Card, deckColour: string): CardPoolStats {
   // Forgotten cards rush in faster (low R), well-known ones drift in
   // slowly. retrievability of 0 -> 1.4x, retrievability of 1 -> 0.7x.
   const rMult = 0.7 + (1 - retrievability) * 0.7;
-  const speed = Math.max(MIN_SPEED, Math.min(MAX_SPEED, reactionSpeed * rMult));
+  const speed = Math.max(
+    MIN_SPEED,
+    Math.min(MAX_SPEED, reactionSpeed * rMult * GLOBAL_SPEED_SCALE),
+  );
 
   return {
     hp: Math.round(10 + difficulty * 8),
