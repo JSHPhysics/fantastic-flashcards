@@ -93,3 +93,40 @@ export function maxConcurrentAt(cfg: DifficultyConfig, elapsedMs: number): numbe
   const minutes = elapsedMs / 60_000;
   return Math.min(cfg.maxConcurrent.cap, Math.floor(cfg.maxConcurrent.base + minutes * cfg.maxConcurrent.perMinute));
 }
+
+// Time-based difficulty ramp applied to enemy stats at spawn time.
+//
+// The previous ramping was *only* spawn-rate and concurrent-cap, which
+// meant by ~3 minutes the player's upgrade-fed weapons (e.g. Drone
+// Cannon L3+) one-shot anything new the spawner produced. Result: the
+// run autoplayed — the player typed nothing because the field cleared
+// itself. Adding stat scaling here forces every minute to feel
+// distinctly harder than the last:
+//
+//   - HP ramps the steepest (1 + 0.4 per minute). Player damage
+//     compounds via tag upgrades + weapon levels, so enemy HP needs to
+//     grow comparably to keep one-shots rare.
+//   - Speed ramps gently (1 + 0.07 per minute). The distance-based
+//     speed curve already gives the student a reading window per
+//     enemy; we just dial up urgency over time.
+//   - Contact damage ramps mid (1 + 0.2 per minute). Glancing blows
+//     start to hurt — encourages the player to actually kill enemies
+//     instead of letting Drone Cannon cleanup happen passively.
+//
+// Capped at minute-15 multiples so a player who's somehow still alive
+// at half an hour doesn't see 13× HP enemies that flat-out can't be
+// killed.
+const MAX_RAMP_MINUTES = 15;
+export interface TimeRamp {
+  hp: number;
+  speed: number;
+  contact: number;
+}
+export function timeRampAt(elapsedMs: number): TimeRamp {
+  const minutes = Math.min(MAX_RAMP_MINUTES, elapsedMs / 60_000);
+  return {
+    hp: 1 + minutes * 0.4,
+    speed: 1 + minutes * 0.07,
+    contact: 1 + minutes * 0.2,
+  };
+}

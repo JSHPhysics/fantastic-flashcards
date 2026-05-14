@@ -16,6 +16,7 @@ import {
   DIFFICULTIES,
   maxConcurrentAt,
   spawnIntervalAt,
+  timeRampAt,
 } from "./difficulty";
 import type {
   DotCloud,
@@ -616,28 +617,33 @@ export class GameEngine {
     const angle = Math.random() * Math.PI * 2;
     const radius = Math.max(this.width, this.height) * 0.55;
     const pos: Vec2 = { x: Math.cos(angle) * radius, y: Math.sin(angle) * radius };
-    // Final BASE speed = card-derived × difficulty multiplier. The card
-    // pool already factored in reading time + retrievability; difficulty
-    // adds the global "how merciful is this run" knob (easy 0.7,
-    // normal 1.0, hard 1.2, insane 1.4). The engine multiplies this base
-    // by a distance-based curve every frame in updateEnemies(): faster
-    // approach from the edge, slower in the reading zone near the
-    // player.
-    const speed = stats.speed * this.difficulty.enemySpeedMult;
+    // Stack-up of stat modifiers, in order:
+    //   1. statsForCard — base from the card's FSRS state.
+    //   2. Difficulty config — easy/normal/hard/insane global knob.
+    //   3. timeRampAt(now) — gradual ramp over the run so a 6-minute
+    //      enemy is meaningfully tougher than a fresh one. Without
+    //      this the run autoplayed once Drone Cannon hit L3.
+    //   4. Elite bonus — 1.5× HP + size on streaks ≥ 5.
+    const ramp = timeRampAt(this.now);
+    const speed = stats.speed * this.difficulty.enemySpeedMult * ramp.speed;
+    const baseHp = stats.hp * ramp.hp;
     const isElite =
       this.player.streak >= 5 &&
       Math.random() < 0.12 * (1 + this.player.eliteSpawnRateBoost);
+    const finalHp = isElite ? baseHp * 1.5 : baseHp;
     this.enemies.push({
       id: newId(),
       card,
       pos,
-      hp: isElite ? stats.hp * 1.5 : stats.hp,
-      maxHp: isElite ? stats.hp * 1.5 : stats.hp,
+      hp: finalHp,
+      maxHp: finalHp,
       shape: stats.shape,
       size: stats.size + (isElite ? 6 : 0),
       colour: stats.colour,
       speed,
-      contactDamage: Math.round(stats.contactDamage * this.difficulty.contactDamageMult),
+      contactDamage: Math.round(
+        stats.contactDamage * this.difficulty.contactDamageMult * ramp.contact,
+      ),
       seenThisRun: this.spawnedSelectedSet.has(card.id),
       elite: isElite,
       spawnedAt: this.now,
@@ -686,10 +692,29 @@ export class GameEngine {
     }
   }
 
+  // An enemy counts as visible only when its whole sprite is inside the
+  // viewport. Half-on-screen targets get skipped by auto-fire so the
+  // player never sees a projectile chase something off the edge.
+  private isFullyVisible(e: Enemy): boolean {
+    const halfW = this.width / 2;
+    const halfH = this.height / 2;
+    const r = e.size / 2;
+    return Math.abs(e.pos.x) + r <= halfW && Math.abs(e.pos.y) + r <= halfH;
+  }
+
   private weaponHandle(def: import("../weapons/types").WeaponDef): import("../weapons/types").WeaponHandle {
     return {
       now: this.now,
-      enemies: this.enemies,
+      // Filter to enemies whose full sprite is on-screen. Auto-targeting
+      // weapons (Drone Cannon, Cite Chain, Diagram Compass, Mnemonic
+      // Pulse, Streak Conductor, etc.) were happily firing at enemies
+      // still off-screen, which from the player's perspective looked
+      // like projectiles flying into the void. Restricting them to
+      // fully-visible targets means the student sees every shot
+      // connect with something they can see. Proximity-only weapons
+      // (Echo Orbital, Mnemonic Pulse) are unaffected in practice
+      // because off-screen enemies never satisfy their radius tests.
+      enemies: this.enemies.filter((e) => this.isFullyVisible(e)),
       playerPos: { x: 0, y: 0 },
       damageMult: effectiveDamageMult(def.tags, this.tagBonus),
       areaMult: effectiveAreaMult(def.tags, this.tagBonus),

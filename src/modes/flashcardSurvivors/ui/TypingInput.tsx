@@ -15,8 +15,15 @@ interface TypingInputProps {
 export function TypingInput({ engine }: TypingInputProps) {
   const ref = useRef<HTMLInputElement>(null);
   const [value, setValue] = useState("");
+  // Defensive: even though FlashcardSurvivorsSession only mounts us in
+  // Keyboard mode, an earlier version did mount in both modes and
+  // popped the iOS keyboard up on tap-mode runs. If something
+  // reintroduces that mistake, the component itself refuses to render
+  // — no input element, no autofocus, no keyboard.
+  const isTapMode = engine.getRunConfig().inputMode === "tap";
 
   useEffect(() => {
+    if (isTapMode) return;
     const focus = () => ref.current?.focus();
     focus();
     const onClick = (e: MouseEvent) => {
@@ -41,7 +48,12 @@ export function TypingInput({ engine }: TypingInputProps) {
       document.removeEventListener("click", onClick);
       engine.removeEventListener(onEngineEvent);
     };
+    // isTapMode is read once at mount; if it changed mid-component the
+    // parent would have remounted us via the conditional gate already.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [engine]);
+
+  if (isTapMode) return null;
 
   return (
     <div className="pointer-events-auto absolute bottom-3 left-1/2 z-20 w-full max-w-md -translate-x-1/2 px-3">
