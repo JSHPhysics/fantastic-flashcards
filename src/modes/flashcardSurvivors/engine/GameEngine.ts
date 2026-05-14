@@ -49,7 +49,10 @@ const TICK_HZ = 60;
 const TICK_MS = 1000 / TICK_HZ;
 const XP_BASE = 50;
 const XP_GROWTH = 1.4;
-const INNER_ZONE_RADIUS = 110; // px from centre — Vigilance bonus applies inside
+// Inner-zone radius (where the Vigilance mastery bonus applies) used to
+// be a fixed 110px, which meant on a phone the inner zone was the *whole
+// visible field*. Now derived per-engine from this.fieldRadius via
+// innerZoneRadius() so the inner zone is always ~25% of the play area.
 
 export class GameEngine {
   // ---- Canvas + loop state ----
@@ -59,6 +62,14 @@ export class GameEngine {
   private height = 0;
   private centreX = 0;
   private centreY = 0;
+  // Computed by handleResize() — see comments there. trayReserve is the
+  // bottom-of-canvas dead zone owned by the answer tray / typing input;
+  // fieldRadius is the world-coord radius of the play area (used for
+  // spawn distance + speed zone radii so the action scales with the
+  // viewport rather than spawning at an absolute pixel distance that's
+  // already off-screen on phones).
+  private trayReserve = 0;
+  private fieldRadius = 350;
   private rafId: number | null = null;
   private lastFrameTs = 0;
   private accumulator = 0;
@@ -222,8 +233,29 @@ export class GameEngine {
     const rect = this.canvas.getBoundingClientRect();
     this.width = rect.width;
     this.height = rect.height;
+    // The bottom of the canvas is covered by the input chrome (Tap-mode
+    // 2x2 answer tray, or Keyboard-mode typing input). Treat it as a
+    // dead zone: shift the player's screen position up by half the tray
+    // height so enemies entering from the bottom still have visible
+    // approach space, and the player isn't drowning under unusable UI.
+    // Tray heights are estimated from the actual components — adjust if
+    // either component grows.
+    this.trayReserve = this.cfg.inputMode === "tap" ? 200 : 92;
+    const usableHeight = Math.max(160, this.height - this.trayReserve);
     this.centreX = this.width / 2;
-    this.centreY = this.height / 2;
+    this.centreY = usableHeight / 2;
+    // Play field radius — the world's outer rim sits just inside the
+    // visible canvas (minus an edge margin so enemies don't draw half
+    // off-screen). On a phone (~360px wide, 580px usable tall) the
+    // field is ~160; on iPad portrait (~768x844) ~360; on desktop
+    // 16:9 ~480. Spawn + speed zones derive from this so the action
+    // appears at a consistent ratio of viewport, not at an absolute
+    // pixel distance that's already off-screen on phones.
+    const edgeMargin = 24;
+    this.fieldRadius = Math.max(
+      120,
+      Math.min(this.width / 2 - edgeMargin, usableHeight / 2 - edgeMargin),
+    );
     this.canvas.width = Math.floor(this.width * dpr);
     this.canvas.height = Math.floor(this.height * dpr);
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -311,19 +343,40 @@ export class GameEngine {
     this.broadcastEnemyView();
   }
 
-  // For Tap mode: try to find an enemy under a canvas-space point.
+  // For Tap mode: find an enemy under a canvas-space point.
+  // Two strategies stacked so overlapping enemies pick "the right one":
+  //   1. Among every enemy whose bounding circle contains the tap,
+  //      prefer the one whose CENTRE is closest to the tap point.
+  //      Tapping near a specific enemy's middle reliably picks that
+  //      enemy even if another's bounding circle technically overlaps.
+  //   2. Tie-break by draw order — the later-drawn enemy (visually on
+  //      top per Canvas's painter's algorithm) wins.
+  // The previous reverse-iteration-only approach occasionally picked
+  // the wrong enemy when two of different sizes overlapped: the larger
+  // enemy's bounding circle covered space far from its centre, and a
+  // tap landing in that fringe got bound to it even when a smaller
+  // enemy was visually right under the finger.
   pickEnemyAt(canvasX: number, canvasY: number): Enemy | null {
-    // canvas coords -> centre coords
     const x = canvasX - this.centreX;
     const y = canvasY - this.centreY;
-    // Iterate in reverse-draw order so visually-topmost wins.
-    for (let i = this.enemies.length - 1; i >= 0; i -= 1) {
+    let best: Enemy | null = null;
+    let bestDist = Infinity;
+    let bestIdx = -1;
+    for (let i = 0; i < this.enemies.length; i += 1) {
       const e = this.enemies[i];
       const dx = x - e.pos.x;
       const dy = y - e.pos.y;
-      if (Math.hypot(dx, dy) <= e.size * 0.6) return e;
+      const dist = Math.hypot(dx, dy);
+      if (dist > e.size * 0.55) continue; // outside hit radius
+      // Strictly closer wins; equal distances fall to the topmost
+      // (later-drawn = higher index).
+      if (dist < bestDist || (dist === bestDist && i > bestIdx)) {
+        best = e;
+        bestDist = dist;
+        bestIdx = i;
+      }
     }
-    return null;
+    return best;
   }
 
   // Called by the input strategy when the player correctly answers.
@@ -445,7 +498,7 @@ export class GameEngine {
     ctx.strokeStyle = this.colours.innerZoneRing;
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.arc(0, 0, INNER_ZONE_RADIUS, 0, Math.PI * 2);
+    ctx.arc(0, 0, this.innerZoneRadius(), 0, Math.PI * 2);
     ctx.stroke();
     // Clouds (DoT) — saturated greenish-yellow with a dashed outline so
     // the boundary is visible even on pastel themes. Bumped fill alpha
@@ -613,9 +666,12 @@ export class GameEngine {
     if (!card) return;
     const colour = this.deckColours.get(card.deckId) ?? "#888";
     const stats = statsForCard(card, colour);
-    // Spawn at random edge angle, just outside the screen radius.
+    // Spawn just outside the visible field rim. The fieldRadius adapts
+    // to viewport size in handleResize(), so phones get a tight 160px
+    // play radius while desktops get ~480px — enemies always enter view
+    // at the same fraction of viewport regardless of device.
     const angle = Math.random() * Math.PI * 2;
-    const radius = Math.max(this.width, this.height) * 0.55;
+    const radius = this.fieldRadius * 1.15;
     const pos: Vec2 = { x: Math.cos(angle) * radius, y: Math.sin(angle) * radius };
     // Stack-up of stat modifiers, in order:
     //   1. statsForCard — base from the card's FSRS state.
@@ -623,9 +679,15 @@ export class GameEngine {
     //   3. timeRampAt(now) — gradual ramp over the run so a 6-minute
     //      enemy is meaningfully tougher than a fresh one. Without
     //      this the run autoplayed once Drone Cannon hit L3.
-    //   4. Elite bonus — 1.5× HP + size on streaks ≥ 5.
+    //   4. Field-radius scale — speed is multiplied by the ratio of
+    //      this.fieldRadius to the design target (350) so traversal
+    //      time stays constant across viewports. Without this, phones
+    //      would feel ~3× faster than iPad because the field is
+    //      smaller but speed stayed the same in px/s.
+    //   5. Elite bonus — 1.5× HP + size on streaks ≥ 5.
     const ramp = timeRampAt(this.now);
-    const speed = stats.speed * this.difficulty.enemySpeedMult * ramp.speed;
+    const fieldScale = this.fieldRadius / 350;
+    const speed = stats.speed * this.difficulty.enemySpeedMult * ramp.speed * fieldScale;
     const baseHp = stats.hp * ramp.hp;
     const isElite =
       this.player.streak >= 5 &&
@@ -670,7 +732,7 @@ export class GameEngine {
       // shape crawl in. In the reading zone (close to player) → slow:
       // they get time to actually read, think, and type. Linear lerp
       // between the two for a smooth deceleration.
-      const distMult = speedMultiplierAtDistance(dist);
+      const distMult = this.speedMultiplierAtDistance(dist);
       const v = e.speed * distMult;
       e.pos.x -= (e.pos.x / dist) * v * sec;
       e.pos.y -= (e.pos.y / dist) * v * sec;
@@ -693,13 +755,36 @@ export class GameEngine {
   }
 
   // An enemy counts as visible only when its whole sprite is inside the
-  // viewport. Half-on-screen targets get skipped by auto-fire so the
-  // player never sees a projectile chase something off the edge.
+  // viewport's *usable* area (excluding the tray reserve at the bottom).
+  // Half-on-screen targets get skipped by auto-fire so the player never
+  // sees a projectile chase something off the edge or behind the tray.
   private isFullyVisible(e: Enemy): boolean {
     const halfW = this.width / 2;
-    const halfH = this.height / 2;
+    const halfH = (this.height - this.trayReserve) / 2;
     const r = e.size / 2;
-    return Math.abs(e.pos.x) + r <= halfW && Math.abs(e.pos.y) + r <= halfH;
+    return (
+      Math.abs(e.pos.x) + r <= halfW &&
+      Math.abs(e.pos.y) + r <= halfH
+    );
+  }
+
+  // Inner zone — where Vigilance mastery + the player's gravitational
+  // pull take effect. Scales with the field so on a phone the inner
+  // zone is ~25% of play radius, same as on iPad.
+  private innerZoneRadius(): number {
+    return this.fieldRadius * 0.3;
+  }
+
+  // Distance-based speed curve. See FAST_MULT / SLOW_MULT constants.
+  // Zone radii are 90% of fieldRadius (just inside the visible rim) and
+  // 45% (well into the reading zone) so the curve scales with viewport.
+  private speedMultiplierAtDistance(d: number): number {
+    const fast = this.fieldRadius * 0.9;
+    const slow = this.fieldRadius * 0.45;
+    if (d >= fast) return FAST_MULT;
+    if (d <= slow) return SLOW_MULT;
+    const t = (d - slow) / (fast - slow);
+    return SLOW_MULT + (FAST_MULT - SLOW_MULT) * t;
   }
 
   private weaponHandle(def: import("../weapons/types").WeaponDef): import("../weapons/types").WeaponHandle {
@@ -738,7 +823,7 @@ export class GameEngine {
         const enemy = this.enemies.find((e) => e.id === enemyId);
         if (!enemy) return;
         if (enemy.killed) return;
-        const inInner = Math.hypot(enemy.pos.x, enemy.pos.y) < INNER_ZONE_RADIUS;
+        const inInner = Math.hypot(enemy.pos.x, enemy.pos.y) < this.innerZoneRadius();
         enemy.hp -= amount * (inInner ? this.innerZoneDamageMult : 1);
         this.pushHitPulse(enemy.pos, enemy.hp <= 0 ? "kill" : "hit");
         if (enemy.hp <= 0) this.killEnemy(enemy);
@@ -774,7 +859,7 @@ export class GameEngine {
       for (const e of this.enemies) {
         const d = Math.hypot(e.pos.x - c.pos.x, e.pos.y - c.pos.y);
         if (d < c.radius) {
-          const inInner = Math.hypot(e.pos.x, e.pos.y) < INNER_ZONE_RADIUS;
+          const inInner = Math.hypot(e.pos.x, e.pos.y) < this.innerZoneRadius();
           e.hp -= (c.dps / 60) * (inInner ? this.innerZoneDamageMult : 1);
           if (e.hp <= 0) this.killEnemy(e);
         }
@@ -788,7 +873,7 @@ export class GameEngine {
       for (const e of this.enemies) {
         if (e.hp <= 0 || e.killed) continue;
         if (Math.hypot(e.pos.x - p.pos.x, e.pos.y - p.pos.y) <= e.size * 0.5 + p.radius) {
-          const inInner = Math.hypot(e.pos.x, e.pos.y) < INNER_ZONE_RADIUS;
+          const inInner = Math.hypot(e.pos.x, e.pos.y) < this.innerZoneRadius();
           e.hp -= p.damage * (inInner ? this.innerZoneDamageMult : 1);
           if (p.splitOnHit && p.splitOnHit > 0) {
             this.spawnSplits(p, e);
@@ -1080,24 +1165,13 @@ function withAlpha(rgbStr: string, alpha: number): string {
   return `rgba(${parts.join(", ")}, ${alpha.toFixed(3)})`;
 }
 
-// Distance-based speed curve. Three zones:
-//   1. d >= FAST_ZONE_R   — off-screen rush, 1.7× base speed. Players
-//      don't have to wait for the shape to appear.
-//   2. SLOW_ZONE_R < d < FAST_ZONE_R — smooth lerp from 1.7× down to
-//      0.55× as the shape crosses the visible field.
-//   3. d <= SLOW_ZONE_R   — reading zone, 0.55× base. Slow enough to
-//      read the front, think, and type the answer comfortably.
-const FAST_ZONE_R = 450;
-const SLOW_ZONE_R = 220;
+// Multipliers used by GameEngine.speedMultiplierAtDistance(). Kept
+// module-level so the constants live in one place without needing
+// engine state. Zone *radii* (where the multipliers kick in) live on
+// the engine because they derive from this.fieldRadius and scale with
+// viewport.
 const FAST_MULT = 1.7;
 const SLOW_MULT = 0.55;
-
-function speedMultiplierAtDistance(d: number): number {
-  if (d >= FAST_ZONE_R) return FAST_MULT;
-  if (d <= SLOW_ZONE_R) return SLOW_MULT;
-  const t = (d - SLOW_ZONE_R) / (FAST_ZONE_R - SLOW_ZONE_R);
-  return SLOW_MULT + (FAST_MULT - SLOW_MULT) * t;
-}
 
 // Reads the theme palette out of CSS variables defined in index.css.
 // The values are space-separated r g b channels (e.g. "250 247 242") so
