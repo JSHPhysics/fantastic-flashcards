@@ -42,198 +42,257 @@ async function debugDecksExist(): Promise<boolean> {
   );
 }
 
-export async function seedDebugData(): Promise<SeedDebugResult> {
-  if (await debugDecksExist()) {
-    return { decksCreated: 0, cardsCreated: 0, alreadySeeded: true };
+// Look up a deck by exact name. Used by ensureDeck() below to make
+// the seeder per-deck idempotent: when a new demo deck lands in the
+// code, only it gets created on the next boot — existing demo decks
+// stay untouched (with their review history and FSRS state intact).
+async function findDeckByName(name: string) {
+  const all = await db.decks.toArray();
+  return all.find((d) => d.name === name) ?? null;
+}
+
+// Create the deck only if it doesn't already exist (by exact name).
+// When the deck is newly created, runs `populate` to add its cards
+// and reports the count back through the return value. When the deck
+// already exists, no cards are touched — the deck's contents and any
+// review history on them survive across reseeds.
+async function ensureDeck<T extends { name: string }>(
+  spec: T,
+  createFn: (spec: T) => Promise<{ id: string }>,
+  populate?: (deckId: string) => Promise<number>,
+): Promise<{ deckId: string; created: boolean; cardsCreated: number }> {
+  const existing = await findDeckByName(spec.name);
+  if (existing) {
+    return { deckId: existing.id, created: false, cardsCreated: 0 };
   }
+  const deck = await createFn(spec);
+  const cardsCreated = populate ? await populate(deck.id) : 0;
+  return { deckId: deck.id, created: true, cardsCreated };
+}
+
+export async function seedDebugData(): Promise<SeedDebugResult> {
+  // For the "is this a first-time seed?" gate on review history, we
+  // capture the state BEFORE we start creating anything. Subsequent
+  // calls (e.g. on every app boot during prototyping) skip the heavy
+  // review-history seed entirely so we don't keep piling fake
+  // sessions onto the Stats page.
+  const wasFirstTimeSeed = !(await debugDecksExist());
 
   let cards = 0;
   let decks = 0;
 
+  // Small tally helper. Each `ensureDeck` result feeds in; existing
+  // decks contribute 0 and don't disturb the totals.
+  const tally = (r: { created: boolean; cardsCreated: number }) => {
+    if (r.created) decks += 1;
+    cards += r.cardsCreated;
+  };
+
   // ---- Root: Languages (with three child decks: French, Spanish, German) ----
+  //
+  // The language sub-decks (French, Spanish, German) and their nested
+  // sub-decks (Greetings, Numbers, etc.) are only created when the
+  // parent root is freshly seeded. Once the Languages root exists,
+  // partial top-ups of sub-decks are skipped — keeps the seeder
+  // simple and avoids accidentally inserting cards under a deck the
+  // user has been editing.
+  const languagesRoot = await ensureDeck(
+    {
+      name: `${DEBUG_PREFIX} Languages`,
+      description:
+        "Three language pairs — French, Spanish, German — each with its own sub-decks.",
+      subject: "Languages",
+      colour: "#C9A14A",
+    },
+    (spec) => createDeck(spec),
+  );
+  tally(languagesRoot);
 
-  const languagesRoot = await createDeck({
-    name: `${DEBUG_PREFIX} Languages`,
-    description:
-      "Three language pairs — French, Spanish, German — each with its own sub-decks.",
-    subject: "Languages",
-    colour: "#C9A14A",
-  });
-  decks += 1;
+  if (languagesRoot.created) {
+    const french = await createDeck({
+      name: "French",
+      description: "fr-FR ↔ en-GB. Auto-pronounce always reads the French side.",
+      subject: "French",
+      colour: "#3D7AB8",
+      parentId: languagesRoot.deckId,
+      pronunciationLanguage: "fr-FR",
+      secondaryLanguage: "en-GB",
+      baseLanguage: "en-GB",
+    });
+    decks += 1;
+    cards += await addLanguagePairCards(french.id, "fr-FR", "en-GB", [
+      ["Greetings", ["fr", "vocab", "greetings"], [
+        ["bonjour", "hello"],
+        ["bonsoir", "good evening"],
+        ["au revoir", "goodbye"],
+        ["merci beaucoup", "thank you very much"],
+        ["s'il vous plaît", "please (formal)"],
+      ]],
+      ["Numbers 1–10", ["fr", "vocab", "numbers", "A1"], [
+        ["un", "one"],
+        ["deux", "two"],
+        ["trois", "three"],
+        ["quatre", "four"],
+        ["cinq", "five"],
+        ["six", "six"],
+        ["sept", "seven"],
+        ["huit", "eight"],
+        ["neuf", "nine"],
+        ["dix", "ten"],
+      ]],
+      ["Common verbs", ["fr", "vocab", "verbs", "irregular"], [
+        ["être", "to be"],
+        ["avoir", "to have"],
+        ["aller", "to go"],
+        ["faire", "to do / make"],
+        ["pouvoir", "to be able to"],
+        ["vouloir", "to want"],
+      ]],
+    ]);
 
-  const french = await createDeck({
-    name: "French",
-    description: "fr-FR ↔ en-GB. Auto-pronounce always reads the French side.",
-    subject: "French",
-    colour: "#3D7AB8",
-    parentId: languagesRoot.id,
-    pronunciationLanguage: "fr-FR",
-    secondaryLanguage: "en-GB",
-    baseLanguage: "en-GB",
-  });
-  decks += 1;
-  cards += await addLanguagePairCards(french.id, "fr-FR", "en-GB", [
-    ["Greetings", ["fr", "vocab", "greetings"], [
-      ["bonjour", "hello"],
-      ["bonsoir", "good evening"],
-      ["au revoir", "goodbye"],
-      ["merci beaucoup", "thank you very much"],
-      ["s'il vous plaît", "please (formal)"],
-    ]],
-    ["Numbers 1–10", ["fr", "vocab", "numbers", "A1"], [
-      ["un", "one"],
-      ["deux", "two"],
-      ["trois", "three"],
-      ["quatre", "four"],
-      ["cinq", "five"],
-      ["six", "six"],
-      ["sept", "seven"],
-      ["huit", "eight"],
-      ["neuf", "nine"],
-      ["dix", "ten"],
-    ]],
-    ["Common verbs", ["fr", "vocab", "verbs", "irregular"], [
-      ["être", "to be"],
-      ["avoir", "to have"],
-      ["aller", "to go"],
-      ["faire", "to do / make"],
-      ["pouvoir", "to be able to"],
-      ["vouloir", "to want"],
-    ]],
-  ]);
+    const spanish = await createDeck({
+      name: "Spanish",
+      description: "es-ES ↔ en-GB. Auto-pronounce always reads the Spanish side.",
+      subject: "Spanish",
+      colour: "#C44545",
+      parentId: languagesRoot.deckId,
+      pronunciationLanguage: "es-ES",
+      secondaryLanguage: "en-GB",
+      baseLanguage: "en-GB",
+    });
+    decks += 1;
+    cards += await addLanguagePairCards(spanish.id, "es-ES", "en-GB", [
+      ["Greetings", ["es", "vocab", "greetings"], [
+        ["¡hola!", "hello!"],
+        ["buenos días", "good morning"],
+        ["buenas noches", "good night"],
+        ["¿cómo estás?", "how are you?"],
+        ["por favor", "please"],
+        ["lo siento", "I'm sorry"],
+      ]],
+      ["Food", ["es", "vocab", "food"], [
+        ["manzana", "apple"],
+        ["pan", "bread"],
+        ["queso", "cheese"],
+        ["pescado", "fish"],
+        ["pollo", "chicken"],
+        ["agua", "water"],
+      ]],
+    ]);
 
-  const spanish = await createDeck({
-    name: "Spanish",
-    description: "es-ES ↔ en-GB. Auto-pronounce always reads the Spanish side.",
-    subject: "Spanish",
-    colour: "#C44545",
-    parentId: languagesRoot.id,
-    pronunciationLanguage: "es-ES",
-    secondaryLanguage: "en-GB",
-    baseLanguage: "en-GB",
-  });
-  decks += 1;
-  cards += await addLanguagePairCards(spanish.id, "es-ES", "en-GB", [
-    ["Greetings", ["es", "vocab", "greetings"], [
-      ["¡hola!", "hello!"],
-      ["buenos días", "good morning"],
-      ["buenas noches", "good night"],
-      ["¿cómo estás?", "how are you?"],
-      ["por favor", "please"],
-      ["lo siento", "I'm sorry"],
-    ]],
-    ["Food", ["es", "vocab", "food"], [
-      ["manzana", "apple"],
-      ["pan", "bread"],
-      ["queso", "cheese"],
-      ["pescado", "fish"],
-      ["pollo", "chicken"],
-      ["agua", "water"],
-    ]],
-  ]);
-
-  const german = await createDeck({
-    name: "German",
-    description: "de-DE ↔ en-GB. Auto-pronounce always reads the German side.",
-    subject: "German",
-    colour: "#3E8E63",
-    parentId: languagesRoot.id,
-    pronunciationLanguage: "de-DE",
-    secondaryLanguage: "en-GB",
-    baseLanguage: "en-GB",
-  });
-  decks += 1;
-  cards += await addLanguagePairCards(german.id, "de-DE", "en-GB", [
-    ["Wortschatz", ["de", "vocab"], [
-      ["schön", "beautiful"],
-      ["Käse", "cheese"],
-      ["Tür", "door"],
-      ["Größe", "size"],
-      ["heißen", "to be called"],
-      ["Übung", "exercise"],
-    ]],
-  ]);
+    const german = await createDeck({
+      name: "German",
+      description: "de-DE ↔ en-GB. Auto-pronounce always reads the German side.",
+      subject: "German",
+      colour: "#3E8E63",
+      parentId: languagesRoot.deckId,
+      pronunciationLanguage: "de-DE",
+      secondaryLanguage: "en-GB",
+      baseLanguage: "en-GB",
+    });
+    decks += 1;
+    cards += await addLanguagePairCards(german.id, "de-DE", "en-GB", [
+      ["Wortschatz", ["de", "vocab"], [
+        ["schön", "beautiful"],
+        ["Käse", "cheese"],
+        ["Tür", "door"],
+        ["Größe", "size"],
+        ["heißen", "to be called"],
+        ["Übung", "exercise"],
+      ]],
+    ]);
+  }
 
   // ---- Root: Physics A-level (mixed card types) ----
+  const physicsRoot = await ensureDeck(
+    {
+      name: `${DEBUG_PREFIX} Physics A-level`,
+      description: "Three topic decks with a mix of basic, cloze, MCQ, and typed cards.",
+      subject: "Physics",
+      colour: "#1E3A5F",
+    },
+    (spec) => createDeck(spec),
+  );
+  tally(physicsRoot);
 
-  const physicsRoot = await createDeck({
-    name: `${DEBUG_PREFIX} Physics A-level`,
-    description: "Three topic decks with a mix of basic, cloze, MCQ, and typed cards.",
-    subject: "Physics",
-    colour: "#1E3A5F",
-  });
-  decks += 1;
+  if (physicsRoot.created) {
+    const mechanics = await createDeck({
+      name: "Mechanics",
+      description: "Newton's laws, motion, momentum.",
+      subject: "Physics",
+      colour: "#3D7AB8",
+      parentId: physicsRoot.deckId,
+    });
+    decks += 1;
+    cards += await addPhysicsMechanicsCards(mechanics.id);
 
-  const mechanics = await createDeck({
-    name: "Mechanics",
-    description: "Newton's laws, motion, momentum.",
-    subject: "Physics",
-    colour: "#3D7AB8",
-    parentId: physicsRoot.id,
-  });
-  decks += 1;
-  cards += await addPhysicsMechanicsCards(mechanics.id);
+    const waves = await createDeck({
+      name: "Waves",
+      description: "Wave properties, sound, light.",
+      subject: "Physics",
+      colour: "#7A5BA8",
+      parentId: physicsRoot.deckId,
+    });
+    decks += 1;
+    cards += await addPhysicsWavesCards(waves.id);
 
-  const waves = await createDeck({
-    name: "Waves",
-    description: "Wave properties, sound, light.",
-    subject: "Physics",
-    colour: "#7A5BA8",
-    parentId: physicsRoot.id,
-  });
-  decks += 1;
-  cards += await addPhysicsWavesCards(waves.id);
-
-  const electricity = await createDeck({
-    name: "Electricity",
-    description: "Circuits, Ohm's law, components.",
-    subject: "Physics",
-    colour: "#D4912E",
-    parentId: physicsRoot.id,
-  });
-  decks += 1;
-  cards += await addPhysicsElectricityCards(electricity.id);
+    const electricity = await createDeck({
+      name: "Electricity",
+      description: "Circuits, Ohm's law, components.",
+      subject: "Physics",
+      colour: "#D4912E",
+      parentId: physicsRoot.deckId,
+    });
+    decks += 1;
+    cards += await addPhysicsElectricityCards(electricity.id);
+  }
 
   // ---- Root: Biology GCSE ----
+  const biologyRoot = await ensureDeck(
+    {
+      name: `${DEBUG_PREFIX} Biology GCSE`,
+      description: "Cells and genetics with mixed card types.",
+      subject: "Biology",
+      colour: "#3E8E63",
+    },
+    (spec) => createDeck(spec),
+  );
+  tally(biologyRoot);
 
-  const biologyRoot = await createDeck({
-    name: `${DEBUG_PREFIX} Biology GCSE`,
-    description: "Cells and genetics with mixed card types.",
-    subject: "Biology",
-    colour: "#3E8E63",
-  });
-  decks += 1;
+  if (biologyRoot.created) {
+    const cellsDeck = await createDeck({
+      name: "Cells",
+      description: "Structure, organelles, transport.",
+      subject: "Biology",
+      colour: "#3E8E63",
+      parentId: biologyRoot.deckId,
+    });
+    decks += 1;
+    cards += await addBiologyCellsCards(cellsDeck.id);
 
-  const cellsDeck = await createDeck({
-    name: "Cells",
-    description: "Structure, organelles, transport.",
-    subject: "Biology",
-    colour: "#3E8E63",
-    parentId: biologyRoot.id,
-  });
-  decks += 1;
-  cards += await addBiologyCellsCards(cellsDeck.id);
-
-  const geneticsDeck = await createDeck({
-    name: "Genetics",
-    description: "DNA, inheritance, mutations.",
-    subject: "Biology",
-    colour: "#7A5BA8",
-    parentId: biologyRoot.id,
-  });
-  decks += 1;
-  cards += await addBiologyGeneticsCards(geneticsDeck.id);
+    const geneticsDeck = await createDeck({
+      name: "Genetics",
+      description: "DNA, inheritance, mutations.",
+      subject: "Biology",
+      colour: "#7A5BA8",
+      parentId: biologyRoot.deckId,
+    });
+    decks += 1;
+    cards += await addBiologyGeneticsCards(geneticsDeck.id);
+  }
 
   // ---- Root: Card types showcase ----
-
-  const showcase = await createDeck({
-    name: `${DEBUG_PREFIX} Card types showcase`,
-    description: "One of each text-card type so you can demo the editor.",
-    subject: "Demo",
-    colour: "#7A5BA8",
-  });
-  decks += 1;
-  cards += await addShowcaseCards(showcase.id);
+  const showcase = await ensureDeck(
+    {
+      name: `${DEBUG_PREFIX} Card types showcase`,
+      description: "One of each text-card type so you can demo the editor.",
+      subject: "Demo",
+      colour: "#7A5BA8",
+    },
+    (spec) => createDeck(spec),
+    (deckId) => addShowcaseCards(deckId),
+  );
+  tally(showcase);
 
   // ---- Roots: Rapid-fire decks (purpose-built for Flashcard Survivors) ----
   //
@@ -245,64 +304,91 @@ export async function seedDebugData(): Promise<SeedDebugResult> {
   // straight into Survivors on any of them and the demo plays cleanly.
   // One per subject (Physics / Biology / Languages / Philosophy) so the
   // mode-select screen always has a deck pre-tuned to the player's
-  // interests.
-  const physicsRapidFire = await createDeck({
-    name: `${DEBUG_PREFIX} Physics rapid-fire`,
-    description:
-      "Short physics-fact prompts with one-word answers. Built for Flashcard Survivors but works as a regular deck too.",
-    subject: "Physics",
-    colour: "#3D7AB8",
-  });
-  decks += 1;
-  cards += await addPhysicsRapidFireCards(physicsRapidFire.id);
+  // interests. Each goes through ensureDeck so adding a new rapid-fire
+  // subject later lands automatically on next boot.
+  const physicsRapidFire = await ensureDeck(
+    {
+      name: `${DEBUG_PREFIX} Physics rapid-fire`,
+      description:
+        "Short physics-fact prompts with one-word answers. Built for Flashcard Survivors but works as a regular deck too.",
+      subject: "Physics",
+      colour: "#3D7AB8",
+    },
+    (spec) => createDeck(spec),
+    (deckId) => addPhysicsRapidFireCards(deckId),
+  );
+  tally(physicsRapidFire);
 
-  const biologyRapidFire = await createDeck({
-    name: `${DEBUG_PREFIX} Biology rapid-fire`,
-    description:
-      "Short biology-fact prompts with one-word answers — organelles, processes, scientists.",
-    subject: "Biology",
-    colour: "#3E8E63",
-  });
-  decks += 1;
-  cards += await addBiologyRapidFireCards(biologyRapidFire.id);
+  const biologyRapidFire = await ensureDeck(
+    {
+      name: `${DEBUG_PREFIX} Biology rapid-fire`,
+      description:
+        "Short biology-fact prompts with one-word answers — organelles, processes, scientists.",
+      subject: "Biology",
+      colour: "#3E8E63",
+    },
+    (spec) => createDeck(spec),
+    (deckId) => addBiologyRapidFireCards(deckId),
+  );
+  tally(biologyRapidFire);
 
-  const languagesRapidFire = await createDeck({
-    name: `${DEBUG_PREFIX} Languages rapid-fire`,
-    description:
-      "Foreign word → single English answer, mixing French, Spanish, and German. Accent-tolerant.",
-    subject: "Languages",
-    colour: "#C9A14A",
-  });
-  decks += 1;
-  cards += await addLanguagesRapidFireCards(languagesRapidFire.id);
+  const languagesRapidFire = await ensureDeck(
+    {
+      name: `${DEBUG_PREFIX} Languages rapid-fire`,
+      description:
+        "Foreign word → single English answer, mixing French, Spanish, and German. Accent-tolerant.",
+      subject: "Languages",
+      colour: "#C9A14A",
+    },
+    (spec) => createDeck(spec),
+    (deckId) => addLanguagesRapidFireCards(deckId),
+  );
+  tally(languagesRapidFire);
 
-  const philosophyRapidFire = await createDeck({
-    name: `${DEBUG_PREFIX} Philosophy rapid-fire`,
-    description:
-      "Philosophers, schools, and key terms with one-word answers.",
-    subject: "Philosophy",
-    colour: "#7A5BA8",
-  });
-  decks += 1;
-  cards += await addPhilosophyRapidFireCards(philosophyRapidFire.id);
+  const philosophyRapidFire = await ensureDeck(
+    {
+      name: `${DEBUG_PREFIX} Philosophy rapid-fire`,
+      description:
+        "Philosophers, schools, and key terms with one-word answers.",
+      subject: "Philosophy",
+      colour: "#7A5BA8",
+    },
+    (spec) => createDeck(spec),
+    (deckId) => addPhilosophyRapidFireCards(deckId),
+  );
+  tally(philosophyRapidFire);
 
   // ---- Review history + sessions ----
   //
-  // The showcase and rapid-fire decks are excluded so their cards stay
-  // fresh: the showcase is meant to demo the editor on pristine cards,
-  // and rapid-fire's whole point is that every card is due and ready
-  // for a Flashcard Survivors run.
-  await seedReviewHistory({
-    excludeDeckIds: [
-      showcase.id,
-      physicsRapidFire.id,
-      biologyRapidFire.id,
-      languagesRapidFire.id,
-      philosophyRapidFire.id,
-    ],
-  });
+  // Only fire on a true first-time seed. On subsequent boots where
+  // some demo decks already exist (or all of them, with one or two
+  // new rapid-fire decks landing), the Stats page shouldn't keep
+  // accumulating fake sessions. The showcase and rapid-fire decks
+  // are excluded from history seeding because: showcase = pristine
+  // editor demo, rapid-fire = every card should start due for a
+  // Survivors run.
+  if (wasFirstTimeSeed) {
+    await seedReviewHistory({
+      excludeDeckIds: [
+        showcase.deckId,
+        physicsRapidFire.deckId,
+        biologyRapidFire.deckId,
+        languagesRapidFire.deckId,
+        philosophyRapidFire.deckId,
+      ],
+    });
+  }
 
-  return { decksCreated: decks, cardsCreated: cards, alreadySeeded: false };
+  return {
+    decksCreated: decks,
+    cardsCreated: cards,
+    // The Settings "Generate sample decks" button uses this flag to
+    // tell the user "already seeded" vs "created N decks". We treat
+    // alreadySeeded as "this call added nothing new" — which matches
+    // the user-visible meaning even though the implementation now
+    // tops up incrementally.
+    alreadySeeded: decks === 0,
+  };
 }
 
 // ---- Card-builder helpers ----

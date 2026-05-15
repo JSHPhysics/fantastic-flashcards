@@ -2,7 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { RouterProvider } from "react-router-dom";
 import { router } from "./router";
-import { ensureProfile, sweepOrphanedMedia, seedDevData } from "./db";
+import { ensureProfile, sweepOrphanedMedia, seedDebugData } from "./db";
 import "./index.css";
 
 // ---- Recovery / kill-switch ---------------------------------------------
@@ -100,7 +100,17 @@ function bootApp(): void {
     try {
       await ensureProfile();
       await sweepOrphanedMedia();
-      if (import.meta.env.DEV) await seedDevData();
+      // PROTOTYPING: auto-seed the full demo deck set on every boot.
+      // seedDebugData is per-deck idempotent — existing decks (and
+      // their FSRS state, review history, user edits) are untouched;
+      // only missing demo decks land. So when a new sample deck is
+      // added to seed-debug.ts the user picks it up on next launch
+      // without having to wipe + re-seed. Heavy review-history seeding
+      // is gated to the truly-first-time case inside seedDebugData
+      // itself. Before going to production, gate this on
+      // import.meta.env.DEV or remove the call entirely so end-users
+      // don't get demo decks in their library.
+      await seedDebugData();
       void requestPersistentStorage();
     } catch (err) {
       console.error("[db] init failed", err);
