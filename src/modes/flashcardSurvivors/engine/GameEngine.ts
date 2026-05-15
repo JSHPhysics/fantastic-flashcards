@@ -915,16 +915,24 @@ export class GameEngine {
           tag,
         });
       },
-      dealDamage: (enemyId, amount) => {
+      dealDamage: (enemyId, amount, opts) => {
         const enemy = this.enemies.find((e) => e.id === enemyId);
         if (!enemy) return;
         if (enemy.killed) return;
         const inInner = Math.hypot(enemy.pos.x, enemy.pos.y) < this.innerZoneRadius();
         enemy.hp -= amount * (inInner ? this.innerZoneDamageMult : 1);
         this.pushHitPulse(enemy.pos, enemy.hp <= 0 ? "kill" : "hit");
-        if (enemy.hp <= 0) this.killEnemy(enemy);
-        // Discrete direct-damage hit — swap the question if it survived.
-        else this.swapEnemyCard(enemy);
+        if (enemy.hp <= 0) {
+          this.killEnemy(enemy);
+          return;
+        }
+        // Continuous damage (Reasoning Beam, Echo Orbital) ticks
+        // every frame on the same target — if we swap the card per
+        // tick the question reshuffles ~60×/sec and becomes
+        // un-answerable. Only discrete hits (Mnemonic Pulse burst,
+        // Streak Conductor chain, projectile direct-damage) trigger
+        // a swap.
+        if (!opts?.continuous) this.swapEnemyCard(enemy);
       },
       spawnChain: (points, revealMs, fadeMs) => {
         this.pushChain(points, revealMs, fadeMs);

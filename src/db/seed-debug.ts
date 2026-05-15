@@ -235,15 +235,18 @@ export async function seedDebugData(): Promise<SeedDebugResult> {
   decks += 1;
   cards += await addShowcaseCards(showcase.id);
 
-  // ---- Root: Physics rapid-fire (purpose-built for Flashcard Survivors) ----
+  // ---- Roots: Rapid-fire decks (purpose-built for Flashcard Survivors) ----
   //
-  // The language decks have multi-word backs ("to be", "to do / make")
-  // which are awkward to type during a Survivors run, and the Physics
-  // A-level deck mixes cloze + MCQ + typed cards that get silently
-  // skipped by Survivors. This deck is exclusively basic-front/back
-  // cards with one-word answers — drop a stakeholder straight into
-  // Survivors on this deck and the demo plays cleanly.
-  const rapidFire = await createDeck({
+  // The "real" subject decks above mix card types (cloze, MCQ, typed)
+  // that Survivors silently skips, and the language decks have
+  // multi-word backs ("to be", "thank you very much") that are awkward
+  // to type during a run. Each rapid-fire deck below is exclusively
+  // basic-front/back with single-word answers — drop a stakeholder
+  // straight into Survivors on any of them and the demo plays cleanly.
+  // One per subject (Physics / Biology / Languages / Philosophy) so the
+  // mode-select screen always has a deck pre-tuned to the player's
+  // interests.
+  const physicsRapidFire = await createDeck({
     name: `${DEBUG_PREFIX} Physics rapid-fire`,
     description:
       "Short physics-fact prompts with one-word answers. Built for Flashcard Survivors but works as a regular deck too.",
@@ -251,7 +254,37 @@ export async function seedDebugData(): Promise<SeedDebugResult> {
     colour: "#3D7AB8",
   });
   decks += 1;
-  cards += await addPhysicsRapidFireCards(rapidFire.id);
+  cards += await addPhysicsRapidFireCards(physicsRapidFire.id);
+
+  const biologyRapidFire = await createDeck({
+    name: `${DEBUG_PREFIX} Biology rapid-fire`,
+    description:
+      "Short biology-fact prompts with one-word answers — organelles, processes, scientists.",
+    subject: "Biology",
+    colour: "#3E8E63",
+  });
+  decks += 1;
+  cards += await addBiologyRapidFireCards(biologyRapidFire.id);
+
+  const languagesRapidFire = await createDeck({
+    name: `${DEBUG_PREFIX} Languages rapid-fire`,
+    description:
+      "Foreign word → single English answer, mixing French, Spanish, and German. Accent-tolerant.",
+    subject: "Languages",
+    colour: "#C9A14A",
+  });
+  decks += 1;
+  cards += await addLanguagesRapidFireCards(languagesRapidFire.id);
+
+  const philosophyRapidFire = await createDeck({
+    name: `${DEBUG_PREFIX} Philosophy rapid-fire`,
+    description:
+      "Philosophers, schools, and key terms with one-word answers.",
+    subject: "Philosophy",
+    colour: "#7A5BA8",
+  });
+  decks += 1;
+  cards += await addPhilosophyRapidFireCards(philosophyRapidFire.id);
 
   // ---- Review history + sessions ----
   //
@@ -259,7 +292,15 @@ export async function seedDebugData(): Promise<SeedDebugResult> {
   // fresh: the showcase is meant to demo the editor on pristine cards,
   // and rapid-fire's whole point is that every card is due and ready
   // for a Flashcard Survivors run.
-  await seedReviewHistory({ excludeDeckIds: [showcase.id, rapidFire.id] });
+  await seedReviewHistory({
+    excludeDeckIds: [
+      showcase.id,
+      physicsRapidFire.id,
+      biologyRapidFire.id,
+      languagesRapidFire.id,
+      philosophyRapidFire.id,
+    ],
+  });
 
   return { decksCreated: decks, cardsCreated: cards, alreadySeeded: false };
 }
@@ -723,6 +764,355 @@ async function addPhysicsRapidFireCards(deckId: string): Promise<number> {
     n += 1;
   }
   return n;
+}
+
+// Helper shared by the rapid-fire deck seeders below. Same shape as
+// Physics: question front → one-word back, no auto-reverse so the
+// "Electron" → "What negative particle…" reverse doesn't sneak in.
+async function addRapidFireBasicCards(
+  deckId: string,
+  cards: { front: string; back: string; tags: string[] }[],
+): Promise<number> {
+  let n = 0;
+  for (const c of cards) {
+    await createBasicCard({
+      deckId,
+      tags: c.tags,
+      front: { text: c.front },
+      back: { text: c.back },
+      autoReverse: false,
+    });
+    n += 1;
+  }
+  return n;
+}
+
+async function addBiologyRapidFireCards(deckId: string): Promise<number> {
+  return addRapidFireBasicCards(deckId, [
+    // Organelles ---------------------------------------------------
+    {
+      front: "Which organelle is the powerhouse of the cell?",
+      back: "Mitochondria",
+      tags: ["biology", "cells", "organelles"],
+    },
+    {
+      front: "Which organelle is the site of protein synthesis?",
+      back: "Ribosome",
+      tags: ["biology", "cells", "organelles"],
+    },
+    {
+      front: "Which organelle stores genetic information?",
+      back: "Nucleus",
+      tags: ["biology", "cells", "organelles"],
+    },
+    {
+      front: "What organelle in plants performs photosynthesis?",
+      back: "Chloroplast",
+      tags: ["biology", "cells", "plants"],
+    },
+    {
+      front: "What is the jelly-like fluid that fills a cell?",
+      back: "Cytoplasm",
+      tags: ["biology", "cells"],
+    },
+    // Processes ----------------------------------------------------
+    {
+      front: "Name the process plants use to make glucose from sunlight.",
+      back: "Photosynthesis",
+      tags: ["biology", "plants", "processes"],
+    },
+    {
+      front: "Name the cell-division process that produces identical daughter cells.",
+      back: "Mitosis",
+      tags: ["biology", "cells", "division"],
+    },
+    {
+      front: "Name the cell-division process that produces gametes.",
+      back: "Meiosis",
+      tags: ["biology", "genetics", "division"],
+    },
+    {
+      front: "Name the process by which the body breaks glucose down to release energy.",
+      back: "Respiration",
+      tags: ["biology", "processes"],
+    },
+    {
+      front: "Net movement of particles from high to low concentration?",
+      back: "Diffusion",
+      tags: ["biology", "transport"],
+    },
+    {
+      front: "Movement of water across a partially permeable membrane?",
+      back: "Osmosis",
+      tags: ["biology", "transport"],
+    },
+    // Macromolecules + chemistry -----------------------------------
+    {
+      front: "What molecule carries genetic information in cells?",
+      back: "DNA",
+      tags: ["biology", "genetics"],
+    },
+    {
+      front: "What pigment makes plant leaves green?",
+      back: "Chlorophyll",
+      tags: ["biology", "plants"],
+    },
+    {
+      front: "What is the energy currency of the cell?",
+      back: "ATP",
+      tags: ["biology", "biochemistry"],
+    },
+    {
+      front: "Building blocks of proteins?",
+      back: "Amino acids",
+      tags: ["biology", "biochemistry"],
+    },
+    // Anatomy + physiology -----------------------------------------
+    {
+      front: "Which organ pumps blood around the body?",
+      back: "Heart",
+      tags: ["biology", "anatomy"],
+    },
+    {
+      front: "Which organ filters waste from the blood to form urine?",
+      back: "Kidney",
+      tags: ["biology", "anatomy"],
+    },
+    {
+      front: "Which organ produces bile?",
+      back: "Liver",
+      tags: ["biology", "anatomy"],
+    },
+    {
+      front: "What gas do humans breathe out?",
+      back: "Carbon dioxide",
+      tags: ["biology", "physiology"],
+    },
+    {
+      front: "What red protein in blood carries oxygen?",
+      back: "Haemoglobin",
+      tags: ["biology", "physiology"],
+    },
+    // Ecology + taxonomy -------------------------------------------
+    {
+      front: "What is a self-supporting organism that makes its own food called?",
+      back: "Autotroph",
+      tags: ["biology", "ecology"],
+    },
+    {
+      front: "What is an organism that eats other organisms called?",
+      back: "Heterotroph",
+      tags: ["biology", "ecology"],
+    },
+    {
+      front: "What term describes all the populations in an area?",
+      back: "Community",
+      tags: ["biology", "ecology"],
+    },
+    // Scientists ---------------------------------------------------
+    {
+      front: "Who proposed the theory of evolution by natural selection?",
+      back: "Darwin",
+      tags: ["biology", "scientists"],
+    },
+    {
+      front: "Whose pea-plant experiments founded genetics?",
+      back: "Mendel",
+      tags: ["biology", "scientists", "genetics"],
+    },
+    {
+      front: "Who, with Crick, described the DNA double helix?",
+      back: "Watson",
+      tags: ["biology", "scientists", "genetics"],
+    },
+  ]);
+}
+
+async function addLanguagesRapidFireCards(deckId: string): Promise<number> {
+  // Foreign word → single English answer. Mixes French, Spanish, and
+  // German so the deck doubles as a quick "which language was that?"
+  // memory check. Accents on the front are read fine by the typing
+  // engine — students can type "etre" for "être" thanks to
+  // normaliseAnswer's accent folding.
+  return addRapidFireBasicCards(deckId, [
+    // French -------------------------------------------------------
+    { front: "What does 'bonjour' mean?", back: "Hello", tags: ["french", "vocab"] },
+    { front: "What does 'merci' mean?", back: "Thanks", tags: ["french", "vocab"] },
+    { front: "What does 'eau' mean?", back: "Water", tags: ["french", "vocab"] },
+    { front: "What does 'rouge' mean?", back: "Red", tags: ["french", "vocab", "colours"] },
+    { front: "What does 'chat' mean?", back: "Cat", tags: ["french", "vocab", "animals"] },
+    { front: "What does 'chien' mean?", back: "Dog", tags: ["french", "vocab", "animals"] },
+    { front: "What does 'livre' mean?", back: "Book", tags: ["french", "vocab"] },
+    { front: "What does 'pain' mean (French)?", back: "Bread", tags: ["french", "vocab", "food"] },
+    { front: "What does 'grand' mean?", back: "Big", tags: ["french", "vocab"] },
+    { front: "What does 'petit' mean?", back: "Small", tags: ["french", "vocab"] },
+    // Spanish ------------------------------------------------------
+    { front: "What does 'hola' mean?", back: "Hello", tags: ["spanish", "vocab"] },
+    { front: "What does 'gracias' mean?", back: "Thanks", tags: ["spanish", "vocab"] },
+    { front: "What does 'agua' mean?", back: "Water", tags: ["spanish", "vocab"] },
+    { front: "What does 'manzana' mean?", back: "Apple", tags: ["spanish", "vocab", "food"] },
+    { front: "What does 'perro' mean?", back: "Dog", tags: ["spanish", "vocab", "animals"] },
+    { front: "What does 'gato' mean?", back: "Cat", tags: ["spanish", "vocab", "animals"] },
+    { front: "What does 'libro' mean?", back: "Book", tags: ["spanish", "vocab"] },
+    { front: "What does 'sol' mean?", back: "Sun", tags: ["spanish", "vocab"] },
+    { front: "What does 'casa' mean?", back: "House", tags: ["spanish", "vocab"] },
+    { front: "What does 'rojo' mean?", back: "Red", tags: ["spanish", "vocab", "colours"] },
+    // German -------------------------------------------------------
+    { front: "What does 'Hallo' mean?", back: "Hello", tags: ["german", "vocab"] },
+    { front: "What does 'Danke' mean?", back: "Thanks", tags: ["german", "vocab"] },
+    { front: "What does 'Wasser' mean?", back: "Water", tags: ["german", "vocab"] },
+    { front: "What does 'Brot' mean?", back: "Bread", tags: ["german", "vocab", "food"] },
+    { front: "What does 'Hund' mean?", back: "Dog", tags: ["german", "vocab", "animals"] },
+    { front: "What does 'Katze' mean?", back: "Cat", tags: ["german", "vocab", "animals"] },
+    { front: "What does 'Buch' mean?", back: "Book", tags: ["german", "vocab"] },
+    { front: "What does 'Haus' mean?", back: "House", tags: ["german", "vocab"] },
+    { front: "What does 'Käse' mean?", back: "Cheese", tags: ["german", "vocab", "food"] },
+    { front: "What does 'grün' mean?", back: "Green", tags: ["german", "vocab", "colours"] },
+  ]);
+}
+
+async function addPhilosophyRapidFireCards(deckId: string): Promise<number> {
+  return addRapidFireBasicCards(deckId, [
+    // Philosophers (by name) ---------------------------------------
+    {
+      front: "Who wrote 'The Republic'?",
+      back: "Plato",
+      tags: ["philosophy", "ancient", "philosophers"],
+    },
+    {
+      front: "Who was famously taught by Socrates?",
+      back: "Plato",
+      tags: ["philosophy", "ancient", "philosophers"],
+    },
+    {
+      front: "Who tutored Alexander the Great?",
+      back: "Aristotle",
+      tags: ["philosophy", "ancient", "philosophers"],
+    },
+    {
+      front: "Which philosopher famously said 'I think, therefore I am'?",
+      back: "Descartes",
+      tags: ["philosophy", "modern", "philosophers"],
+    },
+    {
+      front: "Who proposed the categorical imperative?",
+      back: "Kant",
+      tags: ["philosophy", "ethics", "philosophers"],
+    },
+    {
+      front: "Who wrote 'Thus Spoke Zarathustra' and declared 'God is dead'?",
+      back: "Nietzsche",
+      tags: ["philosophy", "modern", "philosophers"],
+    },
+    {
+      front: "Whose social-contract work was 'Leviathan' (1651)?",
+      back: "Hobbes",
+      tags: ["philosophy", "politics", "philosophers"],
+    },
+    {
+      front: "Who wrote 'A Treatise of Human Nature' and championed empiricism?",
+      back: "Hume",
+      tags: ["philosophy", "epistemology", "philosophers"],
+    },
+    {
+      front: "Who wrote 'Being and Nothingness' and led French existentialism?",
+      back: "Sartre",
+      tags: ["philosophy", "existentialism", "philosophers"],
+    },
+    {
+      front: "Who wrote 'The Communist Manifesto'?",
+      back: "Marx",
+      tags: ["philosophy", "politics", "philosophers"],
+    },
+    // Branches of philosophy ---------------------------------------
+    {
+      front: "What is the study of being and existence called?",
+      back: "Ontology",
+      tags: ["philosophy", "metaphysics", "terms"],
+    },
+    {
+      front: "What is the study of knowledge called?",
+      back: "Epistemology",
+      tags: ["philosophy", "terms"],
+    },
+    {
+      front: "What is the study of right and wrong action called?",
+      back: "Ethics",
+      tags: ["philosophy", "terms"],
+    },
+    {
+      front: "What is the study of beauty and art called?",
+      back: "Aesthetics",
+      tags: ["philosophy", "terms"],
+    },
+    {
+      front: "What is the study of reasoning and valid inference called?",
+      back: "Logic",
+      tags: ["philosophy", "terms"],
+    },
+    // Schools and -isms --------------------------------------------
+    {
+      front: "What is the view that the greatest good is happiness for the greatest number?",
+      back: "Utilitarianism",
+      tags: ["philosophy", "ethics", "schools"],
+    },
+    {
+      front: "What is the view that life is fundamentally without inherent meaning?",
+      back: "Nihilism",
+      tags: ["philosophy", "schools"],
+    },
+    {
+      front: "Which school holds that virtue lies in living according to reason and accepting fate?",
+      back: "Stoicism",
+      tags: ["philosophy", "ancient", "schools"],
+    },
+    {
+      front: "Which school holds that pleasure (well-being) is the highest good?",
+      back: "Hedonism",
+      tags: ["philosophy", "ethics", "schools"],
+    },
+    {
+      front: "Which view holds that knowledge comes primarily from sensory experience?",
+      back: "Empiricism",
+      tags: ["philosophy", "epistemology", "schools"],
+    },
+    {
+      front: "Which view holds that knowledge comes primarily from reason?",
+      back: "Rationalism",
+      tags: ["philosophy", "epistemology", "schools"],
+    },
+    {
+      front: "Which 20th-century school says existence precedes essence?",
+      back: "Existentialism",
+      tags: ["philosophy", "schools"],
+    },
+    {
+      front: "Which school evaluates beliefs by their practical consequences?",
+      back: "Pragmatism",
+      tags: ["philosophy", "schools"],
+    },
+    // Key terms ----------------------------------------------------
+    {
+      front: "What is the philosophical position that only one's own mind is sure to exist?",
+      back: "Solipsism",
+      tags: ["philosophy", "epistemology", "terms"],
+    },
+    {
+      front: "What is the term for an argument whose conclusion is supported by its premises?",
+      back: "Valid",
+      tags: ["philosophy", "logic", "terms"],
+    },
+    {
+      front: "What is the dialectic process of thesis, antithesis, and ___?",
+      back: "Synthesis",
+      tags: ["philosophy", "terms"],
+    },
+    {
+      front: "What term names the philosophical method of questioning to draw out ideas?",
+      back: "Socratic",
+      tags: ["philosophy", "ancient", "terms"],
+    },
+  ]);
 }
 
 async function addShowcaseCards(deckId: string): Promise<number> {

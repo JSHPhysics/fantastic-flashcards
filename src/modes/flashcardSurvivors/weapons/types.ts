@@ -33,7 +33,17 @@ export interface WeaponHandle {
   spawnCloud: (centre: Vec2, radius: number, dps: number, durationMs: number, tag: string | null) => void;
   // Subtract HP from an enemy (used by Mnemonic Pulse / Reasoning Beam
   // direct-damage weapons that don't go through a projectile).
-  dealDamage: (enemyId: string, amount: number) => void;
+  //
+  // `continuous: true` marks per-tick attrition (Reasoning Beam,
+  // Echo Orbital). Continuous damage suppresses the card-swap that
+  // happens when an enemy survives a discrete hit — without that
+  // suppression, a beam ticking 60×/sec would reshuffle the
+  // question every frame, making it un-answerable.
+  dealDamage: (
+    enemyId: string,
+    amount: number,
+    opts?: { continuous?: boolean },
+  ) => void;
   // Spawn a visible chain polyline (player → enemy1 → enemy2 → …) for
   // chain-style weapons like Streak Conductor. Strictly visual — damage
   // is still applied via dealDamage. revealMs is the sequential

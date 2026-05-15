@@ -115,7 +115,9 @@ const W: WeaponDef[] = [
           const dx = e.pos.x - ox;
           const dy = e.pos.y - oy;
           if (Math.hypot(dx, dy) < e.size * 0.5 + 10) {
-            h.dealDamage(e.id, (dps * dtMs) / 1000);
+            // Continuous per-tick attrition — no card swap, same as
+            // Reasoning Beam. Each orb ticks 60×/sec while touching.
+            h.dealDamage(e.id, (dps * dtMs) / 1000, { continuous: true });
           }
         }
       }
@@ -317,7 +319,10 @@ const W: WeaponDef[] = [
       w.state.lockedFor = lockedOnSame ? prev + dtMs : 0;
       const ramp = Math.min(1, ((w.state.lockedFor as number) ?? 0) / 2000);
       const dps = baseDps + (peakDps - baseDps) * ramp;
-      h.dealDamage(target.id, (dps * dtMs) / 1000);
+      // Continuous per-tick attrition — must not swap the card every
+      // frame or the beam target's question reshuffles ~60×/sec and
+      // becomes impossible to type.
+      h.dealDamage(target.id, (dps * dtMs) / 1000, { continuous: true });
     },
   },
 
