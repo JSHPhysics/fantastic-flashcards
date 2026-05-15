@@ -437,6 +437,17 @@ const W: WeaponDef[] = [
       const chains = [5, 6, 7, 8, 10][lvl];
       const damage = [32, 42, 56, 75, 100][lvl] * h.damageMult;
       const enemies = h.enemies.slice(0, chains);
+      // Sequential reveal: the chain animates one segment at a time
+      // (player → e0 → e1 → …) so the player sees the lightning hop
+      // between targets instead of every enemy exploding at once.
+      // Damage is applied on the same tick — the visual is decorative.
+      if (enemies.length > 0) {
+        const points = [h.playerPos, ...enemies.map((e) => e.pos)];
+        // Roughly 70ms per segment up to 350ms total, then a 400ms
+        // fade. Feels punchy on a 5-chain, doesn't drag on a 10-chain.
+        const reveal = Math.min(350, 70 * (points.length - 1));
+        h.spawnChain(points, reveal, 400);
+      }
       for (const e of enemies) {
         h.dealDamage(e.id, damage);
       }

@@ -34,6 +34,12 @@ export interface WeaponHandle {
   // Subtract HP from an enemy (used by Mnemonic Pulse / Reasoning Beam
   // direct-damage weapons that don't go through a projectile).
   dealDamage: (enemyId: string, amount: number) => void;
+  // Spawn a visible chain polyline (player → enemy1 → enemy2 → …) for
+  // chain-style weapons like Streak Conductor. Strictly visual — damage
+  // is still applied via dealDamage. revealMs is the sequential
+  // "lightning travels" reveal duration; fadeMs is the lifetime after
+  // the reveal finishes.
+  spawnChain: (points: Vec2[], revealMs?: number, fadeMs?: number) => void;
   // Streak helper.
   streak: number;
 }

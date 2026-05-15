@@ -121,6 +121,28 @@ export class GameEngine {
   // gameplay consequence — so we can render them confidently without
   // worrying about determinism.
   private hitPulses: { pos: Vec2; bornAt: number; kind: "hit" | "kill" }[] = [];
+  // Floating "+N XP" text spawned on every kill. Drifts up + fades out
+  // over ~900ms. Lets the student SEE that auto-aim / DoT kills are
+  // granting XP — without this feedback, the XP bar just slowly grows
+  // and contact-damage kills (which legitimately grant no XP) get
+  // confused with paths that do.
+  private floaters: {
+    text: string;
+    pos: Vec2;
+    bornAt: number;
+    color: string;
+  }[] = [];
+  // Streak Conductor "chain lightning" visualisation. Each entry is an
+  // ordered polyline (player → enemy1 → enemy2 → …) that animates on
+  // as a sequential reveal then fades. Without this, hits all landed
+  // simultaneously and the chain read as "everything explodes" rather
+  // than "lightning links them."
+  private chainBolts: {
+    points: Vec2[];
+    bornAt: number;
+    revealMs: number;
+    fadeMs: number;
+  }[] = [];
 
   // Active input strategy.
   private input: InputMode | null = null;
@@ -604,6 +626,52 @@ export class GameEngine {
         ctx.stroke();
       }
     }
+    // Chain bolts (Streak Conductor) — sequential reveal first, then
+    // fade. Drawn before the player so a bolt that starts at centre
+    // doesn't overlap the turret's body. Lightning effect = two
+    // strokes: a thick translucent "glow" underneath, then a thin
+    // bright core on top.
+    for (const bolt of this.chainBolts) {
+      const age = this.now - bolt.bornAt;
+      const total = bolt.revealMs + bolt.fadeMs;
+      if (age > total) continue;
+      // How many full segments are revealed, plus a partial fraction
+      // for the segment currently being drawn.
+      const segments = bolt.points.length - 1;
+      const revealT = Math.min(1, age / bolt.revealMs);
+      const exactSegs = revealT * segments;
+      const fullSegs = Math.floor(exactSegs);
+      const partial = exactSegs - fullSegs;
+      // After the reveal, the whole polyline is visible and fades out.
+      const fadeT = age <= bolt.revealMs
+        ? 1
+        : Math.max(0, 1 - (age - bolt.revealMs) / bolt.fadeMs);
+      // Build the path: full segments + the partial leading edge.
+      const drawPath = () => {
+        ctx.beginPath();
+        ctx.moveTo(bolt.points[0].x, bolt.points[0].y);
+        for (let i = 1; i <= fullSegs; i += 1) {
+          ctx.lineTo(bolt.points[i].x, bolt.points[i].y);
+        }
+        if (fullSegs < segments && partial > 0) {
+          const a = bolt.points[fullSegs];
+          const b = bolt.points[fullSegs + 1];
+          ctx.lineTo(a.x + (b.x - a.x) * partial, a.y + (b.y - a.y) * partial);
+        }
+      };
+      // Outer glow.
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.strokeStyle = `rgba(180, 220, 255, ${(0.35 * fadeT).toFixed(3)})`;
+      ctx.lineWidth = 9;
+      drawPath();
+      ctx.stroke();
+      // Bright core.
+      ctx.strokeStyle = `rgba(255, 255, 255, ${(0.95 * fadeT).toFixed(3)})`;
+      ctx.lineWidth = 2.5;
+      drawPath();
+      ctx.stroke();
+    }
     // Player (turret) at centre — uses theme ink so it pops against any
     // background. The outer ring is a faded variant of the same.
     ctx.fillStyle = this.colours.ink;
@@ -615,6 +683,34 @@ export class GameEngine {
     ctx.beginPath();
     ctx.arc(0, 0, 22, 0, Math.PI * 2);
     ctx.stroke();
+    // Floating "+N XP" labels. Painted last so they sit above
+    // everything else (enemies, pulses, chains). Drifts up by ~24px
+    // over its lifetime; fades over the final two-thirds. A faint
+    // stroke gives readability against bright theme backdrops.
+    if (this.floaters.length > 0) {
+      ctx.save();
+      ctx.font = "bold 13px system-ui, -apple-system, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.lineWidth = 3;
+      for (const f of this.floaters) {
+        const age = this.now - f.bornAt;
+        const lifetime = 900;
+        if (age > lifetime) continue;
+        const t = age / lifetime; // 0..1
+        const dy = -t * 28; // drift up
+        // Fade-in-fast, hold, fade-out: alpha = 1 until t=0.35, then
+        // linear to 0 at t=1.
+        const alpha = t < 0.35 ? 1 : Math.max(0, 1 - (t - 0.35) / 0.65);
+        const x = f.pos.x;
+        const y = f.pos.y + dy;
+        ctx.strokeStyle = `rgba(0, 0, 0, ${(0.6 * alpha).toFixed(3)})`;
+        ctx.strokeText(f.text, x, y);
+        ctx.fillStyle = withAlpha(f.color, alpha);
+        ctx.fillText(f.text, x, y);
+      }
+      ctx.restore();
+    }
     ctx.restore();
   }
 
@@ -830,6 +926,9 @@ export class GameEngine {
         // Discrete direct-damage hit — swap the question if it survived.
         else this.swapEnemyCard(enemy);
       },
+      spawnChain: (points, revealMs, fadeMs) => {
+        this.pushChain(points, revealMs, fadeMs);
+      },
     };
   }
 
@@ -964,6 +1063,16 @@ export class GameEngine {
     const xpGained = Math.round(enemy.maxHp * 0.5 * this.player.xpGainMult);
     this.player.xp += xpGained;
     this.cardsKilled += 1;
+    // Floating "+N XP" text. Elites get an additional callout so the
+    // bonus XP (line below) reads as part of the same kill.
+    this.pushFloater(enemy.pos, `+${xpGained} XP`, "rgb(255, 220, 110)");
+    if (enemy.elite) {
+      this.pushFloater(
+        { x: enemy.pos.x, y: enemy.pos.y - 14 },
+        "ELITE +30",
+        "rgb(255, 200, 90)",
+      );
+    }
     // onKill hooks.
     for (const ow of this.weapons) {
       const def = getWeaponDef(ow.id);
@@ -1047,10 +1156,41 @@ export class GameEngine {
     this.hitPulses.push({ pos: { x: pos.x, y: pos.y }, bornAt: this.now, kind });
   }
 
+  private pushFloater(pos: Vec2, text: string, color: string): void {
+    this.floaters.push({
+      text,
+      // Copy the position vector — enemies' pos is mutated as they
+      // move, and we want the floater to stay where the kill happened.
+      pos: { x: pos.x, y: pos.y },
+      bornAt: this.now,
+      color,
+    });
+  }
+
+  private pushChain(points: Vec2[], revealMs = 220, fadeMs = 380): void {
+    if (points.length < 2) return;
+    this.chainBolts.push({
+      points: points.map((p) => ({ x: p.x, y: p.y })),
+      bornAt: this.now,
+      revealMs,
+      fadeMs,
+    });
+  }
+
   private prunePulses(): void {
-    if (this.hitPulses.length === 0) return;
-    const cutoff = this.now - 600; // longest pulse lives ~500ms; 600 = buffer
-    this.hitPulses = this.hitPulses.filter((p) => p.bornAt > cutoff);
+    if (this.hitPulses.length > 0) {
+      const cutoff = this.now - 600; // longest pulse lives ~500ms; 600 = buffer
+      this.hitPulses = this.hitPulses.filter((p) => p.bornAt > cutoff);
+    }
+    if (this.floaters.length > 0) {
+      const cutoff = this.now - 1000; // floater lifetime ~900ms
+      this.floaters = this.floaters.filter((f) => f.bornAt > cutoff);
+    }
+    if (this.chainBolts.length > 0) {
+      this.chainBolts = this.chainBolts.filter(
+        (c) => this.now - c.bornAt < c.revealMs + c.fadeMs + 50,
+      );
+    }
   }
 
   private onMiss(): void {
