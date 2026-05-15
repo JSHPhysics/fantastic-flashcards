@@ -184,18 +184,31 @@ export default function FlashcardSurvivorsSession() {
   useEffect(() => {
     if (screen !== "playing") return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" || e.key.toLowerCase() === "p") {
-        // Don't intercept Esc while the level-up modal is open — it
-        // has its own number-key handler and the modal isn't dismissible
-        // by Esc per spec (player must pick an upgrade). Likewise when
-        // the how-to-play intro is open: its own handler treats Esc
-        // as "start playing" (pre-run) or "close" (re-read), so we
-        // mustn't also pause underneath it.
-        if (levelUp || gameOver || introOpen) return;
-        e.preventDefault();
-        if (paused) closePause();
-        else openPause();
-      }
+      // "P" is a perfectly normal letter in the typing input — if we
+      // pause the moment a student types it, words like "preposition"
+      // become impossible. So P only counts as a pause shortcut when
+      // focus isn't sitting in an editable field. Esc is fine to keep
+      // global because it's never a typed character.
+      const target = e.target as HTMLElement | null;
+      const inEditable = !!(
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable)
+      );
+      const isPauseKey =
+        e.key === "Escape" || (e.key.toLowerCase() === "p" && !inEditable);
+      if (!isPauseKey) return;
+      // Don't intercept Esc while the level-up modal is open — it
+      // has its own number-key handler and the modal isn't dismissible
+      // by Esc per spec (player must pick an upgrade). Likewise when
+      // the how-to-play intro is open: its own handler treats Esc
+      // as "start playing" (pre-run) or "close" (re-read), so we
+      // mustn't also pause underneath it.
+      if (levelUp || gameOver || introOpen) return;
+      e.preventDefault();
+      if (paused) closePause();
+      else openPause();
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
