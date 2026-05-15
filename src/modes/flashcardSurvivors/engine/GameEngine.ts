@@ -143,6 +143,15 @@ export class GameEngine {
     revealMs: number;
     fadeMs: number;
   }[] = [];
+  // Continuous beam visuals (Reasoning Beam, future beam weapons).
+  // Keyed by weapon id so each beam-style weapon owns one slot — the
+  // weapon refreshes its slot every tick with `setBeam`, and entries
+  // not refreshed within ~120ms are pruned (so the beam fades out
+  // when the weapon stops firing or its target dies).
+  private beams = new Map<
+    string,
+    { from: Vec2; to: Vec2; intensity: number; lastSeen: number }
+  >();
 
   // Active input strategy.
   private input: InputMode | null = null;
@@ -626,6 +635,72 @@ export class GameEngine {
         ctx.stroke();
       }
     }
+    // Continuous laser beams (Reasoning Beam). Each entry refreshes
+    // its `lastSeen` every tick while firing; render reads the slot
+    // directly. The visual is a laser line + impact sparks:
+    //   - Wide outer glow (theme-tinted)
+    //   - Thin bright core
+    //   - 5–7 short radial sparks at the impact point that animate
+    //     based on engine time so the impact looks like it's
+    //     burning rather than statically drawn.
+    if (this.beams.size > 0) {
+      ctx.save();
+      ctx.lineCap = "round";
+      for (const b of this.beams.values()) {
+        // Fade in/out gracefully when the beam was just refreshed
+        // (or is about to expire). 0..120ms since lastSeen → 1..0.
+        const sinceRefresh = this.now - b.lastSeen;
+        const fade = Math.max(0, Math.min(1, 1 - sinceRefresh / 120));
+        const intensity = Math.max(0, Math.min(1, b.intensity));
+        // Outer halo — warm orange so the beam reads as energy and
+        // contrasts with the cool projectile palette.
+        const haloAlpha = 0.35 * fade * (0.6 + 0.4 * intensity);
+        ctx.strokeStyle = `rgba(255, 140, 60, ${haloAlpha.toFixed(3)})`;
+        ctx.lineWidth = 6 + 4 * intensity;
+        ctx.beginPath();
+        ctx.moveTo(b.from.x, b.from.y);
+        ctx.lineTo(b.to.x, b.to.y);
+        ctx.stroke();
+        // Bright core — almost white so the beam visibly threads
+        // through the halo.
+        const coreAlpha = 0.95 * fade;
+        ctx.strokeStyle = `rgba(255, 235, 200, ${coreAlpha.toFixed(3)})`;
+        ctx.lineWidth = 1.6 + 1.6 * intensity;
+        ctx.beginPath();
+        ctx.moveTo(b.from.x, b.from.y);
+        ctx.lineTo(b.to.x, b.to.y);
+        ctx.stroke();
+        // Burning sparks at the impact point. Time-driven angles +
+        // lengths so they appear to twinkle. The count + spread grow
+        // with intensity so a fully-locked beam looks meatier.
+        const sparkCount = 4 + Math.round(intensity * 4);
+        const seed = b.to.x * 0.13 + b.to.y * 0.17;
+        for (let i = 0; i < sparkCount; i += 1) {
+          // Pseudo-random but smooth — drives angle/length variation
+          // without needing per-frame state.
+          const t = this.now * 0.012 + i * 1.7 + seed;
+          const angle = Math.sin(t) * Math.PI * 1.3 + Math.cos(t * 1.7) * 0.9;
+          const len = 4 + Math.abs(Math.sin(t * 2.3)) * (6 + intensity * 6);
+          const sparkAlpha = (0.55 + 0.35 * Math.abs(Math.sin(t * 3.1))) * fade;
+          ctx.strokeStyle = `rgba(255, 200, 110, ${sparkAlpha.toFixed(3)})`;
+          ctx.lineWidth = 1.4;
+          ctx.beginPath();
+          ctx.moveTo(b.to.x, b.to.y);
+          ctx.lineTo(
+            b.to.x + Math.cos(angle) * len,
+            b.to.y + Math.sin(angle) * len,
+          );
+          ctx.stroke();
+        }
+        // Small bright pip right at the impact so the spark cluster
+        // anchors to the target.
+        ctx.fillStyle = `rgba(255, 240, 200, ${(0.9 * fade).toFixed(3)})`;
+        ctx.beginPath();
+        ctx.arc(b.to.x, b.to.y, 2.5 + intensity * 1.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
     // Chain bolts (Streak Conductor) — sequential reveal first, then
     // fade. Drawn before the player so a bolt that starts at centre
     // doesn't overlap the turret's body. Lightning effect = two
@@ -937,6 +1012,18 @@ export class GameEngine {
       spawnChain: (points, revealMs, fadeMs) => {
         this.pushChain(points, revealMs, fadeMs);
       },
+      setBeam: (from, to, intensity) => {
+        // Keyed by the weapon def's id so each beam-style weapon
+        // (Reasoning Beam today, future Refraction Lance etc.) owns
+        // one slot. Refreshing the slot each tick keeps it alive;
+        // skipping a tick lets prunePulses time it out.
+        this.beams.set(def.id, {
+          from: { x: from.x, y: from.y },
+          to: { x: to.x, y: to.y },
+          intensity,
+          lastSeen: this.now,
+        });
+      },
     };
   }
 
@@ -1198,6 +1285,13 @@ export class GameEngine {
       this.chainBolts = this.chainBolts.filter(
         (c) => this.now - c.bornAt < c.revealMs + c.fadeMs + 50,
       );
+    }
+    if (this.beams.size > 0) {
+      // ~7 ticks of slack — if the weapon stops calling setBeam the
+      // entry drops out and the visual disappears within ~120ms.
+      for (const [key, b] of this.beams) {
+        if (this.now - b.lastSeen > 120) this.beams.delete(key);
+      }
     }
   }
 

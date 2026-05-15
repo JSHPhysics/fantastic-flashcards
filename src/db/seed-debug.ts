@@ -358,6 +358,45 @@ export async function seedDebugData(): Promise<SeedDebugResult> {
   );
   tally(philosophyRapidFire);
 
+  const latinRapidFire = await ensureDeck(
+    {
+      name: `${DEBUG_PREFIX} Latin rapid-fire`,
+      description:
+        "Latin → English single-word translations. Common vocab.",
+      subject: "Latin",
+      colour: "#8B5A2B",
+    },
+    (spec) => createDeck(spec),
+    (deckId) => addLatinRapidFireCards(deckId),
+  );
+  tally(latinRapidFire);
+
+  const classCivRapidFire = await ensureDeck(
+    {
+      name: `${DEBUG_PREFIX} Classical Civilisation rapid-fire`,
+      description:
+        "Greek and Roman myth, history, and culture — one-word answers.",
+      subject: "Classical Civilisation",
+      colour: "#A8753B",
+    },
+    (spec) => createDeck(spec),
+    (deckId) => addClassCivRapidFireCards(deckId),
+  );
+  tally(classCivRapidFire);
+
+  const mdrRapidFire = await ensureDeck(
+    {
+      name: `${DEBUG_PREFIX} MDR / MDSAP rapid-fire`,
+      description:
+        "EU MDR (2017/745) and MDSAP regulatory facts — class codes, agencies, standards.",
+      subject: "Medical Device Regulation",
+      colour: "#1F6B7A",
+    },
+    (spec) => createDeck(spec),
+    (deckId) => addMdrRapidFireCards(deckId),
+  );
+  tally(mdrRapidFire);
+
   // ---- Review history + sessions ----
   //
   // Only fire on a true first-time seed. On subsequent boots where
@@ -375,6 +414,9 @@ export async function seedDebugData(): Promise<SeedDebugResult> {
         biologyRapidFire.deckId,
         languagesRapidFire.deckId,
         philosophyRapidFire.deckId,
+        latinRapidFire.deckId,
+        classCivRapidFire.deckId,
+        mdrRapidFire.deckId,
       ],
     });
   }
@@ -1197,6 +1239,398 @@ async function addPhilosophyRapidFireCards(deckId: string): Promise<number> {
       front: "What term names the philosophical method of questioning to draw out ideas?",
       back: "Socratic",
       tags: ["philosophy", "ancient", "terms"],
+    },
+  ]);
+}
+
+async function addLatinRapidFireCards(deckId: string): Promise<number> {
+  // Latin → English single-word translations. Targeted at common
+  // GCSE / A-level vocab so the deck is broadly recognisable.
+  return addRapidFireBasicCards(deckId, [
+    // Elements / nature ------------------------------------------
+    { front: "What does 'aqua' mean?", back: "Water", tags: ["latin", "vocab", "nature"] },
+    { front: "What does 'terra' mean?", back: "Earth", tags: ["latin", "vocab", "nature"] },
+    { front: "What does 'ignis' mean?", back: "Fire", tags: ["latin", "vocab", "nature"] },
+    { front: "What does 'aer' mean?", back: "Air", tags: ["latin", "vocab", "nature"] },
+    { front: "What does 'sol' mean?", back: "Sun", tags: ["latin", "vocab", "nature"] },
+    { front: "What does 'luna' mean?", back: "Moon", tags: ["latin", "vocab", "nature"] },
+    { front: "What does 'stella' mean?", back: "Star", tags: ["latin", "vocab", "nature"] },
+    { front: "What does 'silva' mean?", back: "Forest", tags: ["latin", "vocab", "nature"] },
+    // People / roles ---------------------------------------------
+    { front: "What does 'rex' mean?", back: "King", tags: ["latin", "vocab", "people"] },
+    { front: "What does 'regina' mean?", back: "Queen", tags: ["latin", "vocab", "people"] },
+    { front: "What does 'puer' mean?", back: "Boy", tags: ["latin", "vocab", "people"] },
+    { front: "What does 'puella' mean?", back: "Girl", tags: ["latin", "vocab", "people"] },
+    { front: "What does 'servus' mean?", back: "Slave", tags: ["latin", "vocab", "people"] },
+    { front: "What does 'amicus' mean?", back: "Friend", tags: ["latin", "vocab", "people"] },
+    { front: "What does 'miles' mean?", back: "Soldier", tags: ["latin", "vocab", "people"] },
+    { front: "What does 'dominus' mean?", back: "Master", tags: ["latin", "vocab", "people"] },
+    // Concepts ---------------------------------------------------
+    { front: "What does 'amor' mean?", back: "Love", tags: ["latin", "vocab", "concepts"] },
+    { front: "What does 'pax' mean?", back: "Peace", tags: ["latin", "vocab", "concepts"] },
+    { front: "What does 'bellum' mean?", back: "War", tags: ["latin", "vocab", "concepts"] },
+    { front: "What does 'vita' mean?", back: "Life", tags: ["latin", "vocab", "concepts"] },
+    { front: "What does 'mors' mean?", back: "Death", tags: ["latin", "vocab", "concepts"] },
+    { front: "What does 'tempus' mean?", back: "Time", tags: ["latin", "vocab", "concepts"] },
+    { front: "What does 'verbum' mean?", back: "Word", tags: ["latin", "vocab", "concepts"] },
+    // Adjectives -------------------------------------------------
+    { front: "What does 'magnus' mean?", back: "Great", tags: ["latin", "vocab", "adjectives"] },
+    { front: "What does 'parvus' mean?", back: "Small", tags: ["latin", "vocab", "adjectives"] },
+    { front: "What does 'bonus' mean?", back: "Good", tags: ["latin", "vocab", "adjectives"] },
+    { front: "What does 'malus' mean?", back: "Bad", tags: ["latin", "vocab", "adjectives"] },
+    { front: "What does 'altus' mean?", back: "High", tags: ["latin", "vocab", "adjectives"] },
+    // Verbs (1st-person singular) ---------------------------------
+    { front: "What does 'amo' mean?", back: "I love", tags: ["latin", "vocab", "verbs"] },
+    { front: "What does 'video' mean?", back: "I see", tags: ["latin", "vocab", "verbs"] },
+    { front: "What does 'audio' mean?", back: "I hear", tags: ["latin", "vocab", "verbs"] },
+    { front: "What does 'venio' mean?", back: "I come", tags: ["latin", "vocab", "verbs"] },
+    { front: "What does 'porto' mean?", back: "I carry", tags: ["latin", "vocab", "verbs"] },
+  ]);
+}
+
+async function addClassCivRapidFireCards(deckId: string): Promise<number> {
+  // Classical Civilisation — Greek and Roman myth, literature,
+  // history, and physical culture. One-word answers throughout.
+  return addRapidFireBasicCards(deckId, [
+    // Greek pantheon ---------------------------------------------
+    {
+      front: "Who is the Greek god of the sea?",
+      back: "Poseidon",
+      tags: ["classics", "greek", "myth", "gods"],
+    },
+    {
+      front: "Who is the Greek god of the underworld?",
+      back: "Hades",
+      tags: ["classics", "greek", "myth", "gods"],
+    },
+    {
+      front: "Who is the Greek god of war?",
+      back: "Ares",
+      tags: ["classics", "greek", "myth", "gods"],
+    },
+    {
+      front: "Who is the Greek goddess of wisdom?",
+      back: "Athena",
+      tags: ["classics", "greek", "myth", "gods"],
+    },
+    {
+      front: "Who is the Greek goddess of love?",
+      back: "Aphrodite",
+      tags: ["classics", "greek", "myth", "gods"],
+    },
+    {
+      front: "Who is the messenger god of Olympus?",
+      back: "Hermes",
+      tags: ["classics", "greek", "myth", "gods"],
+    },
+    {
+      front: "What mountain do the Greek gods call home?",
+      back: "Olympus",
+      tags: ["classics", "greek", "myth", "places"],
+    },
+    // Roman names for Greek gods ---------------------------------
+    {
+      front: "Roman name for Zeus?",
+      back: "Jupiter",
+      tags: ["classics", "roman", "myth", "gods"],
+    },
+    {
+      front: "Roman name for Hera?",
+      back: "Juno",
+      tags: ["classics", "roman", "myth", "gods"],
+    },
+    {
+      front: "Roman name for Aphrodite?",
+      back: "Venus",
+      tags: ["classics", "roman", "myth", "gods"],
+    },
+    {
+      front: "Roman name for Ares?",
+      back: "Mars",
+      tags: ["classics", "roman", "myth", "gods"],
+    },
+    {
+      front: "Roman name for Hermes?",
+      back: "Mercury",
+      tags: ["classics", "roman", "myth", "gods"],
+    },
+    {
+      front: "Roman name for Dionysus?",
+      back: "Bacchus",
+      tags: ["classics", "roman", "myth", "gods"],
+    },
+    // Heroes + monsters ------------------------------------------
+    {
+      front: "Who killed the Minotaur?",
+      back: "Theseus",
+      tags: ["classics", "greek", "myth", "heroes"],
+    },
+    {
+      front: "Who slew the Nemean lion as his first labour?",
+      back: "Heracles",
+      tags: ["classics", "greek", "myth", "heroes"],
+    },
+    {
+      front: "Who led the Argonauts in search of the Golden Fleece?",
+      back: "Jason",
+      tags: ["classics", "greek", "myth", "heroes"],
+    },
+    {
+      front: "Trojan-War hero best known for his rage?",
+      back: "Achilles",
+      tags: ["classics", "greek", "myth", "heroes"],
+    },
+    {
+      front: "Hero whose ten-year homecoming gives Homer's epic its name?",
+      back: "Odysseus",
+      tags: ["classics", "greek", "myth", "heroes"],
+    },
+    {
+      front: "Gorgon whose gaze turns onlookers to stone?",
+      back: "Medusa",
+      tags: ["classics", "greek", "myth", "monsters"],
+    },
+    // Literature -------------------------------------------------
+    {
+      front: "Greek poet credited with the Iliad and Odyssey?",
+      back: "Homer",
+      tags: ["classics", "greek", "literature"],
+    },
+    {
+      front: "Roman poet of the Aeneid?",
+      back: "Virgil",
+      tags: ["classics", "roman", "literature"],
+    },
+    {
+      front: "Roman lyric poet known for the Odes?",
+      back: "Horace",
+      tags: ["classics", "roman", "literature"],
+    },
+    // History ----------------------------------------------------
+    {
+      front: "Greek city-state defined by its army?",
+      back: "Sparta",
+      tags: ["classics", "greek", "history"],
+    },
+    {
+      front: "Greek city-state credited with inventing democracy?",
+      back: "Athens",
+      tags: ["classics", "greek", "history"],
+    },
+    {
+      front: "Pass where King Leonidas's force held off the Persians?",
+      back: "Thermopylae",
+      tags: ["classics", "greek", "history", "battles"],
+    },
+    {
+      front: "Legendary founder of Rome?",
+      back: "Romulus",
+      tags: ["classics", "roman", "history"],
+    },
+    {
+      front: "First Roman emperor?",
+      back: "Augustus",
+      tags: ["classics", "roman", "history"],
+    },
+    {
+      front: "Roman dictator assassinated on the Ides of March?",
+      back: "Caesar",
+      tags: ["classics", "roman", "history"],
+    },
+    {
+      front: "Carthaginian general who crossed the Alps with elephants?",
+      back: "Hannibal",
+      tags: ["classics", "roman", "history", "battles"],
+    },
+    {
+      front: "River Caesar crossed to march on Rome?",
+      back: "Rubicon",
+      tags: ["classics", "roman", "history"],
+    },
+    // Places / monuments -----------------------------------------
+    {
+      front: "Athenian temple to Athena on the Acropolis?",
+      back: "Parthenon",
+      tags: ["classics", "greek", "places"],
+    },
+    {
+      front: "Roman amphitheatre famous for gladiator games?",
+      back: "Colosseum",
+      tags: ["classics", "roman", "places"],
+    },
+  ]);
+}
+
+async function addMdrRapidFireCards(deckId: string): Promise<number> {
+  // EU MDR (2017/745) + MDSAP. Punchy, one-or-two-word answers
+  // suited for Survivors typing. Covers classification, key
+  // standards, MDSAP member agencies, and a few common acronyms.
+  return addRapidFireBasicCards(deckId, [
+    // EU MDR basics ----------------------------------------------
+    {
+      front: "Which 2017 EU regulation replaced the MDD for medical devices?",
+      back: "MDR",
+      tags: ["mdr", "regulation", "eu"],
+    },
+    {
+      front: "EU regulation that replaced the IVDD?",
+      back: "IVDR",
+      tags: ["mdr", "regulation", "eu", "ivdr"],
+    },
+    {
+      front: "Year the EU MDR (2017/745) was published?",
+      back: "2017",
+      tags: ["mdr", "regulation", "eu"],
+    },
+    {
+      front: "Year EU MDR full application took effect?",
+      back: "2021",
+      tags: ["mdr", "regulation", "eu"],
+    },
+    {
+      front: "Which conformity marking signals MDR compliance for the EU market?",
+      back: "CE",
+      tags: ["mdr", "regulation", "eu", "marking"],
+    },
+    // Classification ---------------------------------------------
+    {
+      front: "Highest-risk medical device class under EU MDR?",
+      back: "III",
+      tags: ["mdr", "classification", "risk"],
+    },
+    {
+      front: "Lowest-risk medical device class under EU MDR?",
+      back: "I",
+      tags: ["mdr", "classification", "risk"],
+    },
+    {
+      front: "Medium-low-risk class between I and IIb under EU MDR?",
+      back: "IIa",
+      tags: ["mdr", "classification", "risk"],
+    },
+    {
+      front: "Medium-high-risk class below class III under EU MDR?",
+      back: "IIb",
+      tags: ["mdr", "classification", "risk"],
+    },
+    // Key actors / roles -----------------------------------------
+    {
+      front: "Independent organisation that conducts MDR conformity assessment?",
+      back: "Notified body",
+      tags: ["mdr", "actors", "eu"],
+    },
+    {
+      front: "Acronym for the MDR-mandated regulatory compliance lead inside a manufacturer?",
+      back: "PRRC",
+      tags: ["mdr", "actors", "eu"],
+    },
+    {
+      front: "Acronym for a non-EU manufacturer's EU-based legal representative?",
+      back: "Authorised representative",
+      tags: ["mdr", "actors", "eu"],
+    },
+    {
+      front: "EU-wide medical device database mandated by MDR?",
+      back: "Eudamed",
+      tags: ["mdr", "databases", "eu"],
+    },
+    {
+      front: "MDR-mandated unique identifier each device must carry?",
+      back: "UDI",
+      tags: ["mdr", "traceability", "eu"],
+    },
+    // Post-market + safety ---------------------------------------
+    {
+      front: "Acronym for ongoing data collection on a device after market release?",
+      back: "PMS",
+      tags: ["mdr", "post-market", "eu"],
+    },
+    {
+      front: "Acronym for the periodic safety update report under MDR?",
+      back: "PSUR",
+      tags: ["mdr", "post-market", "eu"],
+    },
+    {
+      front: "EU-MDR term for the system reporting adverse incidents?",
+      back: "Vigilance",
+      tags: ["mdr", "post-market", "safety"],
+    },
+    {
+      front: "Acronym for documented investigation + fix of a quality issue?",
+      back: "CAPA",
+      tags: ["mdr", "quality", "qms"],
+    },
+    // Standards --------------------------------------------------
+    {
+      front: "ISO standard for medical device quality management systems?",
+      back: "13485",
+      tags: ["mdr", "standards", "iso"],
+    },
+    {
+      front: "ISO standard for medical device risk management?",
+      back: "14971",
+      tags: ["mdr", "standards", "iso"],
+    },
+    {
+      front: "IEC standard for medical device software lifecycle?",
+      back: "62304",
+      tags: ["mdr", "standards", "iec", "software"],
+    },
+    {
+      front: "IEC standard for medical device usability engineering?",
+      back: "62366",
+      tags: ["mdr", "standards", "iec", "usability"],
+    },
+    // MDSAP ------------------------------------------------------
+    {
+      front: "Single audit program covering FDA, Health Canada, ANVISA, TGA, and PMDA?",
+      back: "MDSAP",
+      tags: ["mdsap", "audit", "international"],
+    },
+    {
+      front: "US agency that participates in MDSAP?",
+      back: "FDA",
+      tags: ["mdsap", "audit", "usa"],
+    },
+    {
+      front: "Australian agency that participates in MDSAP?",
+      back: "TGA",
+      tags: ["mdsap", "audit", "australia"],
+    },
+    {
+      front: "Brazilian agency that participates in MDSAP?",
+      back: "ANVISA",
+      tags: ["mdsap", "audit", "brazil"],
+    },
+    {
+      front: "Japanese agency that participates in MDSAP?",
+      back: "PMDA",
+      tags: ["mdsap", "audit", "japan"],
+    },
+    {
+      front: "Core ISO standard MDSAP audits are conducted against?",
+      back: "13485",
+      tags: ["mdsap", "audit", "iso"],
+    },
+    {
+      front: "MDSAP audit cycle length in years?",
+      back: "Three",
+      tags: ["mdsap", "audit"],
+    },
+    {
+      front: "FDA premarket pathway showing substantial equivalence (acronym)?",
+      back: "510(k)",
+      tags: ["mdsap", "usa", "fda"],
+    },
+    {
+      front: "FDA premarket pathway for high-risk class III devices (acronym)?",
+      back: "PMA",
+      tags: ["mdsap", "usa", "fda"],
+    },
+    {
+      front: "21 CFR part that covered FDA's QSR (and now its QMSR)?",
+      back: "820",
+      tags: ["mdsap", "usa", "fda", "regulation"],
     },
   ]);
 }

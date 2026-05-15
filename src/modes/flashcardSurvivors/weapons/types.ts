@@ -50,6 +50,14 @@ export interface WeaponHandle {
   // "lightning travels" reveal duration; fadeMs is the lifetime after
   // the reveal finishes.
   spawnChain: (points: Vec2[], revealMs?: number, fadeMs?: number) => void;
+  // Continuous beam display for beam-style weapons (Reasoning Beam).
+  // The weapon calls this every tick while firing; the engine renders
+  // a laser line + impact sparks at the target. Intensity is 0..1 and
+  // controls the beam's thickness + brightness (so e.g. Reasoning
+  // Beam's lock-ramp can visibly intensify the beam). Beams that
+  // aren't refreshed within ~120ms auto-prune, so when the weapon
+  // stops firing the beam fades on its own.
+  setBeam: (from: Vec2, to: Vec2, intensity: number) => void;
   // Streak helper.
   streak: number;
 }

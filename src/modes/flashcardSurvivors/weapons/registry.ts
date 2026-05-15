@@ -323,6 +323,11 @@ const W: WeaponDef[] = [
       // frame or the beam target's question reshuffles ~60×/sec and
       // becomes impossible to type.
       h.dealDamage(target.id, (dps * dtMs) / 1000, { continuous: true });
+      // Visible laser beam from the player to the locked target with
+      // intensity ramping alongside the damage curve. Without this
+      // the weapon read as invisible — just a target slowly draining
+      // HP with no obvious cause.
+      h.setBeam(h.playerPos, target.pos, ramp);
     },
   },
 
