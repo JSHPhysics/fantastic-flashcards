@@ -256,29 +256,64 @@ export default function FlashcardSurvivorsSession() {
         className="absolute inset-0 h-full w-full touch-none"
       />
       <div ref={overlayRef} className="absolute inset-0 pointer-events-none">
-        {/* Card-front labels on each enemy. Pointer-events stay off so the
-            canvas keeps receiving taps (Tap Mode). */}
-        {enemies.map((e) => (
-          <div
-            key={e.id}
-            // Position is set inline because it changes every frame; the
-            // visual styling sits in className so the label adopts the
-            // theme palette. maxWidth uses `min()` so on phones the
-            // label can't exceed 55% of viewport (avoids two adjacent
-            // labels overlapping into illegible chaos), while on iPad /
-            // desktop it stretches to a comfortable 240px.
-            style={{
-              position: "absolute",
-              left: e.pos.x,
-              top: e.pos.y + e.size * 0.5 + 6,
-              transform: "translate(-50%, 0)",
-              maxWidth: "min(240px, 55vw)",
-            }}
-            className="pointer-events-none whitespace-normal break-words rounded px-1.5 py-0.5 text-center text-[11px] leading-tight bg-surface/85 text-ink-900 shadow-sm dark:text-dark-ink"
-          >
-            {e.front}
-          </div>
-        ))}
+        {/* Card-front labels on each enemy. In Keyboard mode they stay
+            non-interactive so the canvas keeps receiving taps. In Tap
+            mode the label itself is a tap target — students were
+            tapping the text and nothing happened because pickEnemyAt
+            only hits the shape's hit-circle and the label sits just
+            below it. Selecting via the label calls selectTarget(id)
+            directly; no need to round-trip through pickEnemyAt. */}
+        {enemies.map((e) => {
+          const tapMode = runConfig?.inputMode === "tap";
+          return (
+            <div
+              key={e.id}
+              // Position is set inline because it changes every frame;
+              // the visual styling sits in className so the label
+              // adopts the theme palette. maxWidth uses `min()` so on
+              // phones the label can't exceed 55% of viewport (avoids
+              // two adjacent labels overlapping into illegible chaos),
+              // while on iPad / desktop it stretches to a comfortable
+              // 240px.
+              style={{
+                position: "absolute",
+                left: e.pos.x,
+                top: e.pos.y + e.size * 0.5 + 6,
+                transform: "translate(-50%, 0)",
+                maxWidth: "min(240px, 55vw)",
+              }}
+              // In tap mode we enable pointer events on this label and
+              // wire onPointerDown to selectTarget; in keyboard mode
+              // we revert to the pass-through behaviour so clicks fall
+              // to the typing-input refocus listener.
+              onPointerDown={
+                tapMode
+                  ? (ev) => {
+                      // The canvas's handler doesn't fire for events
+                      // whose target is the label (canvas isn't an
+                      // ancestor of the overlay), so propagation isn't
+                      // strictly an issue today — but stopPropagation
+                      // is cheap defence in case the DOM tree is later
+                      // restructured to put the canvas above the
+                      // overlay. Without it, the canvas would run
+                      // pickEnemyAt against the label's coords (below
+                      // the shape's hit radius) and immediately
+                      // deselect what we just picked.
+                      ev.stopPropagation();
+                      if (inputRef.current?.id === "tap") {
+                        (inputRef.current as TapInput).selectTarget(e.id);
+                      }
+                    }
+                  : undefined
+              }
+              className={`whitespace-normal break-words rounded px-1.5 py-0.5 text-center text-[11px] leading-tight bg-surface/85 text-ink-900 shadow-sm dark:text-dark-ink ${
+                tapMode ? "pointer-events-auto cursor-pointer" : "pointer-events-none"
+              }`}
+            >
+              {e.front}
+            </div>
+          );
+        })}
       </div>
 
       {engineRef.current && (
