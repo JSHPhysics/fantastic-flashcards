@@ -330,10 +330,12 @@ export default function FlashcardSurvivorsSession() {
         <TapChoiceTray engine={engineRef.current} input={inputRef.current as TapInput} />
       )}
 
-      {levelUp && engineRef.current && (
+      {levelUp && engineRef.current && latestPlayer && (
         <LevelUpModal
           engine={engineRef.current}
           choices={levelUp}
+          player={latestPlayer}
+          weapons={latestWeapons}
           onClose={() => setLevelUp(null)}
         />
       )}
