@@ -50,6 +50,12 @@ export interface Enemy {
   // Cloud) lands on the corpse and re-kills it. Cleared with the enemy
   // when pruneDead() runs at end-of-tick.
   killed?: boolean;
+  // Stable visual stacking order. Assigned monotonically at spawn so
+  // overlapping enemies don't swap z-priority as they drift toward the
+  // centre — the student isn't trying to tap a label that just slid
+  // under another. The selected enemy is hoisted above all others at
+  // render/hit-test time without mutating this field.
+  zIndex: number;
 }
 
 export type ProjectileKind = "kinetic" | "energy" | "summon";

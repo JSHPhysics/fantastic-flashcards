@@ -97,6 +97,13 @@ export class GameEngine {
   private rerollsRemainingThisLevelUp = 0;
   private innerZoneDamageMult = 1;
   private spawnedSelectedSet = new Set<string>(); // card ids seen in run
+  // Monotonically increasing counter — each spawned enemy gets the next
+  // value so overlapping enemies have a stable paint / hit-test order
+  // (newest spawn drawn on top, never swapping mid-flight). Never
+  // resets within a run; even after pruneDead() removes entries the
+  // counter keeps climbing so a freshly-spawned enemy still outranks
+  // every survivor.
+  private enemyZCounter = 0;
   // Selected-target visual ring (Tap Mode).
   private selectedEnemyId: string | null = null;
   // Throttled HUD broadcast — we don't want to re-render the React HUD
@@ -332,13 +339,27 @@ export class GameEngine {
   findEnemy(id: string): Enemy | null {
     return this.enemies.find((e) => e.id === id) ?? null;
   }
+  // Effective z-priority for paint / hit-test / overlay-label stacking.
+  // Selected enemy floats above all others; everything else uses its
+  // spawn-order zIndex. Pure read — never mutates the underlying field
+  // — so deselecting (or killing the selected enemy) drops the enemy
+  // back to its natural spawn-order slot.
+  private effectiveZ(e: Enemy): number {
+    return this.selectedEnemyId === e.id ? Number.POSITIVE_INFINITY : e.zIndex;
+  }
   broadcastTapChoices(enemyId: string, choices: string[]): void {
     this.selectedEnemyId = enemyId;
     this.emit({ type: "tapChoices", targetId: enemyId, choices });
+    // Re-broadcast the enemy view so the React label layer re-stacks
+    // immediately with the selected enemy on top — without this we'd
+    // wait up to a tick (~16ms) for the next natural broadcast, and the
+    // newly-selected label could briefly sit under an overlapping one.
+    this.broadcastEnemyView();
   }
   broadcastTapCleared(): void {
     this.selectedEnemyId = null;
     this.emit({ type: "tapCleared" });
+    this.broadcastEnemyView();
   }
 
   // High-HP enemies got dull: the student would just retype the same
@@ -380,31 +401,31 @@ export class GameEngine {
   //      prefer the one whose CENTRE is closest to the tap point.
   //      Tapping near a specific enemy's middle reliably picks that
   //      enemy even if another's bounding circle technically overlaps.
-  //   2. Tie-break by draw order — the later-drawn enemy (visually on
-  //      top per Canvas's painter's algorithm) wins.
-  // The previous reverse-iteration-only approach occasionally picked
-  // the wrong enemy when two of different sizes overlapped: the larger
-  // enemy's bounding circle covered space far from its centre, and a
-  // tap landing in that fringe got bound to it even when a smaller
-  // enemy was visually right under the finger.
+  //   2. Tie-break by effective z-priority — the visually-on-top enemy
+  //      wins, matching what the user sees. Selected enemy always wins
+  //      on ties (effectiveZ returns Infinity); otherwise newer-spawn
+  //      wins. This must match the draw / overlay-label ordering so a
+  //      tap on a visible label can't be stolen by a card behind it.
+  // The previous "later index in this.enemies" tie-break used the
+  // distance-to-centre sort, which flipped as overlapping enemies
+  // drifted past each other — the question under the finger swapped
+  // mid-thought.
   pickEnemyAt(canvasX: number, canvasY: number): Enemy | null {
     const x = canvasX - this.centreX;
     const y = canvasY - this.centreY;
     let best: Enemy | null = null;
     let bestDist = Infinity;
-    let bestIdx = -1;
-    for (let i = 0; i < this.enemies.length; i += 1) {
-      const e = this.enemies[i];
+    let bestZ = Number.NEGATIVE_INFINITY;
+    for (const e of this.enemies) {
       const dx = x - e.pos.x;
       const dy = y - e.pos.y;
       const dist = Math.hypot(dx, dy);
       if (dist > e.size * 0.55) continue; // outside hit radius
-      // Strictly closer wins; equal distances fall to the topmost
-      // (later-drawn = higher index).
-      if (dist < bestDist || (dist === bestDist && i > bestIdx)) {
+      const z = this.effectiveZ(e);
+      if (dist < bestDist || (dist === bestDist && z > bestZ)) {
         best = e;
         bestDist = dist;
-        bestIdx = i;
+        bestZ = z;
       }
     }
     return best;
@@ -575,8 +596,14 @@ export class GameEngine {
         ctx.fill();
       }
     }
-    // Enemies.
-    for (const e of this.enemies) {
+    // Enemies — painted by stable z-priority so overlapping cards don't
+    // swap on top of each other as they drift (this.enemies is sorted
+    // by distance-to-centre for weapon targeting; using that order for
+    // paint would flip the question under the player's finger).
+    const paintOrder = this.enemies
+      .slice()
+      .sort((a, b) => this.effectiveZ(a) - this.effectiveZ(b));
+    for (const e of paintOrder) {
       this.drawEnemy(e);
     }
     // Projectiles — bigger + ink body + kind-tinted halo + 2 trailing
@@ -880,6 +907,7 @@ export class GameEngine {
       seenThisRun: this.spawnedSelectedSet.has(card.id),
       elite: isElite,
       spawnedAt: this.now,
+      zIndex: ++this.enemyZCounter,
     });
     this.nextSpawnAt = this.now + spawnIntervalAt(this.difficulty, this.now);
   }
@@ -1344,7 +1372,14 @@ export class GameEngine {
     this.emit({ type: "stats", player: { ...this.player }, weapons: this.weapons.map((w) => ({ ...w, state: { ...w.state } })) });
   }
   private broadcastEnemyView(): void {
-    const visible: EnemyView[] = this.enemies.map((e) => ({
+    // Emit in paint order (ascending z) so React's overlay labels stack
+    // in document order matching the canvas — later DOM siblings sit on
+    // top, so the highest-z label is the topmost. Without this, labels
+    // could visually contradict the shapes underneath them.
+    const ordered = this.enemies
+      .slice()
+      .sort((a, b) => this.effectiveZ(a) - this.effectiveZ(b));
+    const visible: EnemyView[] = ordered.map((e) => ({
       id: e.id,
       pos: { x: e.pos.x + this.centreX, y: e.pos.y + this.centreY },
       size: e.size,
