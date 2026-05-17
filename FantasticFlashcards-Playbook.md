@@ -439,7 +439,13 @@ Adapted from the Revision Tracker. All gamification state lives in
   that card today.
 - +5 deck-complete bonus, once per deck per day, awarded when a standard
   session reaches the end of its queue.
-- Daily cap: 25 coins/day total. Prevents cramming-as-grinding.
+- +5 daily-backup bonus, once per local calendar day, awarded on the first
+  successful export-backup. Sits **outside** the 25-coin cap so a heavy
+  review day can't strand the reward — backing up isn't grindable (one
+  bonus per day max), and the goal is to make the daily backup habit
+  reliably rewarding.
+- Daily cap: 25 coins/day total for review-derived earnings. Prevents
+  cramming-as-grinding. The daily-backup bonus is the one exception.
 - Coins are spent in the theme/font shop and never go negative
   (`spendCoins` is atomic).
 

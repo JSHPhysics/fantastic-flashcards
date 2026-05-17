@@ -56,7 +56,11 @@ export interface CoinDayBucket {
   cardIds: string[]; // dedup: each card earns at most one base coin per day
   firstCorrectCardIds: string[]; // dedup: bonus for first-attempt correct
   deckCompletions: string[]; // dedup: bonus for clearing a deck's due cards
-  total: number; // total coins awarded today (cap at 25)
+  total: number; // review-derived coins awarded today (cap at 25)
+  // True once the first export-backup of the day has earned its +5 bonus.
+  // Sits outside the 25-coin review cap because a single daily backup isn't
+  // grindable and shouldn't be undermined by a heavy review day.
+  backupAwarded?: boolean;
 }
 
 export interface Profile {

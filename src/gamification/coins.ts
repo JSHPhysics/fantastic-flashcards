@@ -20,6 +20,9 @@ export const DAILY_COIN_CAP = 25;
 export const BASE_COIN_PER_CARD = 1;
 export const CORRECT_FIRST_BONUS = 1;
 export const DECK_COMPLETE_BONUS = 5;
+// Once-per-local-day bonus for the first export-backup. Sits outside the
+// review cap so a heavy study day can't strand the reward.
+export const DAILY_BACKUP_BONUS = 5;
 
 export interface AwardResult {
   awarded: number; // coins added on this call (after cap)
@@ -180,6 +183,63 @@ export async function awardDeckCompleteBonus(deckId: string, now: Date = new Dat
   if (!result) return { awarded: 0, balance: 0, reachedCap: false };
   if (result.awarded > 0) await bumpVersion("deck-complete bonus");
   return result;
+}
+
+// One +5 bonus per local day for the first export-backup. Sits outside the
+// 25-coin review cap (so a heavy review day can't strand the reward) and
+// deliberately does NOT bumpVersion: the backup nudge watches lastChangeAt
+// vs lastBackupAt and we don't want a backup-driven coin award to flip the
+// inequality and re-fire the "time to back up" prompt the moment we finish.
+// Caller is responsible for calling markBackupSaved() after this so
+// lastBackupAt sits at end-of-operation.
+export async function awardDailyBackupBonus(now: Date = new Date()): Promise<AwardResult> {
+  const today = localDateString(now);
+  const result = await withProfileSettings((settings) => {
+    const bucket = todayBucket(settings.coinsToday, today);
+    if (bucket.backupAwarded) {
+      // Already earned today's backup bonus — write back the (possibly-reset)
+      // bucket so a date-rollover takes effect, but award nothing.
+      return {
+        next: { ...settings, coinsToday: bucket },
+        result: {
+          awarded: 0,
+          balance: settings.coins ?? 0,
+          reachedCap: bucket.total >= DAILY_COIN_CAP,
+        } satisfies AwardResult,
+      };
+    }
+    bucket.backupAwarded = true;
+    // Award sits outside the cap; we don't touch bucket.total so review-side
+    // "coins remaining today" math is unaffected.
+    const balance = (settings.coins ?? 0) + DAILY_BACKUP_BONUS;
+    return {
+      next: {
+        ...settings,
+        coins: balance,
+        coinsToday: bucket,
+      },
+      result: {
+        awarded: DAILY_BACKUP_BONUS,
+        balance,
+        reachedCap: bucket.total >= DAILY_COIN_CAP,
+      } satisfies AwardResult,
+    };
+  });
+  // Intentionally no bumpVersion — see header comment.
+  return result ?? { awarded: 0, balance: 0, reachedCap: false };
+}
+
+// True once today's first-backup bonus has been awarded. Used by the UI to
+// show "earn 5 coins" vs "+5 earned today" copy without spamming the toast.
+export function hasEarnedBackupBonusToday(
+  settings: import("../db/types").ProfileSettings | undefined,
+  now: Date = new Date(),
+): boolean {
+  if (!settings?.coinsToday) return false;
+  return (
+    settings.coinsToday.date === localDateString(now) &&
+    settings.coinsToday.backupAwarded === true
+  );
 }
 
 // Spend coins (theme purchases etc.). Returns success/failure atomically

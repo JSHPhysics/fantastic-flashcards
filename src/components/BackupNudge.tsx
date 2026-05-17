@@ -8,6 +8,10 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useProfile } from "../db";
+import {
+  DAILY_BACKUP_BONUS,
+  hasEarnedBackupBonusToday,
+} from "../gamification/coins";
 
 const TWENTY_HOURS_MS = 20 * 60 * 60 * 1000;
 
@@ -26,6 +30,11 @@ export function BackupNudge() {
   );
   if (!shouldShow) return null;
 
+  // Only dangle the +5 incentive when it's actually claimable today. Once
+  // the student has earned it, the nudge falls back to the plain reminder
+  // so we're not implying they can earn more for the same day.
+  const canEarnBackupBonus = !hasEarnedBackupBonusToday(profile.settings);
+
   return (
     <div
       role="status"
@@ -42,7 +51,10 @@ export function BackupNudge() {
           Time to back up
         </p>
         <p className="text-xs text-ink-500 dark:text-ink-300">
-          Save a copy of your decks so you can restore them on another device.
+          Save a copy of your decks so you can restore them on another device
+          {canEarnBackupBonus
+            ? ` · earn ${DAILY_BACKUP_BONUS} coins today.`
+            : "."}
         </p>
       </div>
       <Link

@@ -3,6 +3,10 @@ import { useProfile } from "../db";
 import { Button } from "./Button";
 import { Dialog } from "./Dialog";
 import type { BackupPreview } from "../backup/importBackup";
+import {
+  DAILY_BACKUP_BONUS,
+  hasEarnedBackupBonusToday,
+} from "../gamification/coins";
 
 // fflate + the backup helpers are heavy (~40 KB raw) and only run when the
 // user actually clicks Export or Import. Dynamic-importing keeps them out
@@ -30,6 +34,9 @@ export function BackupSection() {
 
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
+  // Last successful export's positive message — coin bonus if earned, or a
+  // "saved" confirmation otherwise. Cleared when a new export starts.
+  const [exportSuccess, setExportSuccess] = useState<string | null>(null);
 
   const [importPreview, setImportPreview] = useState<BackupPreview | null>(null);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
@@ -41,15 +48,22 @@ export function BackupSection() {
   const lastChangeAt = profile?.lastChangeAt ?? 0;
   const hasUnsavedChanges =
     lastChangeAt > lastBackupAt && lastBackupAt > 0;
+  const earnedBackupBonusToday = hasEarnedBackupBonusToday(profile?.settings);
 
   const handleExport = async () => {
     setExporting(true);
     setExportError(null);
+    setExportSuccess(null);
     try {
       const exporter = await loadExporter();
-      const blob = await exporter.exportBackup(__APP_VERSION__);
+      const { blob, coinBonus } = await exporter.exportBackup(__APP_VERSION__);
       const filename = exporter.defaultBackupFilename(profile?.version ?? 0);
       await exporter.offerBackupBlob(blob, filename);
+      setExportSuccess(
+        coinBonus.awarded > 0
+          ? `Backup saved · +${coinBonus.awarded} coins`
+          : "Backup saved",
+      );
     } catch (err) {
       setExportError(err instanceof Error ? err.message : "Backup failed");
     } finally {
@@ -119,6 +133,14 @@ export function BackupSection() {
               <span className="ml-1 text-hard">· changes since</span>
             )}
           </p>
+          {/* Daily-bonus chip. Pre-earn: gentle nudge with the amount.
+              Post-earn: confirmation so the student knows it's banked
+              already and doesn't keep tapping Export hoping for more. */}
+          <p className="mt-1 text-xs text-ink-500 dark:text-ink-300">
+            {earnedBackupBonusToday
+              ? `+${DAILY_BACKUP_BONUS} coins earned for today's backup`
+              : `Earn ${DAILY_BACKUP_BONUS} coins for today's first backup`}
+          </p>
         </div>
         <div className="flex flex-wrap justify-start gap-2 sm:justify-end">
           <Button onClick={handleExport} disabled={exporting}>
@@ -154,6 +176,9 @@ export function BackupSection() {
         <p role="alert" className="mt-2 text-xs text-again">
           {exportError}
         </p>
+      )}
+      {exportSuccess && (
+        <p className="mt-2 text-xs text-good">{exportSuccess}</p>
       )}
       {importError && (
         <p role="alert" className="mt-2 text-xs text-again">

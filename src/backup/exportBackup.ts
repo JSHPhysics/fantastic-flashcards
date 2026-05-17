@@ -11,11 +11,21 @@
 import { zip } from "fflate";
 import { db } from "../db/schema";
 import { markBackupSaved } from "../db/profile";
+import { awardDailyBackupBonus } from "../gamification/coins";
+import type { AwardResult } from "../gamification/coins";
 import {
   BACKUP_SCHEMA_VERSION,
   extensionForMime,
   type BackupManifest,
 } from "./format";
+
+export interface ExportResult {
+  blob: Blob;
+  // First successful export-backup of each local day earns +5 coins.
+  // `awarded === 0` on subsequent same-day exports; UI uses this to switch
+  // success-toast copy.
+  coinBonus: AwardResult;
+}
 
 const encoder = new TextEncoder();
 
@@ -26,7 +36,7 @@ function jsonEntry(value: unknown): Uint8Array {
 export async function exportBackup(
   appVersion: string,
   options: { now?: Date } = {},
-): Promise<Blob> {
+): Promise<ExportResult> {
   const now = options.now ?? new Date();
 
   const [profile, decks, cards, reviews, sessions, media, survivorRuns, survivorStats, survivorMastery] =
@@ -94,9 +104,24 @@ export async function exportBackup(
     });
   });
 
+  // Order matters: award the daily-backup bonus BEFORE markBackupSaved so the
+  // award (which intentionally does not bumpVersion) doesn't move
+  // lastChangeAt after lastBackupAt and re-fire the "time to back up" nudge.
+  // A coin-award failure shouldn't fail the backup itself — the file is
+  // already built — so we swallow errors here. The user keeps the backup;
+  // they just don't earn coins on this attempt.
+  let coinBonus: AwardResult;
+  try {
+    coinBonus = await awardDailyBackupBonus(now);
+  } catch {
+    coinBonus = { awarded: 0, balance: 0, reachedCap: false };
+  }
   await markBackupSaved();
 
-  return new Blob([zipped as BlobPart], { type: "application/zip" });
+  return {
+    blob: new Blob([zipped as BlobPart], { type: "application/zip" }),
+    coinBonus,
+  };
 }
 
 // File name per Playbook section 13. ISO-ish so they sort lexicographically.
