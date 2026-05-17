@@ -354,12 +354,17 @@ function StorageInfo() {
 }
 
 function AboutCard() {
+  // Branch + short SHA on one line — handy on a phone screen where every
+  // row of vertical space matters, and the pair together is what you
+  // compare against the latest commit when checking if a deploy went out.
+  const buildLabel = `${__GIT_BRANCH__} · ${__GIT_SHA__}`;
   return (
     <div className="card-surface p-6 text-sm text-ink-700 dark:text-ink-300">
       <p className="font-medium text-ink-900 dark:text-dark-ink">About</p>
       <dl className="mt-2 grid gap-1">
         <Row label="App version" value={__APP_VERSION__} />
-        <Row label="Build date" value={__BUILD_DATE__} />
+        <Row label="Build" value={buildLabel} />
+        <Row label="Built" value={__BUILD_TIME__} />
       </dl>
       <p className="mt-2 text-xs">
         Built by Joshua Stafford-Haworth (JSHPhysics). Source on GitHub.
